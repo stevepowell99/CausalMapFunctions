@@ -1,0 +1,18 @@
+Package: CausalMapFunctions
+Type: Package
+Title: Functions for Causal Mapping
+Version: 0.1.0
+Author: Steve Powell
+Maintainer: Steve Powell <steve@pogol.net>
+Description: More about what it does (maybe more than one line)
+    Use four spaces when indenting paragraphs within the Description.
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+Imports:
+    tidygraph,
+    igraph,
+    tidyverse,
+    glue,
+    chroma,
+    visNetwork
