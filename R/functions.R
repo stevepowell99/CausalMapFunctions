@@ -377,6 +377,9 @@ parse_commands <- function(graf,tex){
                           char <- str_match(line,"^zoom [0-9]* (.*)")[,2] %>% replace_na(";") %>% str_remove(" *hide$")
                           hide <- str_detect(line,"hide *$") %>% replace_na(F)
                           graf <- graf %>% zoom(one,char,hide)
+                      } else if(str_detect(line,"^bundle")) {
+                          one <- str_match(line,"^bundle (.*)")[,2]%>% replace_na(NULL)
+                          graf <- graf %>% add_collapse_edges(one)
                         } else
 
       # browser()
@@ -415,7 +418,7 @@ parse_commands <- function(graf,tex){
         if(str_detect(line,"^ *links")) {
 
 
-          graf <- graf %>% add_collapse_edges()### IS THIS THE BEST WAY??
+          # graf <- graf %>% add_collapse_edges()### IS THIS THE BEST WAY??
 
 
           hit <- str_match(line,"^ *links *(.*)")[,2] %>% str_trim %>% replace_na("")
@@ -515,22 +518,31 @@ add_metrics <- function(graf){
 
 zero_to_one <- function(vec)(vec-min(vec,na.rm=T))/(max(vec,na.rm=T)-min(vec,na.rm=T))
 
-add_collapse_edges <- function(graf){
+add_collapse_edges <- function(graf,col=NULL){
   nodes <- factor_table(graf)
   if(nrow(nodes)==0) return(NULL)
+  if(!is.null(col)){
+    if(col %notin% link_colnames(graf)) return(graf)
+  edges <- graf %>% activate(edges) %>%
+    as_tibble %>%
+    group_by(from,to,UQ(sym(col))) %>%
+    mutate(rn=row_number())
+
+  } else
   edges <- graf %>% activate(edges) %>%
     as_tibble %>%
     group_by(from,to) %>%
     mutate(rn=row_number())
 
-  if("n" %in% link_colnames(graf))  edges <- edges %>%
+  if("n" %in% link_colnames(graf))  {edges <- edges %>%
     mutate(n=sum(n,na.rm=T)) %>%
-    filter(rn==1) else edges <- edges %>%
+    filter(rn==1)
+  } else {edges <- edges %>%
     mutate(n=n()) %>%
     filter(rn==1)
+}
 
-
-  tbl_graph(nodes,edges)
+  tbl_graph(nodes,edges %>% ungroup)
 
 }
 make_vn <- function(graf,scale=1){

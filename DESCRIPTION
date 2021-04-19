@@ -9,7 +9,7 @@ Description: More about what it does (maybe more than one line)
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
-Imports:
+Depends:
     tidygraph,
     igraph,
     tidyverse,
