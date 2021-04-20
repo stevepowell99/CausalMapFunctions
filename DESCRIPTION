@@ -4,8 +4,8 @@ Title: Functions for Causal Mapping
 Version: 0.1.0
 Author: Steve Powell
 Maintainer: Steve Powell <steve@pogol.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
+Description: A set of functions for manipulating and simplifying causal maps. These functions are used in the Causal Map Viewer (https://causalmap.shinyapps.io/CausalMapViewer/) and are similar to those used in the Causal Map app(http://causalmap.app). 
+    In our roadmap, these functions will eventually replace their counterparts in the Causal Map app. 
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
@@ -15,4 +15,7 @@ Depends:
     tidyverse,
     glue,
     chroma,
-    visNetwork
+Suggests:
+    visNetwork,
+    DiagrammeR
+    
