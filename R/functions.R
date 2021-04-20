@@ -815,7 +815,7 @@ simplify_unicode <- function(texvec){
     str_replace_all("\u2019","'") %>%
     str_replace_all("\u0090","'") %>%
     str_replace_all("\U0090","'") %>%
-    str_replace_all("\UFFFD","") %>%    #that is the weird � character
+    #str_replace_all("\UFFFD","") %>%    #that is the weird � character
     str_replace_all("\xc9v","")
 }
 

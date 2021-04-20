@@ -9,7 +9,7 @@ Description: A set of functions for manipulating and simplifying causal maps. Th
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
-Depends:
+Imports:
     tidygraph,
     igraph,
     tidyverse,
