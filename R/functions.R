@@ -86,16 +86,165 @@ factor_table <- function(graf)graf %>%
   activate(nodes) %>% as_tibble
 
 
+
+
+parse_commands <- function(graf,tex){
+  tex <- tex %>% replace_null("") %>% str_split("\n") %>% `[[`(1) %>% str_trim() %>% escapeRegex
+  if(length(tex)>1)tex <- tex %>% keep(.!="")
+  if(tex[[1]]=="") graf <- graf else {
+
+    for(line in tex){
+      if(str_trim(line)=="")return()
+
+
+      if(str_detect(line,"^find")) {
+        up <- str_match(line," up *([0-9]*)")[,2] %>% str_trim %>% replace_na(0) %>% as.numeric
+        down <- str_match(line," down *([0-9]*)")[,2] %>% str_trim %>% replace_na(0) %>% as.numeric
+        one <- str_remove(line,"up *[0-9]*.*$") %>% str_remove("down *[0-9]*.*$") %>% str_remove("^ *find *") %>% str_trim
+        # len <- str_match(line," up ([0-9]*)")[,2] %>% replace_na(1) %>% as.numeric
+        graf <- graf %>% find_string(one,up,down)
+      } else
+        if(str_detect(line,"^trace")) {
+          length <- str_match(line,"trace *([0-9]*)")[,2] %>% str_trim %>% replace_na(0) %>% as.numeric
+          to <- str_match(line," to (.*)")[,2] %>% str_trim %>% replace_na("")
+          from <- (str_remove(line," to .*$") %>% str_match("from *(.*)"))[,2] %>% str_trim %>% replace_na("")
+          graf <- graf %>% add_trace(from,to,length)
+        } else
+          if(str_detect(line,"^filter links") & str_detect(line,"%")) {
+            one <- str_match(line,"^filter links ([0-9]*)")[,2]%>% replace_na(0) %>% as.numeric %>% `/`(100)
+            graf <- graf %>% filter_n_links(one,is_proportion=T)
+          } else
+            if(str_detect(line,"^filter links ")) {
+              one <- str_match(line,"^filter links ([^ ]*)")[,2]%>% replace_na(0) %>% as.numeric
+              graf <- graf %>% filter_n_links(one)
+            } else
+              if(str_detect(line,"^filter factors") & str_detect(line,"%")) {
+                one <- str_match(line,"^filter factors ([0-9]*)")[,2]%>% replace_na(0) %>% as.numeric %>% `/`(100)
+                graf <- graf %>% filter_n_factors(one,is_proportion=T)
+              } else
+                if(str_detect(line,"^filter factors ")) {
+                  one <- str_match(line,"^filter factors ([^ ]*)")[,2]%>% replace_na(0) %>% as.numeric
+                  graf <- graf %>% filter_n_factors(one)
+                } else
+                  if(str_detect(line,"^remove")) graf <- graf %>% remove_isolated else
+                    if(str_detect(line,"^shrink")) {
+                      what <- str_match(line,"^shrink (.*)")[,2]%>% replace_na("")
+                      graf <- graf %>% shrink(what)
+                    } else
+                      if(str_detect(line,"^hide")) {
+                        one <- str_match(line,"^hide (.*)")[,2]%>% replace_na("")
+                        graf <- graf %>% hide_factors(one)
+                      } else
+                        if(str_detect(line,"^zoom")) {
+                          one <- str_match(line,"^zoom ([0-9]*)")[,2]%>% replace_na(0)
+                          char <- str_match(line,"^zoom [0-9]* (.*)")[,2] %>% replace_na(";") %>% str_remove(" *hide$")
+                          hide <- str_detect(line,"hide *$") %>% replace_na(F)
+                          graf <- graf %>% zoom(one,char,hide)
+                        } else if(str_detect(line,"^bundle")) {
+                          # browser()
+                          one <- str_match(line,"^bundle (.*)")[,2]
+                          if(is.na(one))one <- NULL
+                          graf <- graf %>% add_bundle_edges(one)
+                        } else
+
+                          # browser()
+                          if(str_detect(line,"^ *factors")) {
+                            graf <- graf %>% add_metrics()### IS THIS THE BEST WAY??
+
+
+
+                            hit <- str_match(line,"^ *factors *(.*)")[,2] %>% str_trim %>% replace_na("")
+
+                            if(str_detect(hit,"^ *colou?rborder")) {
+                              val <- str_match(hit," *colou?rborder *(.*)")[,2] %>% str_trim %>% replace_na("")
+                              # if(val %in% factor_colnames(graf)){
+                              if(val %in% factor_colnames(graf))graf <-
+                                  graf %N>% add_factor_color_border(val)
+
+                              # }
+                            } else
+                              if(str_detect(hit,"^ *label")) {
+                                val <- str_match(hit," *label *(.*)")[,2] %>% str_trim %>% replace_na("")
+                                if(val %in% factor_colnames(graf))graf <-
+                                    graf %N>% add_factor_label(val)
+
+                                # }
+                              } else
+                                if(str_detect(hit,"^ *colou?r")) {
+                                  val <- str_match(hit," *colou?r *(.*)")[,2] %>% str_trim %>% replace_na("")
+                                  # if(val %in% factor_colnames(graf)){
+                                  if(val %in% factor_colnames(graf))graf <-
+                                      graf %N>% add_factor_color_background(val)
+
+                                  # }
+                                }
+                          }
+                  else
+                    if(str_detect(line,"^ *links")) {
+
+
+                      # graf <- graf %>% add_bundle_edges()### IS THIS THE BEST WAY??
+
+
+                      hit <- str_match(line,"^ *links *(.*)")[,2] %>% str_trim %>% replace_na("")
+
+                      if(str_detect(hit,"^ *label")) {
+                        val <- str_match(hit," *label *(.*)")[,2] %>% str_trim %>% replace_na("")
+                        # if(val %in% link_colnames(graf)){
+                        # browser()
+                        if(val %in% link_colnames(graf)) graf <-
+                            graf %E>% add_edge_label(val)
+
+                        # }
+                      } else
+                        if(str_detect(hit,"^ *colou?r")) {
+                          val <- str_match(hit," *colou?r *(.*)")[,2] %>% str_trim %>% replace_na("")
+                          # if(val %in% link_colnames(graf)){
+                          # browser()
+                          if(val %in% link_colnames(graf)) graf <-
+
+                              graf %E>% add_edge_color(val)
+
+                          # }
+                        } else
+                          if(str_detect(hit,"^ *alpha")) {
+                            val <- str_match(hit," *alpha *(.*)")[,2] %>% str_trim %>% replace_na("")
+                            # if(val %in% link_colnames(graf)){
+                            if("color" %notin% link_colnames(graf)) graf <- graf %E>% mutate(color="blue") %>% activate(nodes)
+                            # browser()
+                            if(val %in% link_colnames(graf)) graf <-
+                                graf %E>% add_edge_alpha(val)
+
+
+                            # }
+                          }
+                    }
+    }
+  }
+  graf
+}
+add_filters <- parse_commands #alias
+
+
 # main graph functions ----------------------------------------------------
 
 
-filter_links <- function(graf,field,value,all=F){
-  graf %>% activate(edges) %>% filter(UQ(sym(field)) %in% value) %>% activate(edges)
+filter_things <- function(graf,field,value,operator="=",what){
+  # browser()
+  if(what=="links") graf <- graf %>% activate(edges) else graf <- graf %>% activate(nodes)
+
+  if(operator=="=") graf %>%
+    filter(UQ(sym(field)) %in% value) %>% activate(nodes)
+  else if(operator=="contains") {
+    value <- str_replace_all(value," OR ","|") %>% str_trim
+  graf %>%
+    filter(str_detect(tolower(UQ(sym(field))),tolower(escapeRegex(value)))) %>% activate(nodes)
 }
 
-filter_factors <- function(graf,field,value,all=F){
-  graf %>% activate(nodes) %>% filter(UQ(sym(field)) %in% value)
 }
+
+filter_factors <- function(...){filter_things(what="factors",...)}
+filter_links <- function(...){filter_things(what="links",...)}
 
 
 filter_n_links <- function(graf,n_,all=F,is_proportion=F){
@@ -459,159 +608,6 @@ add_edge_label <- function(graf,val="n"){
   graf %E>% mutate(label=paste0(label %>% keep(.!=""),". ",val,": ",UQ(sym(val)))) %>% activate(nodes)
 }
 
-# misc --------------------------------------------------------------------
-vn_fan_edges <- function(edges){
-  edges %>%
-    mutate(a=ifelse(from>to,from,to),b=ifelse(from>to,to,from)) %>%
-    unite(smooth_index,a,b,remove=F) %>%  # need to cope with arrows coming the other way as well
-    group_by(smooth_index) %>%
-    mutate(smooth.type = "continuous") %>%   #'straightCross  dynamic', 'continuous', 'discrete', 'diagonalCross', 'straightCross', 'horizontal', 'vertical', 'curlinksCW', 'curlinksCCW', 'cubicBezier'.
-    mutate(n=n(),rounded=n>1 ,smooth.roundness = ifelse(rounded,rnorm(n,0,.2),0)) %>% #%>% pmin(ifelse(input$bundle_links,0,.9)))  %>%
-    mutate(smooth.enabled = rounded) %>%
-    ungroup()
-
-}
-
-
-
-
-parse_commands <- function(graf,tex){
-  tex <- tex %>% replace_null("") %>% str_split("\n") %>% `[[`(1) %>% str_trim() %>% escapeRegex
-  if(length(tex)>1)tex <- tex %>% keep(.!="")
-  if(tex[[1]]=="") graf <- graf else {
-
-    for(line in tex){
-      if(str_trim(line)=="")return()
-
-
-      if(str_detect(line,"^find")) {
-        up <- str_match(line," up *([0-9]*)")[,2] %>% str_trim %>% replace_na(0) %>% as.numeric
-        down <- str_match(line," down *([0-9]*)")[,2] %>% str_trim %>% replace_na(0) %>% as.numeric
-        one <- str_remove(line,"up *[0-9]*.*$") %>% str_remove("down *[0-9]*.*$") %>% str_remove("^ *find *") %>% str_trim
-        # len <- str_match(line," up ([0-9]*)")[,2] %>% replace_na(1) %>% as.numeric
-        graf <- graf %>% find_string(one,up,down)
-      } else
-        if(str_detect(line,"^trace")) {
-          length <- str_match(line,"trace *([0-9]*)")[,2] %>% str_trim %>% replace_na(0) %>% as.numeric
-          to <- str_match(line," to (.*)")[,2] %>% str_trim %>% replace_na("")
-          from <- (str_remove(line," to .*$") %>% str_match("from *(.*)"))[,2] %>% str_trim %>% replace_na("")
-          graf <- graf %>% add_trace(from,to,length)
-        } else
-          if(str_detect(line,"^filter links") & str_detect(line,"%")) {
-            one <- str_match(line,"^filter links ([0-9]*)")[,2]%>% replace_na(0) %>% as.numeric %>% `/`(100)
-            graf <- graf %>% filter_n_links(one,is_proportion=T)
-          } else
-            if(str_detect(line,"^filter links ")) {
-              one <- str_match(line,"^filter links ([^ ]*)")[,2]%>% replace_na(0) %>% as.numeric
-              graf <- graf %>% filter_n_links(one)
-            } else
-              if(str_detect(line,"^filter factors") & str_detect(line,"%")) {
-                one <- str_match(line,"^filter factors ([0-9]*)")[,2]%>% replace_na(0) %>% as.numeric %>% `/`(100)
-                graf <- graf %>% filter_n_factors(one,is_proportion=T)
-              } else
-                if(str_detect(line,"^filter factors ")) {
-                  one <- str_match(line,"^filter factors ([^ ]*)")[,2]%>% replace_na(0) %>% as.numeric
-                  graf <- graf %>% filter_n_factors(one)
-                } else
-                  if(str_detect(line,"^remove")) graf <- graf %>% remove_isolated else
-                    if(str_detect(line,"^shrink")) {
-                      what <- str_match(line,"^shrink (.*)")[,2]%>% replace_na("")
-                      graf <- graf %>% shrink(what)
-                    } else
-                      if(str_detect(line,"^hide")) {
-                        one <- str_match(line,"^hide (.*)")[,2]%>% replace_na("")
-                        graf <- graf %>% hide_factors(one)
-                      } else
-                        if(str_detect(line,"^zoom")) {
-                          one <- str_match(line,"^zoom ([0-9]*)")[,2]%>% replace_na(0)
-                          char <- str_match(line,"^zoom [0-9]* (.*)")[,2] %>% replace_na(";") %>% str_remove(" *hide$")
-                          hide <- str_detect(line,"hide *$") %>% replace_na(F)
-                          graf <- graf %>% zoom(one,char,hide)
-                        } else if(str_detect(line,"^bundle")) {
-                          # browser()
-                          one <- str_match(line,"^bundle (.*)")[,2]
-                          if(is.na(one))one <- NULL
-                          graf <- graf %>% add_bundle_edges(one)
-                        } else
-
-                          # browser()
-                          if(str_detect(line,"^ *factors")) {
-                            graf <- graf %>% add_metrics()### IS THIS THE BEST WAY??
-
-
-
-                            hit <- str_match(line,"^ *factors *(.*)")[,2] %>% str_trim %>% replace_na("")
-
-                            if(str_detect(hit,"^ *colou?rborder")) {
-                              val <- str_match(hit," *colou?rborder *(.*)")[,2] %>% str_trim %>% replace_na("")
-                              # if(val %in% factor_colnames(graf)){
-                              if(val %in% factor_colnames(graf))graf <-
-                                  graf %N>% add_factor_color_border(val)
-
-                              # }
-                            } else
-                              if(str_detect(hit,"^ *label")) {
-                                val <- str_match(hit," *label *(.*)")[,2] %>% str_trim %>% replace_na("")
-                                if(val %in% factor_colnames(graf))graf <-
-                                    graf %N>% add_factor_label(val)
-
-                                # }
-                              } else
-                                if(str_detect(hit,"^ *colou?r")) {
-                                  val <- str_match(hit," *colou?r *(.*)")[,2] %>% str_trim %>% replace_na("")
-                                  # if(val %in% factor_colnames(graf)){
-                                  if(val %in% factor_colnames(graf))graf <-
-                                      graf %N>% add_factor_color_background(val)
-
-                                  # }
-                                }
-                          }
-      else
-        if(str_detect(line,"^ *links")) {
-
-
-          # graf <- graf %>% add_bundle_edges()### IS THIS THE BEST WAY??
-
-
-          hit <- str_match(line,"^ *links *(.*)")[,2] %>% str_trim %>% replace_na("")
-
-          if(str_detect(hit,"^ *label")) {
-            val <- str_match(hit," *label *(.*)")[,2] %>% str_trim %>% replace_na("")
-            # if(val %in% link_colnames(graf)){
-            # browser()
-            if(val %in% link_colnames(graf)) graf <-
-                graf %E>% add_edge_label(val)
-
-            # }
-          } else
-            if(str_detect(hit,"^ *colou?r")) {
-              val <- str_match(hit," *colou?r *(.*)")[,2] %>% str_trim %>% replace_na("")
-              # if(val %in% link_colnames(graf)){
-              # browser()
-              if(val %in% link_colnames(graf)) graf <-
-
-                  graf %E>% add_edge_color(val)
-
-              # }
-            } else
-              if(str_detect(hit,"^ *alpha")) {
-                val <- str_match(hit," *alpha *(.*)")[,2] %>% str_trim %>% replace_na("")
-                # if(val %in% link_colnames(graf)){
-                if("color" %notin% link_colnames(graf)) graf <- graf %E>% mutate(color="blue") %>% activate(nodes)
-                # browser()
-                if(val %in% link_colnames(graf)) graf <-
-                    graf %E>% add_edge_alpha(val)
-
-
-                # }
-              }
-        }
-    }
-  }
-  graf
-}
-add_filters <- parse_commands #alias
-
 
 # outputs -----------------------------------------------------------------
 
@@ -663,6 +659,9 @@ calculate_graph_metrics <- function(graf){
 
   tibble(name,metric,description)
 }
+
+
+## visNetwork --------------------------------------------------------------
 
 
 make_vn <- function(graf,scale=1){
@@ -737,11 +736,23 @@ make_vn <- function(graf,scale=1){
 }
 
 
+vn_fan_edges <- function(edges){
+  edges %>%
+    mutate(a=ifelse(from>to,from,to),b=ifelse(from>to,to,from)) %>%
+    unite(smooth_index,a,b,remove=F) %>%  # need to cope with arrows coming the other way as well
+    group_by(smooth_index) %>%
+    mutate(smooth.type = "continuous") %>%   #'straightCross  dynamic', 'continuous', 'discrete', 'diagonalCross', 'straightCross', 'horizontal', 'vertical', 'curlinksCW', 'curlinksCCW', 'cubicBezier'.
+    mutate(n=n(),rounded=n>1 ,smooth.roundness = ifelse(rounded,rnorm(n,0,.2),0)) %>% #%>% pmin(ifelse(input$bundle_links,0,.9)))  %>%
+    mutate(smooth.enabled = rounded) %>%
+    ungroup()
+
+}
 
 
 
 
-# grviz -------------------------------------------------------------------
+
+## grviz -------------------------------------------------------------------
 
 
 
