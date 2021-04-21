@@ -102,13 +102,13 @@ parse_commands <- function(graf,tex){
         down <- str_match(line," down *([0-9]*)")[,2] %>% str_trim %>% replace_na(0) %>% as.numeric
         one <- str_remove(line,"up *[0-9]*.*$") %>% str_remove("down *[0-9]*.*$") %>% str_remove("^ *find *") %>% str_trim
         # len <- str_match(line," up ([0-9]*)")[,2] %>% replace_na(1) %>% as.numeric
-        graf <- graf %>% pipe_find_string(one,up,down)
+        graf <- graf %>% pipe_find_factors(one,up,down)
       } else
         if(str_detect(line,"^trace")) {
           length <- str_match(line,"trace *([0-9]*)")[,2] %>% str_trim %>% replace_na(0) %>% as.numeric
           to <- str_match(line," to (.*)")[,2] %>% str_trim %>% replace_na("")
           from <- (str_remove(line," to .*$") %>% str_match("from *(.*)"))[,2] %>% str_trim %>% replace_na("")
-          graf <- graf %>% pipe_trace(from,to,length)
+          graf <- graf %>% pipe_trace_paths(from,to,length)
         } else
           if(str_detect(line,"^filter links") & str_detect(line,"%")) {
             one <- str_match(line,"^filter links ([0-9]*)")[,2]%>% replace_na(0) %>% as.numeric %>% `/`(100)
@@ -126,10 +126,10 @@ parse_commands <- function(graf,tex){
                   one <- str_match(line,"^filter factors ([^ ]*)")[,2]%>% replace_na(0) %>% as.numeric
                   graf <- graf %>% pipe_top_factors(one)
                 } else
-                  if(str_detect(line,"^remove")) graf <- graf %>% remove_isolated else
+                  if(str_detect(line,"^remove")) graf <- graf %>% pipe_remove_orphans else
                     if(str_detect(line,"^shrink")) {
                       what <- str_match(line,"^shrink (.*)")[,2]%>% replace_na("")
-                      graf <- graf %>% pipe_shrink(what)
+                      graf <- graf %>% pipe_bundle_factors(what)
                     } else
                       if(str_detect(line,"^hide")) {
                         one <- str_match(line,"^hide (.*)")[,2]%>% replace_na("")
@@ -139,7 +139,7 @@ parse_commands <- function(graf,tex){
                           one <- str_match(line,"^zoom ([0-9]*)")[,2]%>% replace_na(0)
                           char <- str_match(line,"^zoom [0-9]* (.*)")[,2] %>% replace_na(";") %>% str_remove(" *hide$")
                           hide <- str_detect(line,"hide *$") %>% replace_na(F)
-                          graf <- graf %>% pipe_zoom(one,char,hide)
+                          graf <- graf %>% pipe_zoom_factors(one,char,hide)
                         } else if(str_detect(line,"^bundle")) {
                           # browser()
                           one <- str_match(line,"^bundle (.*)")[,2]
@@ -159,14 +159,14 @@ parse_commands <- function(graf,tex){
                               val <- str_match(hit," *colou?rborder *(.*)")[,2] %>% str_trim %>% replace_na("")
                               # if(val %in% factor_colnames(graf)){
                               if(val %in% factor_colnames(graf))graf <-
-                                  graf %N>% pipe_factor_color_border(val)
+                                  graf %N>% pipe_color_borders(val)
 
                               # }
                             } else
                               if(str_detect(hit,"^ *label")) {
                                 val <- str_match(hit," *label *(.*)")[,2] %>% str_trim %>% replace_na("")
                                 if(val %in% factor_colnames(graf))graf <-
-                                    graf %N>% pipe_factor_label(val)
+                                    graf %N>% pipe_label_factors(val)
 
                                 # }
                               } else
@@ -174,7 +174,7 @@ parse_commands <- function(graf,tex){
                                   val <- str_match(hit," *colou?r *(.*)")[,2] %>% str_trim %>% replace_na("")
                                   # if(val %in% factor_colnames(graf)){
                                   if(val %in% factor_colnames(graf))graf <-
-                                      graf %N>% pipe_factor_color_background(val)
+                                      graf %N>% pipe_color_factors(val)
 
                                   # }
                                 }
@@ -193,7 +193,7 @@ parse_commands <- function(graf,tex){
                         # if(val %in% link_colnames(graf)){
                         # browser()
                         if(val %in% link_colnames(graf)) graf <-
-                            graf %E>% pipe_link_label(val)
+                            graf %E>% pipe_label_links(val)
 
                         # }
                       } else
@@ -203,7 +203,7 @@ parse_commands <- function(graf,tex){
                           # browser()
                           if(val %in% link_colnames(graf)) graf <-
 
-                              graf %E>% pipe_link_color(val)
+                              graf %E>% pipe_color_links(val)
 
                           # }
                         } else
@@ -213,7 +213,7 @@ parse_commands <- function(graf,tex){
                             if("color" %notin% link_colnames(graf)) graf <- graf %E>% mutate(color="blue") %>% activate(nodes)
                             # browser()
                             if(val %in% link_colnames(graf)) graf <-
-                                graf %E>% pipe_link_alpha(val)
+                                graf %E>% pipe_fade_links(val)
 
 
                             # }
@@ -226,22 +226,41 @@ parse_commands <- function(graf,tex){
 pipe_filters <- parse_commands #alias
 
 
-# main graph functions ----------------------------------------------------
-
-
+# helper graph functions ----------------------------------------------------
+zoom_inner <- function(string,n,char){
+  string %>% map(~str_split(.,char) %>% `[[`(1) %>% `[`(1:n) %>% keep(!is.na(.)) %>% paste0(collapse=char)) %>% unlist
+}
+flip_inner_component <- function(tex,flipchar="~"){
+  if_else(str_detect(tex,paste0("^ *",flipchar)),str_remove(tex,paste0("^ *",flipchar)),paste0("~",tex))
+}
+flip_inner <- function(tex,flipchar="~",sepchar=";"){
+  tex %>%
+    str_split(sepchar) %>%
+    `[[`(1) %>%
+    flip_inner_component(flipchar=flipchar) %>%
+    paste0(collapse=sepchar)
+}
+flip_vector <- function(tex,flipchar="~",sepchar=";"){
+  lapply(tex,function(x)flip_inner(x,flipchar=flipchar,sepchar=sepchar)) %>%
+    unlist(recursive=F)
+}
 filter_things <- function(graf,field,value,operator="=",what){
   # browser()
   if(what=="links") graf <- graf %>% activate(edges) else graf <- graf %>% activate(nodes)
 
   if(operator=="=") graf %>%
-    filter(UQ(sym(field)) %in% value) %>% activate(nodes)
+      filter(UQ(sym(field)) %in% value) %>% activate(nodes)
   else if(operator=="contains") {
     value <- str_replace_all(value," OR ","|") %>% str_trim
-  graf %>%
-    filter(str_detect(tolower(UQ(sym(field))),tolower(escapeRegex(value)))) %>% activate(nodes)
-}
+    graf %>%
+      filter(str_detect(tolower(UQ(sym(field))),tolower(escapeRegex(value)))) %>% activate(nodes)
+  }
 
 }
+
+# main graph functions ----------------------------------------------------
+
+
 
 pipe_filter_factors <- function(...){filter_things(what="factors",...)}
 pipe_filter_links <- function(...){filter_things(what="links",...)}
@@ -287,10 +306,7 @@ pipe_hide_factors <- function(graf,source_string){
 }
 
 
-zoom_inner <- function(string,n,char){
-  string %>% map(~str_split(.,char) %>% `[[`(1) %>% `[`(1:n) %>% keep(!is.na(.)) %>% paste0(collapse=char)) %>% unlist
-}
-pipe_zoom <- function(graf,n_,char,hide){
+pipe_zoom_factors <- function(graf,n_,char,hide){
   # browser()
   n_=as.numeric(n_)
   hide=as.logical(hide)
@@ -306,8 +322,25 @@ pipe_zoom <- function(graf,n_,char,hide){
 
 }
 
+pipe_bundle_factors <- function(graf=sess$graf,what){
+  graf <- graf %>% activate(nodes)
+  if(what=="") gr <- graf %>%
+      mutate(label=str_match(label,"^[^ ]*")) %>%
+      convert(to_contracted,label,simplify=F) %>%
+      mutate(shrunk_=str_detect(label,"^[^ ]*"))
 
-pipe_trace <- function(graf,from,to,length){
+  else gr <- graf %>%
+      mutate(label=if_else(str_detect(label,what),str_match(label,paste0(what)),label)) %>%
+      convert(to_contracted,label,simplify=F)  %>%
+      mutate(shrunk_=str_detect(label,what))
+  # browser()
+  tbl_graph(gr %>% factor_table %>% as.data.frame %>% select(label=1,shrunk_) ,gr %>% link_table  %>% as.data.frame)%>% pipe_fix_columns
+
+  # i d on'tunderstand this convert / morph stuff and can't get a normal graph back
+
+}
+
+pipe_trace_paths <- function(graf,from,to,length){
   if(is.na(length)) {notify("You have to specify length");return(graf)}
   if(from=="") {notify("You have to specify source factors");return(graf)}
   if(to=="") {notify("You have to specify target factors");return(graf)}
@@ -415,7 +448,7 @@ pipe_trace <- function(graf,from,to,length){
 
 
 
-pipe_find_string <- function(graf,source_string,up=0,down=0,tolower=T){
+pipe_find_factors <- function(graf,source_string,up=0,down=0,tolower=T){
   graf <- graf %>% activate(nodes)
   source_string <- str_replace_all(source_string," OR ","|") %>% str_trim
   if(tolower)graf <- graf %>%
@@ -430,46 +463,15 @@ pipe_find_string <- function(graf,source_string,up=0,down=0,tolower=T){
   if(any(upvec)|any(downvec))graf %>% mutate(upvec=upvec,downvec=downvec) %>% filter(found|upvec|downvec) else graf %>% filter(F)
 }
 
-pipe_remove_isolated <- function(graf){
+pipe_remove_orphans <- function(graf){
   graf %>%
     activate(nodes) %>%
     filter(!node_is_isolated())
 }
 
-pipe_shrink <- function(graf=sess$graf,what){
-  graf <- graf %>% activate(nodes)
-  if(what=="") gr <- graf %>%
-      mutate(label=str_match(label,"^[^ ]*")) %>%
-      convert(to_contracted,label,simplify=F) %>%
-      mutate(shrunk_=str_detect(label,"^[^ ]*"))
-
-  else gr <- graf %>%
-      mutate(label=if_else(str_detect(label,what),str_match(label,paste0(what)),label)) %>%
-      convert(to_contracted,label,simplify=F)  %>%
-      mutate(shrunk_=str_detect(label,what))
-  # browser()
-  tbl_graph(gr %>% factor_table %>% as.data.frame %>% select(label=1,shrunk_) ,gr %>% link_table  %>% as.data.frame)%>% pipe_fix_columns
-
-  # i d on'tunderstand this convert / morph stuff and can't get a normal graph back
-
-}
 
 
-flip_inner_component <- function(tex,flipchar="~"){
-  if_else(str_detect(tex,paste0("^ *",flipchar)),str_remove(tex,paste0("^ *",flipchar)),paste0("~",tex))
-}
-flip_inner <- function(tex,flipchar="~",sepchar=";"){
-  tex %>%
-    str_split(sepchar) %>%
-    `[[`(1) %>%
-    flip_inner_component(flipchar=flipchar) %>%
-    paste0(collapse=sepchar)
-}
-flip_vector <- function(tex,flipchar="~",sepchar=";"){
-  lapply(tex,function(x)flip_inner(x,flipchar=flipchar,sepchar=sepchar)) %>%
-    unlist(recursive=F)
-}
-pipe_flip <- function(graf,flipchar="~"){
+pipe_flip_opposites <- function(graf,flipchar="~"){
   graf %N>%
     mutate(
       is_flipped=str_detect(label,paste0("^ *",flipchar)),
@@ -479,38 +481,6 @@ pipe_flip <- function(graf,flipchar="~"){
     mutate(from_flipped=.N()$is_flipped[from]) %>%
     mutate(to_flipped=.N()$is_flipped[to]) %>%
     activate(nodes)
-}
-pipe_fix_columns <- function(graf){
-
-  # if(!("color" %in% factor_colnames(graf))) graf <- graf %N>% mutate(color="#222222")
-  if(!("color.background" %in% factor_colnames(graf))) graf <- graf %N>% mutate(color.background="#aaaaee77")
-  if(!("color.border" %in% factor_colnames(graf))) graf <- graf %N>% mutate(color.border="#222222")
-  if(!("n" %in% factor_colnames(graf))) graf <- graf %N>% mutate(n=1L)
-  if(!("size" %in% factor_colnames(graf))) graf <- graf %N>% mutate(size=1L)
-  if(!("found" %in% factor_colnames(graf))) graf <- graf %N>% mutate(found=1L)
-  if(!("color" %in% link_colnames(graf))) graf <- graf %E>% mutate(color="#222222")
-  if(!("n" %in% link_colnames(graf))) graf <- graf %E>% mutate(n=1L)
-  if(!("capacity" %in% link_colnames(graf))) graf <- graf %E>% mutate(capacity=1L)
-  if(!("label" %in% link_colnames(graf))) graf <- graf %E>% mutate(label="")
-  if(!("width" %in% link_colnames(graf))) graf <- graf %E>% mutate(width=5)
-  if(!("flow" %in% link_colnames(graf))) graf <- graf %E>% mutate(flow=1L)
-  graf %>% activate(nodes)
-}
-pipe_metrics <- function(graf){
-  # browser()
-  if(is.null(graf)){notify("No graph for metrics");return(graf)}
-
-  graf  %N>%
-    mutate(
-      group=group_infomap(),
-      "in_degree"=centrality_degree(mode = "in"),
-      "out_degree"=centrality_degree(mode = "out"),
-      n=in_degree+out_degree,
-      # keyplayer=node_is_keyplayer(),
-      "is_centre"=node_is_center(mode = "out"),
-      "is_cut"=node_is_cut(),
-      betweenness=centrality_betweenness(directed = T) %>% round(2)
-    )
 }
 
 
@@ -546,9 +516,43 @@ pipe_bundle_links <- function(graf,col=NULL){
 
 }
 
+## internal pipes -------------------------------------------------------------
+pipe_fix_columns <- function(graf){
+
+  # if(!("color" %in% factor_colnames(graf))) graf <- graf %N>% mutate(color="#222222")
+  if(!("color.background" %in% factor_colnames(graf))) graf <- graf %N>% mutate(color.background="#aaaaee77")
+  if(!("color.border" %in% factor_colnames(graf))) graf <- graf %N>% mutate(color.border="#222222")
+  if(!("n" %in% factor_colnames(graf))) graf <- graf %N>% mutate(n=1L)
+  if(!("size" %in% factor_colnames(graf))) graf <- graf %N>% mutate(size=1L)
+  if(!("found" %in% factor_colnames(graf))) graf <- graf %N>% mutate(found=1L)
+  if(!("color" %in% link_colnames(graf))) graf <- graf %E>% mutate(color="#222222")
+  if(!("n" %in% link_colnames(graf))) graf <- graf %E>% mutate(n=1L)
+  if(!("capacity" %in% link_colnames(graf))) graf <- graf %E>% mutate(capacity=1L)
+  if(!("label" %in% link_colnames(graf))) graf <- graf %E>% mutate(label="")
+  if(!("width" %in% link_colnames(graf))) graf <- graf %E>% mutate(width=5)
+  if(!("flow" %in% link_colnames(graf))) graf <- graf %E>% mutate(flow=1L)
+  graf %>% activate(nodes)
+}
+pipe_metrics <- function(graf){
+  # browser()
+  if(is.null(graf)){notify("No graph for metrics");return(graf)}
+
+  graf  %N>%
+    mutate(
+      group=group_infomap(),
+      "in_degree"=centrality_degree(mode = "in"),
+      "out_degree"=centrality_degree(mode = "out"),
+      n=in_degree+out_degree,
+      # keyplayer=node_is_keyplayer(),
+      "is_centre"=node_is_center(mode = "out"),
+      "is_cut"=node_is_cut(),
+      betweenness=centrality_betweenness(directed = T) %>% round(2)
+    )
+}
+
 ## add formats -------------------------------------------------------------
 
-pipe_factor_size <- function(graf,val="n"){
+pipe_scale_factors <- function(graf,val="n"){
   if(val %notin% factor_colnames(graf)){warning("No such column");return(graf)}
   class <- graf %>% factor_table %>% pull(UQ(sym(val))) %>% class
   if(class =="character"){warning("No such column");return(graf)}
@@ -556,23 +560,22 @@ pipe_factor_size <- function(graf,val="n"){
   graf %N>% mutate(size=scales::rescale(UQ(sym(val)),to=c(0.2,1))*10) %>% activate(nodes)
 
 }
-pipe_factor_color_border <- function(graf,val="n",lo="green",hi="blue",mid="gray"){
+pipe_color_borders <- function(graf,val="n",lo="green",hi="blue",mid="gray"){
   if(val %notin% factor_colnames(graf)){warning("No such column");return(graf)}
   pal <- function(x)interp_map(x,colors=c(hi,mid,lo))
   graf %N>% mutate(color.border=pal(UQ(sym(val))) %>% str_sub(1,7) %>% paste0("88"))
 }
-pipe_factor_label <- function(graf,val="n"){
+pipe_label_factors <- function(graf,val="n"){
   if(val %notin% factor_colnames(graf)){warning("No such column");return(graf)}
   graf %N>% mutate(label=paste0(label %>% keep(.!=""),". ",val,": ",UQ(sym(val))))
 }
-pipe_factor_color_background <- function(graf,val="n",lo="green",hi="blue",mid="white"){
+pipe_color_factors <- function(graf,val="n",lo="green",hi="blue",mid="white"){
   if(val %notin% factor_colnames(graf)){warning("No such column");return(graf)}
   pal <- function(x)interp_map(x,colors=c(hi,mid,lo))
   graf %N>% mutate(color.background=pal(UQ(sym(val))) %>% str_sub(1,7) %>% paste0("88"))
 }
-pipe_factor_color <- pipe_factor_color_background #alias
 
-pipe_link_alpha <- function(graf,val="n"){
+pipe_fade_links <- function(graf,val="n"){
   if(val %notin% link_colnames(graf)){warning("No such column");return(graf)}
   if("color" %notin% link_colnames(graf)){warning("No such column");return(graf)}
   class <- graf %>% link_table %>% pull(UQ(sym(val))) %>% class
@@ -580,14 +583,14 @@ pipe_link_alpha <- function(graf,val="n"){
   # browser()
   graf %E>% mutate(color=alpha(color,scales::rescale(UQ(sym(val)),to=c(0.2,1)))) %>% activate(nodes)
 }
-pipe_link_width <- function(graf,val="n"){
+pipe_scale_links <- function(graf,val="n"){
   if(val %notin% link_colnames(graf)){warning("No such column");return(graf)}
   class <- graf %>% link_table %>% pull(UQ(sym(val))) %>% class
   if(class =="character"){warning("No such column");return(graf)}
   # browser()
   graf %E>% mutate(width=scales::rescale(UQ(sym(val)),to=c(0.2,1))*5) %>% activate(nodes)
 }
-pipe_link_color <- function(graf,val="n",lo="green",hi="blue",mid="white"){
+pipe_color_links <- function(graf,val="n",lo="green",hi="blue",mid="white"){
   if(val %notin% link_colnames(graf)){warning("No such column");return(graf)}
   class <- graf %>% link_table %>% pull(UQ(sym(val))) %>% class
   if(class =="character"){
@@ -601,7 +604,7 @@ pipe_link_color <- function(graf,val="n",lo="green",hi="blue",mid="white"){
   }
 
 }
-pipe_link_label <- function(graf,val="n"){
+pipe_label_links <- function(graf,val="n"){
   if(val %notin% link_colnames(graf)){warning("No such column");return(graf)}
   graf %E>% mutate(label=paste0(label %>% keep(.!=""),". ",val,": ",UQ(sym(val)))) %>% activate(nodes)
 }
@@ -779,7 +782,7 @@ make_grviz <- function(
     notify("Map is too large for print view; consolidating.",3)
     graf <- graf %>%
       pipe_bundle_links() %>%
-      pipe_link_label("n")
+      pipe_label_links("n")
 
     if(nrow(factor_table(graf))>200) graf <- graf %>% pipe_top_factors(20)
   }
