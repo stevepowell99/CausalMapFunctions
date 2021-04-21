@@ -151,19 +151,19 @@ parse_commandsOLD <- function(graf,tex){
         } else
           if(str_detect(line,"^filter links") & str_detect(line,"%")) {
             one <- str_match(line,"^filter links ([0-9]*)")[,2]%>% replace_na(0) %>% as.numeric %>% `/`(100)
-            graf <- graf %>% pipe_top_links(one,is_proportion=T)
+            graf <- graf %>% pipe_select_links(one,is_proportion=T)
           } else
             if(str_detect(line,"^filter links ")) {
               one <- str_match(line,"^filter links ([^ ]*)")[,2]%>% replace_na(0) %>% as.numeric
-              graf <- graf %>% pipe_top_links(one)
+              graf <- graf %>% pipe_select_links(one)
             } else
               if(str_detect(line,"^filter factors") & str_detect(line,"%")) {
                 one <- str_match(line,"^filter factors ([0-9]*)")[,2]%>% replace_na(0) %>% as.numeric %>% `/`(100)
-                graf <- graf %>% pipe_top_factors(one,is_proportion=T)
+                graf <- graf %>% pipe_select_factors(one,is_proportion=T)
               } else
                 if(str_detect(line,"^filter factors ")) {
                   one <- str_match(line,"^filter factors ([^ ]*)")[,2]%>% replace_na(0) %>% as.numeric
-                  graf <- graf %>% pipe_top_factors(one)
+                  graf <- graf %>% pipe_select_factors(one)
                 } else
                   if(str_detect(line,"^remove")) graf <- graf %>% pipe_remove_orphans else
                     if(str_detect(line,"^shrink")) {
@@ -305,18 +305,18 @@ pipe_filter_factors <- function(graf,field,value,operator="="){filter_things(gra
 pipe_filter_links <- function(graf,field,value,operator="="){filter_things(graf=graf,field=field,value=value,operator=operator,what="links")}
 
 
-pipe_top_links <- function(graf,frequency,all=F,is_proportion=F){
+pipe_select_links <- function(graf,top,all=F,is_proportion=F){
   gr <- graf %>%
     activate(edges) %>%
     group_by(from,to) %>%
     mutate(n=n()) %>%
     mutate(n=rank(n)) %>%
-    # mutate(rfrequency=row_number()) %>%
+    # mutate(rtop=row_number()) %>%
     ungroup
 
   if(is_proportion) gr <- gr %>%
-      filter(n/max(.E()$n,na.rm=T)>frequency) else gr <- gr %>%
-          filter(n>frequency)
+      filter(n/max(.E()$n,na.rm=T)>top) else gr <- gr %>%
+          filter(n>top)
 
       gr %>%
         select(from,to,n,everything()) %>%
@@ -324,7 +324,7 @@ pipe_top_links <- function(graf,frequency,all=F,is_proportion=F){
 }
 
 
-pipe_top_factors <- function(graf,frequency,all=F,is_proportion=F){
+pipe_select_factors <- function(graf,top,all=F,is_proportion=F){
   gr <- graf %>%
     activate(nodes) %>%
     mutate(n = centrality_degree()) %>%
@@ -332,8 +332,8 @@ pipe_top_factors <- function(graf,frequency,all=F,is_proportion=F){
     arrange(desc(n))
 
   if(is_proportion) gr <- gr %>%
-      filter(n/max(.N()$n,na.rm=T)>frequency) else gr <- gr %>%
-          slice(1:frequency)
+      filter(n/max(.N()$n,na.rm=T)>top) else gr <- gr %>%
+          slice(1:top)
 
       gr
 }
@@ -827,7 +827,7 @@ make_grviz <- function(
       pipe_bundle_links() %>%
       pipe_label_links("n")
 
-    if(nrow(factor_table(graf))>200) graf <- graf %>% pipe_top_factors(20)
+    if(nrow(factor_table(graf))>200) graf <- graf %>% pipe_select_factors(20)
   }
   if("id" %in% colnames(factor_table(graf)))graf <-  graf %>% select(-id)
   grv <-  graf %>%
