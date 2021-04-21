@@ -112,19 +112,19 @@ parse_commands <- function(graf,tex){
         } else
           if(str_detect(line,"^filter links") & str_detect(line,"%")) {
             one <- str_match(line,"^filter links ([0-9]*)")[,2]%>% replace_na(0) %>% as.numeric %>% `/`(100)
-            graf <- graf %>% pipe_filter_n_links(one,is_proportion=T)
+            graf <- graf %>% pipe_top_links(one,is_proportion=T)
           } else
             if(str_detect(line,"^filter links ")) {
               one <- str_match(line,"^filter links ([^ ]*)")[,2]%>% replace_na(0) %>% as.numeric
-              graf <- graf %>% pipe_filter_n_links(one)
+              graf <- graf %>% pipe_top_links(one)
             } else
               if(str_detect(line,"^filter factors") & str_detect(line,"%")) {
                 one <- str_match(line,"^filter factors ([0-9]*)")[,2]%>% replace_na(0) %>% as.numeric %>% `/`(100)
-                graf <- graf %>% pipe_filter_n_factors(one,is_proportion=T)
+                graf <- graf %>% pipe_top_factors(one,is_proportion=T)
               } else
                 if(str_detect(line,"^filter factors ")) {
                   one <- str_match(line,"^filter factors ([^ ]*)")[,2]%>% replace_na(0) %>% as.numeric
-                  graf <- graf %>% pipe_filter_n_factors(one)
+                  graf <- graf %>% pipe_top_factors(one)
                 } else
                   if(str_detect(line,"^remove")) graf <- graf %>% remove_isolated else
                     if(str_detect(line,"^shrink")) {
@@ -144,7 +144,7 @@ parse_commands <- function(graf,tex){
                           # browser()
                           one <- str_match(line,"^bundle (.*)")[,2]
                           if(is.na(one))one <- NULL
-                          graf <- graf %>% pipe_bundle_edges(one)
+                          graf <- graf %>% pipe_bundle_links(one)
                         } else
 
                           # browser()
@@ -183,7 +183,7 @@ parse_commands <- function(graf,tex){
                     if(str_detect(line,"^ *links")) {
 
 
-                      # graf <- graf %>% pipe_bundle_edges()### IS THIS THE BEST WAY??
+                      # graf <- graf %>% pipe_bundle_links()### IS THIS THE BEST WAY??
 
 
                       hit <- str_match(line,"^ *links *(.*)")[,2] %>% str_trim %>% replace_na("")
@@ -193,7 +193,7 @@ parse_commands <- function(graf,tex){
                         # if(val %in% link_colnames(graf)){
                         # browser()
                         if(val %in% link_colnames(graf)) graf <-
-                            graf %E>% pipe_edge_label(val)
+                            graf %E>% pipe_link_label(val)
 
                         # }
                       } else
@@ -203,7 +203,7 @@ parse_commands <- function(graf,tex){
                           # browser()
                           if(val %in% link_colnames(graf)) graf <-
 
-                              graf %E>% pipe_edge_color(val)
+                              graf %E>% pipe_link_color(val)
 
                           # }
                         } else
@@ -213,7 +213,7 @@ parse_commands <- function(graf,tex){
                             if("color" %notin% link_colnames(graf)) graf <- graf %E>% mutate(color="blue") %>% activate(nodes)
                             # browser()
                             if(val %in% link_colnames(graf)) graf <-
-                                graf %E>% pipe_edge_alpha(val)
+                                graf %E>% pipe_link_alpha(val)
 
 
                             # }
@@ -247,7 +247,7 @@ pipe_filter_factors <- function(...){filter_things(what="factors",...)}
 pipe_filter_links <- function(...){filter_things(what="links",...)}
 
 
-pipe_filter_n_links <- function(graf,n_,all=F,is_proportion=F){
+pipe_top_links <- function(graf,n_,all=F,is_proportion=F){
   gr <- graf %>%
     activate(edges) %>%
     group_by(from,to) %>%
@@ -266,7 +266,7 @@ pipe_filter_n_links <- function(graf,n_,all=F,is_proportion=F){
 }
 
 
-pipe_filter_n_factors <- function(graf,n_,all=F,is_proportion=F){
+pipe_top_factors <- function(graf,n_,all=F,is_proportion=F){
   gr <- graf %>%
     activate(nodes) %>%
     mutate(n = centrality_degree()) %>%
@@ -352,7 +352,7 @@ pipe_trace <- function(graf,from,to,length){
     notify("too much to trace")
     return(graf)
   }
-  graf <- graf %N>% pipe_bundle_edges() %E>%
+  graf <- graf %N>% pipe_bundle_links() %E>%
     mutate(n=if_else(is.na(n),1L,as.integer(n))) %>%
     activate(nodes)
   from_vec <- factor_table(graf) %>% filter(found_from) %>% pull(label)
@@ -448,7 +448,7 @@ pipe_shrink <- function(graf=sess$graf,what){
       convert(to_contracted,label,simplify=F)  %>%
       mutate(shrunk_=str_detect(label,what))
   # browser()
-  tbl_graph(gr %>% factor_table %>% as.data.frame %>% select(label=1,shrunk_) ,gr %>% link_table  %>% as.data.frame)%>% pipe_columns
+  tbl_graph(gr %>% factor_table %>% as.data.frame %>% select(label=1,shrunk_) ,gr %>% link_table  %>% as.data.frame)%>% pipe_fix_columns
 
   # i d on'tunderstand this convert / morph stuff and can't get a normal graph back
 
@@ -480,7 +480,7 @@ pipe_flip <- function(graf,flipchar="~"){
     mutate(to_flipped=.N()$is_flipped[to]) %>%
     activate(nodes)
 }
-pipe_columns <- function(graf){
+pipe_fix_columns <- function(graf){
 
   # if(!("color" %in% factor_colnames(graf))) graf <- graf %N>% mutate(color="#222222")
   if(!("color.background" %in% factor_colnames(graf))) graf <- graf %N>% mutate(color.background="#aaaaee77")
@@ -494,7 +494,7 @@ pipe_columns <- function(graf){
   if(!("label" %in% link_colnames(graf))) graf <- graf %E>% mutate(label="")
   if(!("width" %in% link_colnames(graf))) graf <- graf %E>% mutate(width=5)
   if(!("flow" %in% link_colnames(graf))) graf <- graf %E>% mutate(flow=1L)
-  graf
+  graf %>% activate(nodes)
 }
 pipe_metrics <- function(graf){
   # browser()
@@ -517,7 +517,7 @@ pipe_metrics <- function(graf){
 
 # zero_to_one <- function(vec)(vec-min(vec,na.rm=T))/(max(vec,na.rm=T)-min(vec,na.rm=T))
 
-pipe_bundle_edges <- function(graf,col=NULL){
+pipe_bundle_links <- function(graf,col=NULL){
   # browser()
   nodes <- factor_table(graf)
   if(nrow(nodes)==0) return(NULL)
@@ -572,7 +572,7 @@ pipe_factor_color_background <- function(graf,val="n",lo="green",hi="blue",mid="
 }
 pipe_factor_color <- pipe_factor_color_background #alias
 
-pipe_edge_alpha <- function(graf,val="n"){
+pipe_link_alpha <- function(graf,val="n"){
   if(val %notin% link_colnames(graf)){warning("No such column");return(graf)}
   if("color" %notin% link_colnames(graf)){warning("No such column");return(graf)}
   class <- graf %>% link_table %>% pull(UQ(sym(val))) %>% class
@@ -580,14 +580,14 @@ pipe_edge_alpha <- function(graf,val="n"){
   # browser()
   graf %E>% mutate(color=alpha(color,scales::rescale(UQ(sym(val)),to=c(0.2,1)))) %>% activate(nodes)
 }
-pipe_edge_width <- function(graf,val="n"){
+pipe_link_width <- function(graf,val="n"){
   if(val %notin% link_colnames(graf)){warning("No such column");return(graf)}
   class <- graf %>% link_table %>% pull(UQ(sym(val))) %>% class
   if(class =="character"){warning("No such column");return(graf)}
   # browser()
   graf %E>% mutate(width=scales::rescale(UQ(sym(val)),to=c(0.2,1))*5) %>% activate(nodes)
 }
-pipe_edge_color <- function(graf,val="n",lo="green",hi="blue",mid="white"){
+pipe_link_color <- function(graf,val="n",lo="green",hi="blue",mid="white"){
   if(val %notin% link_colnames(graf)){warning("No such column");return(graf)}
   class <- graf %>% link_table %>% pull(UQ(sym(val))) %>% class
   if(class =="character"){
@@ -601,7 +601,7 @@ pipe_edge_color <- function(graf,val="n",lo="green",hi="blue",mid="white"){
   }
 
 }
-pipe_edge_label <- function(graf,val="n"){
+pipe_link_label <- function(graf,val="n"){
   if(val %notin% link_colnames(graf)){warning("No such column");return(graf)}
   graf %E>% mutate(label=paste0(label %>% keep(.!=""),". ",val,": ",UQ(sym(val)))) %>% activate(nodes)
 }
@@ -663,7 +663,7 @@ make_graph_metrics <- function(graf){
 
 
 make_vn <- function(graf,scale=1){
-  graf <- graf %>% pipe_columns()
+  graf <- graf %>% pipe_fix_columns()
   nodes <- graf %N>% as_tibble %>% mutate(value=size)
   # browser()
   edges <- graf %E>% as_tibble %>%
@@ -773,19 +773,19 @@ make_grviz <- function(
   # graf b
   # browser()
   if(is.null(graf))return()
-  graf <- graf %>% pipe_columns()
+  graf <- graf %>% pipe_fix_columns()
 
   if(safe_limit & nrow(link_table(graf))>200){
     notify("Map is too large for print view; consolidating.",3)
     graf <- graf %>%
-      pipe_bundle_edges() %>%
-      pipe_edge_label("n")
+      pipe_bundle_links() %>%
+      pipe_link_label("n")
 
-    if(nrow(factor_table(graf))>200) graf <- graf %>% pipe_filter_n_factors(20)
+    if(nrow(factor_table(graf))>200) graf <- graf %>% pipe_top_factors(20)
   }
   if("id" %in% colnames(factor_table(graf)))graf <-  graf %>% select(-id)
   grv <-  graf %>%
-    pipe_columns %>%
+    pipe_fix_columns %>%
     activate(nodes) %>%
     # slice(1:68) %>%
     mutate(label=clean_grv(label) %>% str_wrap(20))%>%
