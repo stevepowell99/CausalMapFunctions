@@ -119,8 +119,9 @@ parse_commands <- function(graf,tex){
       vals$graf=graf
 
       fun <- fun %>% str_replace(" ","_") %>% paste0("pipe_",.)
+# browser()
+      graf <- possibly(~do.call(fun,vals),otherwise=graf)()
 
-      graf <- do.call(fun,vals)
     }
   }
   graf
@@ -360,7 +361,7 @@ pipe_zoom_factors <- function(graf,level,char,hide){
 
 }
 
-pipe_bundle_factors <- function(graf,text){
+pipe_bundle_factors <- function(graf,text=""){
   graf <- graf %>% activate(nodes)
   if(text=="") gr <- graf %>%
       mutate(label=str_match(label,"^[^ ]*")) %>%
@@ -591,6 +592,7 @@ pipe_metrics <- function(graf){
 ## add formats -------------------------------------------------------------
 
 pipe_scale_factors <- function(graf,field="n"){
+  graf <- pipe_metrics(graf)
   if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
   class <- graf %>% factor_table %>% pull(UQ(sym(field))) %>% class
   if(class =="character"){warning("No such column");return(graf)}
@@ -599,15 +601,18 @@ pipe_scale_factors <- function(graf,field="n"){
 
 }
 pipe_color_borders <- function(graf,field="n",lo="green",hi="blue",mid="gray"){
+  graf <- pipe_metrics(graf)
   if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
   pal <- function(x)interp_map(x,colors=c(hi,mid,lo))
   graf %N>% mutate(color.border=pal(UQ(sym(field))) %>% str_sub(1,7) %>% paste0("88"))
 }
 pipe_label_factors <- function(graf,field="n"){
+  graf <- pipe_metrics(graf)
   if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
   graf %N>% mutate(label=paste0(label %>% keep(.!=""),". ",field,": ",UQ(sym(field))))
 }
 pipe_color_factors <- function(graf,field="n",lo="green",hi="blue",mid="white"){
+  graf <- pipe_metrics(graf)
   if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
   pal <- function(x)interp_map(x,colors=c(hi,mid,lo))
   graf %N>% mutate(color.background=pal(UQ(sym(field))) %>% str_sub(1,7) %>% paste0("88"))
