@@ -600,24 +600,38 @@ pipe_scale_factors <- function(graf,field="n"){
   graf %N>% mutate(size=scales::rescale(UQ(sym(field)),to=c(0.2,1))*10) %>% activate(nodes)
 
 }
+pipe_color_factors <- function(graf,field="n",lo="green",hi="blue",mid="gray"){
+  graf <- pipe_metrics(graf)
+  if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
+  # palfun <- function(x)interp_map(x,colors=c(hi,mid,lo))
+  graf %N>% mutate(color.background=div_gradient_pal()(rescale(UQ(sym(field)))) %>% str_sub(1,7) %>% paste0("88"))
+}
 pipe_color_borders <- function(graf,field="n",lo="green",hi="blue",mid="gray"){
   graf <- pipe_metrics(graf)
   if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
-  pal <- function(x)interp_map(x,colors=c(hi,mid,lo))
-  graf %N>% mutate(color.border=pal(UQ(sym(field))) %>% str_sub(1,7) %>% paste0("88"))
+  # palfun <- function(x)interp_map(x,colors=c(hi,mid,lo))
+  graf %N>% mutate(color.border=div_gradient_pal()(rescale(UQ(sym(field)))) %>% str_sub(1,7) %>% paste0("88"))
 }
 pipe_label_factors <- function(graf,field="n"){
   graf <- pipe_metrics(graf)
   if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
   graf %N>% mutate(label=paste0(label %>% keep(.!=""),". ",field,": ",UQ(sym(field))))
 }
-pipe_color_factors <- function(graf,field="n",lo="green",hi="blue",mid="white"){
-  graf <- pipe_metrics(graf)
-  if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
-  pal <- function(x)interp_map(x,colors=c(hi,mid,lo))
-  graf %N>% mutate(color.background=pal(UQ(sym(field))) %>% str_sub(1,7) %>% paste0("88"))
-}
 
+pipe_color_links <- function(graf,field="n",lo="green",hi="blue",mid="gray"){
+  if(field %notin% link_colnames(graf)){warning("No such column");return(graf)}
+  class <- graf %>% link_table %>% pull(UQ(sym(field))) %>% class
+  if(class =="character"){
+  # palfun <- function(x)viridis_map(x)
+  graf %E>% mutate(color=div_gradient_pal()(rescale(UQ(sym(field)))) %>% str_sub(1,7) %>% paste0("88")) %>% activate(nodes)
+
+  } else {
+
+  # palfun <- function(x)interp_map(x,colors=c(hi,mid,lo))
+  graf %E>% mutate(color=div_gradient_pal()(rescale(UQ(sym(field)))) %>% str_sub(1,7) %>% paste0("88")) %>% activate(nodes)
+  }
+
+}
 pipe_fade_links <- function(graf,field="n"){
   if(field %notin% link_colnames(graf)){warning("No such column");return(graf)}
   if("color" %notin% link_colnames(graf)){warning("No such column");return(graf)}
@@ -632,20 +646,6 @@ pipe_scale_links <- function(graf,field="n"){
   if(class =="character"){warning("No such column");return(graf)}
   # browser()
   graf %E>% mutate(width=scales::rescale(UQ(sym(field)),to=c(0.2,1))*5) %>% activate(nodes)
-}
-pipe_color_links <- function(graf,field="n",lo="green",hi="blue",mid="white"){
-  if(field %notin% link_colnames(graf)){warning("No such column");return(graf)}
-  class <- graf %>% link_table %>% pull(UQ(sym(field))) %>% class
-  if(class =="character"){
-  pal <- function(x)viridis_map(x)
-  graf %E>% mutate(color=pal(UQ(sym(field)) ) %>% str_sub(1,7) %>% paste0("88")) %>% activate(nodes)
-
-  } else {
-
-  pal <- function(x)interp_map(x,colors=c(hi,mid,lo))
-  graf %E>% mutate(color=pal(UQ(sym(field)) ) %>% str_sub(1,7) %>% paste0("88")) %>% activate(nodes)
-  }
-
 }
 pipe_label_links <- function(graf,field="n"){
   if(field %notin% link_colnames(graf)){warning("No such column");return(graf)}
