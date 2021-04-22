@@ -23,9 +23,6 @@
 # utilities-----------------------------------------------------------------------------
 
 notify <- message # alias
-hello <- function() {
-  print("Hello, world!")
-}
 
 
 replace_null <- function(x,replacement=0){
@@ -76,16 +73,46 @@ print_more <- function(graf,n=99){
 load_graf_from_rds <- function(name){
   tmp <- readRDS(name)
   tbl_graph(tmp$factors,tmp$links)
-
 }
 
 
-link_table <- function(graf)graf %>%
-  activate(edges) %>% as_tibble
+
+#' Extracting tibbles from a tidygraph
+#'
+#' @param graf A tidygraph
+#' @return A tibble.
+#' @name tibbles
+#' @export
+NULL
+#> NULL
+
+#' @rdname tibbles
 factor_table <- function(graf)graf %>%
   activate(nodes) %>% as_tibble
 
+#' @rdname tibbles
+link_table <- function(graf)graf %>%
+  activate(edges) %>% as_tibble
 
+
+
+
+#' Parse commands
+#'
+#' A parser which breaks a text input into individual commands.
+#' There is one command format corresponding to each of
+#' the family of pipe functions.
+#'
+#' @param graf A tidygraph
+#' @param tex A set of commands to parse, separated by linebreaks if there is more than one command.
+#' Each line consists of two words corresponding to the name of the pipe function to be applied, e.g. `color links` calls the function `color_links`
+#' The function name is followed by field=value pairs corresponding to the arguments of the function such as `top=10`.
+#'
+#' @return A tidygraph, the result of successively applying the commands to the input graph.
+#' @export
+#'
+#' @examples
+#' graf %>% parse_commands("select factors top=10\nbundle links field=n\ncolor links field=n") %>% make_vn
 parse_commands <- function(graf,tex){
   tex <- tex %>% replace_null("") %>% str_split("\n") %>% `[[`(1) %>% str_trim() %>% escapeRegex
   if(length(tex)>1)tex <- tex %>% keep(.!="")
@@ -295,6 +322,17 @@ filter_things <- function(graf,field,value,operator="=",what){
       filter(str_detect(tolower(UQ(sym(field))),tolower(escapeRegex(value)))) %>% activate(nodes)
   }
 
+}
+
+div_pal_n <- function(vec,lo=lo,hi=hi,mid=mid){
+  div_gradient_pal(low=lo,high=hi,mid=mid)(rescale(vec)) %>% alpha(.6)
+}
+viridis_pal_n <- function(vec){
+  vec <- vec %>% as.factor %>% as.numeric
+  viridis_pal()(length(unique(vec)))[vec] %>% alpha(.6)
+}
+create_colors <- function(vec,lo=lo,hi=hi,mid=mid){
+  if(class(vec)=="character") viridis_pal_n(vec) else div_pal_n(vec,lo=lo,hi=hi,mid=mid)
 }
 
 # main graph functions ----------------------------------------------------
@@ -600,36 +638,30 @@ pipe_scale_factors <- function(graf,field="n"){
   graf %N>% mutate(size=scales::rescale(UQ(sym(field)),to=c(0.2,1))*10) %>% activate(nodes)
 
 }
-pipe_color_factors <- function(graf,field="n",lo="green",hi="blue",mid="gray"){
-  graf <- pipe_metrics(graf)
-  if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
-  # palfun <- function(x)interp_map(x,colors=c(hi,mid,lo))
-  graf %N>% mutate(color.background=div_gradient_pal(low=lo,high=hi,mid=mid)(rescale(UQ(sym(field)))) %>% str_sub(1,7) %>% paste0("88"))
-}
-pipe_color_borders <- function(graf,field="n",lo="green",hi="blue",mid="gray"){
-  graf <- pipe_metrics(graf)
-  if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
-  # palfun <- function(x)interp_map(x,colors=c(hi,mid,lo))
-  graf %N>% mutate(color.border=div_gradient_pal(low=lo,high=hi,mid=mid)(rescale(UQ(sym(field)))) %>% str_sub(1,7) %>% paste0("88"))
-}
 pipe_label_factors <- function(graf,field="n"){
   graf <- pipe_metrics(graf)
   if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
   graf %N>% mutate(label=paste0(label %>% keep(.!=""),". ",field,": ",UQ(sym(field))))
 }
+pipe_color_factors <- function(graf,field="n",lo="green",hi="blue",mid="gray",fixed=NULL){
+  if(!is.null(fixed))return(graf %N>% mutate(color.background=fixed))
+  graf <- pipe_metrics(graf)
+  if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
+  graf %N>% mutate(color.background=create_colors(UQ(sym(field)),lo=lo,hi=hi,mid=mid))
+}
+pipe_color_borders <- function(graf,field="n",lo="green",hi="blue",mid="gray",fixed=NULL){
+  if(!is.null(fixed))return(graf %N>% mutate(color.border=fixed))
+  graf <- pipe_metrics(graf)
+  if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
+  graf %N>% mutate(color.border=create_colors(UQ(sym(field)),lo=lo,hi=hi,mid=mid))
+}
 
-pipe_color_links <- function(graf,field="n",lo="green",hi="blue",mid="gray"){
+
+pipe_color_links <- function(graf,field="n",lo="green",hi="blue",mid="gray",fixed=NULL){
+  if(!is.null(fixed))return(graf %E>% mutate(color=fixed) %>% activate(nodes))
   if(field %notin% link_colnames(graf)){warning("No such column");return(graf)}
-  class <- graf %>% link_table %>% pull(UQ(sym(field))) %>% class
-  if(class =="character"){
-  # palfun <- function(x)viridis_map(x)
-  graf %E>% mutate(color=div_gradient_pal(low=lo,high=hi,mid=mid)(rescale(UQ(sym(field)))) %>% str_sub(1,7) %>% paste0("88")) %>% activate(nodes)
+  graf %E>% mutate(color=create_colors(UQ(sym(field)),lo=lo,hi=hi,mid=mid)) %>% activate(nodes)
 
-  } else {
-
-  # palfun <- function(x)interp_map(x,colors=c(hi,mid,lo))
-  graf %E>% mutate(color=div_gradient_pal(low=lo,high=hi,mid=mid)(rescale(UQ(sym(field)))) %>% str_sub(1,7) %>% paste0("88")) %>% activate(nodes)
-  }
 
 }
 pipe_fade_links <- function(graf,field="n"){

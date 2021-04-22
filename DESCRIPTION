@@ -18,4 +18,4 @@ Imports:
 Suggests:
     visNetwork,
     DiagrammeR
-    
+RoxygenNote: 6.1.1
