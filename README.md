@@ -12,6 +12,13 @@ These functions are used in the [Causal Map Viewer](https://causalmap.shinyapps.
 
 The main functions input and output [tidygraph](https://github.com/thomasp85/tidygraph) graphs. 
 
+There are many existing tools for analysing systems diagrams and also undirected graphs, we identified a need for a tool for analysing the kind of causal maps produced in evaluation research such as programme theories where
+
+- text labels may be long and are important because they may be used for searching and filtering
+- there may be many links between pairs of factors which should sometimes merged and sometimes not
+- the main focus is often on a flow of influence from a small set of intervention variables to a small set of focused variables downstream of them, such as key outcomes. 
+
+
 ## Parser
 
 There is also a parser which takes text strings with a simpler command syntax as input and outputs one of these main functions. This parser is used to read text commands from the input window in Causal Map Viewer and manipulate the output map with the corresponding functions. The input text can also consist of several lines, and the commands are applied one by one in sequence, in a pipeline of commands, such that after each command, such as each command starts with the map defined by the previous line and produces a new one. 

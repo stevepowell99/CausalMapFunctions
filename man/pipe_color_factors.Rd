@@ -4,11 +4,18 @@
 \alias{pipe_color_factors}
 \title{Color factors (background color)}
 \usage{
-pipe_color_factors(graf, field = "n", lo = "green", hi = "blue",
-  mid = "gray", fixed = NULL)
+pipe_color_factors(
+  graf,
+  field = "n",
+  lo = "green",
+  hi = "blue",
+  mid = "gray",
+  fixed = NULL
+)
 }
 \arguments{
-\item{graf}{A tidygraph}
+\item{graf}{A tidygraph representing a causal map.
+In this package, nodes are called factors and edges are called links.}
 
 \item{field}{A numerical or character field in the factor table.
 If it is character, the other parameters are ignored and a color-blind friendly qualitative palette is applied.}

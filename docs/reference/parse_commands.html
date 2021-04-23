@@ -140,7 +140,8 @@ the family of pipe functions.</p>
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
       <th>graf</th>
-      <td><p>A tidygraph</p></td>
+      <td><p>A tidygraph representing a causal map.
+In this package, nodes are called factors and edges are called links.</p></td>
     </tr>
     <tr>
       <th>tex</th>
@@ -155,10 +156,8 @@ The function name is followed by field=value pairs corresponding to the argument
     <p>A tidygraph, the result of successively applying the commands to the input graph.</p>
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
-    <pre class="examples"><div class='input'><span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='op'>{</span>
-<span class='va'>cashTransferMap</span> <span class='op'>%&gt;%</span> <span class='fu'>parse_commands</span><span class='op'>(</span><span class='st'>"select factors top=10 \n color factors field=n"</span><span class='op'>)</span> <span class='op'>%&gt;%</span> <span class='fu'>make_vn</span><span class='op'>(</span><span class='op'>)</span>
-<span class='op'>}</span>
-</div></pre>
+    <pre class="examples"><div class='input'><span class='va'>cashTransferMap</span> <span class='op'>%&gt;%</span> <span class='fu'>parse_commands</span><span class='op'>(</span><span class='st'>"select factors top=10 \n color factors field=n"</span><span class='op'>)</span> <span class='op'>%&gt;%</span> <span class='fu'>make_vn</span><span class='op'>(</span><span class='op'>)</span>
+</div><div class='output co'>#&gt; <span class='error'>Error in make_vn(.): could not find function "make_vn"</span></div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">

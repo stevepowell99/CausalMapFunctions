@@ -66,7 +66,7 @@ load_graf_from_rds <- function(name){
 
 #' Extracting tibbles from a tidygraph
 #'
-#' @param graf A tidygraph
+#' @inheritParams parse_commands
 #' @return A tibble.
 #' @name tibbles
 NULL
@@ -74,11 +74,13 @@ NULL
 
 #' @rdname tibbles
 #' @export
+#'
 factor_table <- function(graf)graf %>%
   activate(nodes) %>% as_tibble
 
 #' @rdname tibbles
 #' @export
+#'
 link_table <- function(graf)graf %>%
   activate(edges) %>% as_tibble
 
@@ -90,17 +92,16 @@ link_table <- function(graf)graf %>%
 #' There is one command format corresponding to each of
 #' the family of pipe functions.
 #'
-#' @param graf A tidygraph
+#' @param graf A tidygraph representing a causal map.
+#' In this package, nodes are called factors and edges are called links.
 #' @param tex A set of commands to parse, separated by linebreaks if there is more than one command.
 #' Each line consists of two words corresponding to the name of the pipe function to be applied, e.g. `color links` calls the function `color_links`
 #' The function name is followed by field=value pairs corresponding to the arguments of the function such as `top=10`.
 #'
 #' @return A tidygraph, the result of successively applying the commands to the input graph.
 #' @export
-#'@examples
-#'\dontrun{
+#' @examples
 #'cashTransferMap %>% parse_commands("select factors top=10 \n color factors field=n") %>% make_vn()
-#'}
 parse_commands <- function(graf,tex){
   tex <- tex %>% replace_null("") %>% str_split("\n") %>% `[[`(1) %>% str_trim() %>% escapeRegex
   if(length(tex)>1)tex <- tex %>% keep(.!="")
@@ -194,37 +195,39 @@ pipe_filter_factors <- function(graf,field,value,operator="="){filter_things(gra
 pipe_filter_links <- function(graf,field,value,operator="="){filter_things(graf=graf,field=field,value=value,operator=operator,what="links")}
 
 
-pipe_select_links <- function(graf,top,all=F,is_proportion=F){
-  gr <- graf %>%
+#' Select links
+#'
+#' @inheritParams parse_commands
+#' @param top Select only the `top` links in terms of their frequency
+#' @param all
+#' @param is_proportion
+#'
+#' @return
+#' @export
+#'
+#' @examples
+pipe_select_links <- function(graf,top){
+  graf %>%
     activate(edges) %>%
     group_by(from,to) %>%
     mutate(n=n()) %>%
-    mutate(n=rank(n)) %>%
-    # mutate(rtop=row_number()) %>%
-    ungroup
-
-  if(is_proportion) gr <- gr %>%
-      filter(n/max(.E()$n,na.rm=T)>top) else gr <- gr %>%
-          filter(n>top)
-
-      gr %>%
+    pipe_bundle_links(field="n") %>%
+    ungroup %>%
+    arrange(desc(n)) %>%
+    filter(n>top) %>%
         select(from,to,n,everything()) %>%
         activate(nodes)
 }
 
 
-pipe_select_factors <- function(graf,top=20,all=F,is_proportion=F){
-  gr <- graf %>%
+pipe_select_factors <- function(graf,top=20,all=F){
+  graf %>%
     activate(nodes) %>%
     mutate(n = centrality_degree()) %>%
     mutate(n=rank(n)) %>%
-    arrange(desc(n))
-
-  if(is_proportion) gr <- gr %>%
-      filter(n/max(.N()$n,na.rm=T)>top) else gr <- gr %>%
+    arrange(desc(n)) %>%
           slice(1:top)
 
-      gr
 }
 
 
@@ -415,7 +418,7 @@ pipe_flip_opposites <- function(graf,flipchar="~"){
 
 # zero_to_one <- function(vec)(vec-min(vec,na.rm=T))/(max(vec,na.rm=T)-min(vec,na.rm=T))
 
-pipe_bundle_links <- function(graf,field=NULL){
+pipe_bundle_links <- function(graf,field="n"){
   # browser()
   nodes <- factor_table(graf)
   if(nrow(nodes)==0) return(NULL)
@@ -432,7 +435,8 @@ pipe_bundle_links <- function(graf,field=NULL){
     group_by(from,to) %>%
     mutate(rn=row_number())
 
-  if("n" %in% link_colnames(graf))  {edges <- edges %>%
+  if("n" %in% link_colnames(graf))  {
+    edges <- edges %>%
     mutate(n=sum(n,na.rm=T)) %>%
     filter(rn==1)
   } else {edges <- edges %>%
@@ -441,6 +445,7 @@ pipe_bundle_links <- function(graf,field=NULL){
 }
 
   tbl_graph(nodes,edges %>% ungroup)
+
 
 }
 
@@ -483,11 +488,12 @@ pipe_metrics <- function(graf){
 
 #' Scale factors
 #'
-#' @param graf a tidygraph
+#' @inheritParams parse_commands
 #' @param field A numerical field in the factor table which will control the scale.
 #'
 #' @return A tidygraph with a new or overwritten column `size`in the factor table varying between .2 and 1.
 #' @export
+#'
 #'
 #' @examples
 pipe_scale_factors <- function(graf,field="n"){
@@ -502,7 +508,7 @@ pipe_scale_factors <- function(graf,field="n"){
 
 #' Label factors
 #'
-#' @param graf A tidygraph
+#' @inheritParams parse_commands
 #' @param field A numerical or character field in the factor table.
 #' @param clear Logical. Whether to clear any existing labels or to concatenate the new result after
 #' any existing labels. Default is `FALSE`.
@@ -510,6 +516,7 @@ pipe_scale_factors <- function(graf,field="n"){
 #' @return A tidygraph with a column `label`. If `clear` is FALSE, the new label is concatenated
 #' after any existing label. The new label is of the form `field: value`.
 #' @export
+#'
 #'
 #' @examples
 pipe_label_factors <- function(graf,field="n",clear=F){
@@ -523,7 +530,7 @@ pipe_label_factors <- function(graf,field="n",clear=F){
 
 #' Color factors (background color)
 #'
-#' @param graf A tidygraph
+#' @inheritParams parse_commands
 #' @param field A numerical or character field in the factor table.
 #' If it is character, the other parameters are ignored and a color-blind friendly qualitative palette is applied.
 #' @param fixed  Optionally, a color specification which will be applied everywhere and overrides `field`.
@@ -534,6 +541,7 @@ pipe_label_factors <- function(graf,field="n",clear=F){
 #' @return A tidygraph with a new or overwritten column `color.background`in the factor table.
 #' @export
 #'
+#'
 #' @examples
 pipe_color_factors <- function(graf,field="n",lo="green",hi="blue",mid="gray",fixed=NULL){
   if(!is.null(fixed))return(graf %N>% mutate(color.background=fixed))
@@ -543,7 +551,7 @@ pipe_color_factors <- function(graf,field="n",lo="green",hi="blue",mid="gray",fi
 }
 #' Color factors (border color)
 #'
-#' @param graf A tidygraph
+#' @inheritParams parse_commands
 #' @param field A numerical or character field in the factor table.
 #' #' If it is character, the other parameters are ignored and a color-blind friendly qualitative palette is applied.
 #' @param fixed  Optionally, a color specification which will be applied everywhere and overrides `field`.
@@ -553,6 +561,7 @@ pipe_color_factors <- function(graf,field="n",lo="green",hi="blue",mid="gray",fi
 #'
 #' @return A tidygraph with a new or overwritten column `color.border`in the factor table.
 #' @export
+#'
 #'
 #' @examples
 pipe_color_borders <- function(graf,field="n",lo="green",hi="blue",mid="gray",fixed=NULL){
@@ -564,7 +573,7 @@ pipe_color_borders <- function(graf,field="n",lo="green",hi="blue",mid="gray",fi
 
 #' Color links
 #'
-#' @param graf A tidygraph
+#' @inheritParams parse_commands
 #' @param field A numerical or character field in the link table.
 #' If it is character, the other parameters are ignored and a color-blind friendly qualitative palette is applied.
 #' @param fixed  Optionally, a color specification which will be applied everywhere and overrides `field`.
@@ -574,6 +583,7 @@ pipe_color_borders <- function(graf,field="n",lo="green",hi="blue",mid="gray",fi
 #'
 #' @return A tidygraph with a new or overwritten column `color`in the link table.
 #' @export
+#'
 #'
 #' @examples
 pipe_color_links <- function(graf,field="n",lo="green",hi="blue",mid="gray",fixed=NULL){
@@ -585,11 +595,12 @@ pipe_color_links <- function(graf,field="n",lo="green",hi="blue",mid="gray",fixe
 }
 #' Fade factors
 #'
-#' @param graf A tidygraph
+#' @inheritParams parse_commands
 #' @param field A numerical field in the link table which will control the amount of fading
 #' (the alpha value of the factors).
 #' @return A tidygraph in which the column `color.background`in the factor table has alpha proportionate to the values in `field`.
 #' @export
+#'
 #'
 #' @examples
 pipe_fade_factors <- function(graf,field="n"){
@@ -603,7 +614,7 @@ pipe_fade_factors <- function(graf,field="n"){
 
 #' Fade links
 #'
-#' @param graf A tidygraph
+#' @inheritParams parse_commands
 #' @param field A numerical field in the link table which will control the amount of fading
 #' (the alpha value of the links).
 #' @return A tidygraph in which the column `color`in the link table has alpha proportionate to the values in `field`.
@@ -621,7 +632,7 @@ pipe_fade_links <- function(graf,field="n"){
 
 #' Scale factors
 #'
-#' @param graf A tidygraph
+#' @inheritParams parse_commands
 #' @param field A numerical field in the link table which will control the scale (the width of the links).
 #'
 #' @return A tidygraph with a new or overwritten column `width`in the link table varying between .2 and 1.
@@ -638,7 +649,7 @@ pipe_scale_links <- function(graf,field="n"){
 
 #' Label links
 #'
-#' @param graf A tidygraph
+#' @inheritParams parse_commands
 #' @param field A numerical or character field in the link table.
 #' @param clear Logical. Whether to clear any existing labels or to concatenate the new result after
 #' any existing labels.
@@ -646,6 +657,7 @@ pipe_scale_links <- function(graf,field="n"){
 #' @return A tidygraph with a column `label`. If `clear` is FALSE (the default), the new label is concatenated
 #' after any existing label. The new label is of the form `field: value`.
 #' @export
+#'
 #'
 #' @examples
 pipe_label_links <- function(graf,field="n",clear=F){

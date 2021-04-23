@@ -129,15 +129,22 @@
     <p>Color factors (background color)</p>
     </div>
 
-    <pre class="usage"><span class='fu'>pipe_color_factors</span><span class='op'>(</span><span class='va'>graf</span>, field <span class='op'>=</span> <span class='st'>"n"</span>, lo <span class='op'>=</span> <span class='st'>"green"</span>, hi <span class='op'>=</span> <span class='st'>"blue"</span>,
-  mid <span class='op'>=</span> <span class='st'>"gray"</span>, fixed <span class='op'>=</span> <span class='cn'>NULL</span><span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>pipe_color_factors</span><span class='op'>(</span>
+  <span class='va'>graf</span>,
+  field <span class='op'>=</span> <span class='st'>"n"</span>,
+  lo <span class='op'>=</span> <span class='st'>"green"</span>,
+  hi <span class='op'>=</span> <span class='st'>"blue"</span>,
+  mid <span class='op'>=</span> <span class='st'>"gray"</span>,
+  fixed <span class='op'>=</span> <span class='cn'>NULL</span>
+<span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
       <th>graf</th>
-      <td><p>A tidygraph</p></td>
+      <td><p>A tidygraph representing a causal map.
+In this package, nodes are called factors and edges are called links.</p></td>
     </tr>
     <tr>
       <th>field</th>

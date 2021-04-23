@@ -7,7 +7,8 @@
 pipe_fade_factors(graf, field = "n")
 }
 \arguments{
-\item{graf}{A tidygraph}
+\item{graf}{A tidygraph representing a causal map.
+In this package, nodes are called factors and edges are called links.}
 
 \item{field}{A numerical field in the link table which will control the amount of fading
 (the alpha value of the factors).}

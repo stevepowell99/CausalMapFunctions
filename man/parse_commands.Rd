@@ -7,7 +7,8 @@
 parse_commands(graf, tex)
 }
 \arguments{
-\item{graf}{A tidygraph}
+\item{graf}{A tidygraph representing a causal map.
+In this package, nodes are called factors and edges are called links.}
 
 \item{tex}{A set of commands to parse, separated by linebreaks if there is more than one command.
 Each line consists of two words corresponding to the name of the pipe function to be applied, e.g. `color links` calls the function `color_links`
@@ -22,7 +23,5 @@ There is one command format corresponding to each of
 the family of pipe functions.
 }
 \examples{
-\dontrun{
-cashTransferMap \%>\% parse_commands("select factors top=10 \\n color factors field=n") \%>\% make_vn()
-}
+cashTransferMap \%>\% parse_commands("select factors top=10 \n color factors field=n") \%>\% make_vn()
 }

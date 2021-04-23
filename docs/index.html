@@ -87,6 +87,12 @@
 <pre><code>cashTransferMap %&gt;% make_vn</code></pre>
 <p>These functions are used in the <a href="https://causalmap.shinyapps.io/CausalMapViewer/">Causal Map Viewer</a> and are similar to those used in the <a href="http://causalmap.app">Causal Map app</a>. In our roadmap, these functions will eventually replace their counterparts in the Causal Map app.</p>
 <p>The main functions input and output <a href="https://github.com/thomasp85/tidygraph">tidygraph</a> graphs.</p>
+<p>There are many existing tools for analysing systems diagrams and also undirected graphs, we identified a need for a tool for analysing the kind of causal maps produced in evaluation research such as programme theories where</p>
+<ul>
+<li>text labels may be long and are important because they may be used for searching and filtering</li>
+<li>there may be many links between pairs of factors which should sometimes merged and sometimes not</li>
+<li>the main focus is often on a flow of influence from a small set of intervention variables to a small set of focused variables downstream of them, such as key outcomes.</li>
+</ul>
 <div id="parser" class="section level2">
 <h2 class="hasAnchor">
 <a href="#parser" class="anchor"></a>Parser</h2>
