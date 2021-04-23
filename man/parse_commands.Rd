@@ -22,5 +22,7 @@ There is one command format corresponding to each of
 the family of pipe functions.
 }
 \examples{
-graf \%>\% parse_commands("select factors top=10\\nbundle links field=n\\ncolor links field=n") \%>\% make_vn
+\dontrun{
+cashTransferMap \%>\% parse_commands("select factors top=10 \\n color factors field=n") \%>\% make_vn()
+}
 }

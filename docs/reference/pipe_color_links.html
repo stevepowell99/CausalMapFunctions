@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Parse commands — parse_commands • CausalMapFunctions</title>
+<title>Color links — pipe_color_links • CausalMapFunctions</title>
 
 
 <!-- jquery -->
@@ -39,10 +39,8 @@
 
 
 
-<meta property="og:title" content="Parse commands — parse_commands" />
-<meta property="og:description" content="A parser which breaks a text input into individual commands.
-There is one command format corresponding to each of
-the family of pipe functions." />
+<meta property="og:title" content="Color links — pipe_color_links" />
+<meta property="og:description" content="Color links" />
 
 
 
@@ -122,18 +120,17 @@ the family of pipe functions." />
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Parse commands</h1>
+    <h1>Color links</h1>
     <small class="dont-index">Source: <a href='https://github.com/stevepowell99/CausalMapFunctions/blob/master/R/functions.R'><code>R/functions.R</code></a></small>
-    <div class="hidden name"><code>parse_commands.Rd</code></div>
+    <div class="hidden name"><code>pipe_color_links.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>A parser which breaks a text input into individual commands.
-There is one command format corresponding to each of
-the family of pipe functions.</p>
+    <p>Color links</p>
     </div>
 
-    <pre class="usage"><span class='fu'>parse_commands</span><span class='op'>(</span><span class='va'>graf</span>, <span class='va'>tex</span><span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>pipe_color_links</span><span class='op'>(</span><span class='va'>graf</span>, field <span class='op'>=</span> <span class='st'>"n"</span>, lo <span class='op'>=</span> <span class='st'>"green"</span>, hi <span class='op'>=</span> <span class='st'>"blue"</span>,
+  mid <span class='op'>=</span> <span class='st'>"gray"</span>, fixed <span class='op'>=</span> <span class='cn'>NULL</span><span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -143,22 +140,32 @@ the family of pipe functions.</p>
       <td><p>A tidygraph</p></td>
     </tr>
     <tr>
-      <th>tex</th>
-      <td><p>A set of commands to parse, separated by linebreaks if there is more than one command.
-Each line consists of two words corresponding to the name of the pipe function to be applied, e.g. `color links` calls the function `color_links`
-The function name is followed by field=value pairs corresponding to the arguments of the function such as `top=10`.</p></td>
+      <th>field</th>
+      <td><p>A numerical or character field in the link table.
+If it is character, the other parameters are ignored and a color-blind friendly qualitative palette is applied.</p></td>
+    </tr>
+    <tr>
+      <th>lo</th>
+      <td><p>Optionally, a color specification for the low end of the color range. Default is `green`.</p></td>
+    </tr>
+    <tr>
+      <th>hi</th>
+      <td><p>Optionally, a color specification for the high end of the color range. Default is `blue`.</p></td>
+    </tr>
+    <tr>
+      <th>mid</th>
+      <td><p>Optionally, a color specification for the middle of the color range. Default is `gray`.</p></td>
+    </tr>
+    <tr>
+      <th>fixed</th>
+      <td><p>Optionally, a color specification which will be applied everywhere and overrides `field`.</p></td>
     </tr>
     </table>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>A tidygraph, the result of successively applying the commands to the input graph.</p>
+    <p>A tidygraph with a new or overwritten column `color`in the link table.</p>
 
-    <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
-    <pre class="examples"><div class='input'><span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='op'>{</span>
-<span class='va'>cashTransferMap</span> <span class='op'>%&gt;%</span> <span class='fu'>parse_commands</span><span class='op'>(</span><span class='st'>"select factors top=10 \n color factors field=n"</span><span class='op'>)</span> <span class='op'>%&gt;%</span> <span class='fu'>make_vn</span><span class='op'>(</span><span class='op'>)</span>
-<span class='op'>}</span>
-</div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">

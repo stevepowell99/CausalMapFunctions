@@ -9,7 +9,8 @@ Description: A set of functions for manipulating and simplifying causal maps. Th
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
-Imports:
+URL: https://stevepowell99.github.io/CausalMapFunctions, https://github.com/stevepowell99/CausalMapFunctions, http://causalmap.app, https://causalmap.shinyapps.io/CausalMapViewer
+Depends:
     tidygraph,
     igraph,
     tidyverse,
@@ -17,5 +18,8 @@ Imports:
     chroma,
 Suggests:
     visNetwork,
-    DiagrammeR
+    DiagrammeR,
+    knitr,
+    rmarkdown
 RoxygenNote: 6.1.1
+VignetteBuilder: knitr

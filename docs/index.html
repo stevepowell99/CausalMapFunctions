@@ -47,8 +47,27 @@
 <li>
   <a href="reference/index.html">Reference</a>
 </li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+    Articles
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+<li>
+      <a href="articles/CausalMapViewer.html">Causal Map Viewer</a>
+    </li>
+  </ul>
+</li>
       </ul>
-<ul class="nav navbar-nav navbar-right"></ul>
+<ul class="nav navbar-nav navbar-right">
+<li>
+  <a href="https://github.com/stevepowell99/CausalMapFunctions/">
+    <span class="fab fa-github fa-lg"></span>
+     
+  </a>
+</li>
+      </ul>
 </div>
 <!--/.nav-collapse -->
   </div>
@@ -64,6 +83,8 @@
 <div class="page-header"><h1 class="hasAnchor">
 <a href="#causal-map-functions" class="anchor"></a>Causal Map Functions</h1></div>
 <p>This is a set of functions for manipulating and simplifying causal maps.</p>
+<p>Load example data with:</p>
+<pre><code>cashTransferMap %&gt;% make_vn</code></pre>
 <p>These functions are used in the <a href="https://causalmap.shinyapps.io/CausalMapViewer/">Causal Map Viewer</a> and are similar to those used in the <a href="http://causalmap.app">Causal Map app</a>. In our roadmap, these functions will eventually replace their counterparts in the Causal Map app.</p>
 <p>The main functions input and output <a href="https://github.com/thomasp85/tidygraph">tidygraph</a> graphs.</p>
 <div id="parser" class="section level2">
@@ -133,42 +154,18 @@
 <p>Split the map into facets, e.g. providing separate maps for different genders.</p>
 </div>
 </div>
-<div id="what-is-causal-map-viewer" class="section level2">
-<h2 class="hasAnchor">
-<a href="#what-is-causal-map-viewer" class="anchor"></a>What is Causal Map Viewer?</h2>
-<p>This Viewer is provided by Causal Map Ltd. It can be used alone but also works in conjunction with our two other apps, StorySurvey and Causal Map.</p>
-<p>It is a free tool for the display and analysis of causal maps.</p>
-<p>There are many existing tools for analysing systems diagrams and also undirected graphs, we identified a need for a tool for analysing the kind of causal maps produced in evaluation research such as programme theories where</p>
-<ul>
-<li>text labels are important</li>
-<li>the main focus is often on a flow of influence from a small set of intervention variables to a small set of focused variables downstream of them, such as key outcomes.</li>
-</ul>
-<div id="getting-data-into-the-viewer" class="section level3">
-<h3 class="hasAnchor">
-<a href="#getting-data-into-the-viewer" class="anchor"></a>Getting data into the viewer</h3>
-<p>The user can upload a map in the form of a CSV file, just a list of edges or links consisting of the columns <code>from</code> and <code>two</code> and optionally other columns.</p>
-<p>The user can also view</p>
-<ul>
-<li>live map data from StorySurvey.</li>
-<li>maps created in the Causal Map app, password protected.</li>
-</ul>
-<p>The viewer itself has a simple interface with just two text windows. Each line in each window is a command which manipulates the existing map in some way. The lines in the windows are applied successively to the original map to produce the final map which is then displayed.</p>
-</div>
-<div id="the-output-panes-on-the-right-hand-side" class="section level3">
-<h3 class="hasAnchor">
-<a href="#the-output-panes-on-the-right-hand-side" class="anchor"></a>The output panes on the right hand side.</h3>
-<ul>
-<li>An interactive version of the map in which the elements can be moved around and also the upstream and downstream factors are highlighted when the user mouses over them. This map can also be edited for making small changes to the map. In the future, it will be possible to download the changed map but at the moment any changes made are lost as soon as a new filter is applied</li>
-<li>A print-quality version of the map with advanced layout.</li>
-<li>Tables of factors and links showing the labels and various measures such as centrality. These outputs will be extended in the future.</li>
-</ul>
-</div>
-</div>
 </div>
   </div>
 
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
-    <div class="license">
+    <div class="links">
+<h2>Links</h2>
+<ul class="list-unstyled">
+<li>Browse source code at <br><a href="https://github.com/stevepowell99/CausalMapFunctions/">https://​github.com/​stevepowell99/​CausalMapFunctions/​</a>
+</li>
+</ul>
+</div>
+<div class="license">
 <h2>License</h2>
 <ul class="list-unstyled">
 <li><a href="LICENSE.html">Full license</a></li>

@@ -1,23 +1,10 @@
-# Hello, world!
-#
-# This is an example function named 'hello'
-# which prints 'Hello, world!'.
-#
-# You can learn more about package authoring with RStudio at:
-#
-#   http://r-pkgs.had.co.nz/
-#
-# Some useful keyboard shortcuts for package authoring:
-#
-#   Install Package:           'Ctrl + Shift + B'
-#   Check Package:             'Ctrl + Shift + E'
-#   Test Package:              'Ctrl + Shift + T'
-#library("tidygraph")
-#library("igraph")
-#library("tidyverse")
-#library("glue")
-#library("chroma")
-#library("visNetwork")
+library(igraph)
+library(DiagrammeR)
+library(visNetwork)
+library(tidyverse)
+library(tidygraph)
+library(scales)
+
 
 
 # utilities-----------------------------------------------------------------------------
@@ -82,18 +69,18 @@ load_graf_from_rds <- function(name){
 #' @param graf A tidygraph
 #' @return A tibble.
 #' @name tibbles
-#' @export
 NULL
 #> NULL
 
 #' @rdname tibbles
+#' @export
 factor_table <- function(graf)graf %>%
   activate(nodes) %>% as_tibble
 
 #' @rdname tibbles
+#' @export
 link_table <- function(graf)graf %>%
   activate(edges) %>% as_tibble
-
 
 
 
@@ -110,9 +97,10 @@ link_table <- function(graf)graf %>%
 #'
 #' @return A tidygraph, the result of successively applying the commands to the input graph.
 #' @export
-#'
-#' @examples
-#' graf %>% parse_commands("select factors top=10\nbundle links field=n\ncolor links field=n") %>% make_vn
+#'@examples
+#'\dontrun{
+#'cashTransferMap %>% parse_commands("select factors top=10 \n color factors field=n") %>% make_vn()
+#'}
 parse_commands <- function(graf,tex){
   tex <- tex %>% replace_null("") %>% str_split("\n") %>% `[[`(1) %>% str_trim() %>% escapeRegex
   if(length(tex)>1)tex <- tex %>% keep(.!="")
@@ -153,143 +141,6 @@ parse_commands <- function(graf,tex){
   }
   graf
 }
-
-parse_commandsOLD <- function(graf,tex){
-  tex <- tex %>% replace_null("") %>% str_split("\n") %>% `[[`(1) %>% str_trim() %>% escapeRegex
-  if(length(tex)>1)tex <- tex %>% keep(.!="")
-  if(tex[[1]]=="") graf <- graf else {
-
-    for(line in tex){
-      if(str_trim(line)=="")return()
-
-
-      if(str_detect(line,"^find")) {
-        up <- str_match(line," up *([0-9]*)")[,2] %>% str_trim %>% replace_na(0) %>% as.numeric
-        down <- str_match(line," down *([0-9]*)")[,2] %>% str_trim %>% replace_na(0) %>% as.numeric
-        one <- str_remove(line,"up *[0-9]*.*$") %>% str_remove("down *[0-9]*.*$") %>% str_remove("^ *find *") %>% str_trim
-        # len <- str_match(line," up ([0-9]*)")[,2] %>% replace_na(1) %>% as.numeric
-        graf <- graf %>% pipe_find_factors(one,up,down)
-      } else
-        if(str_detect(line,"^trace")) {
-          length <- str_match(line,"trace *([0-9]*)")[,2] %>% str_trim %>% replace_na(0) %>% as.numeric
-          to <- str_match(line," to (.*)")[,2] %>% str_trim %>% replace_na("")
-          from <- (str_remove(line," to .*$") %>% str_match("from *(.*)"))[,2] %>% str_trim %>% replace_na("")
-          graf <- graf %>% pipe_trace_paths(from,to,length)
-        } else
-          if(str_detect(line,"^filter links") & str_detect(line,"%")) {
-            one <- str_match(line,"^filter links ([0-9]*)")[,2]%>% replace_na(0) %>% as.numeric %>% `/`(100)
-            graf <- graf %>% pipe_select_links(one,is_proportion=T)
-          } else
-            if(str_detect(line,"^filter links ")) {
-              one <- str_match(line,"^filter links ([^ ]*)")[,2]%>% replace_na(0) %>% as.numeric
-              graf <- graf %>% pipe_select_links(one)
-            } else
-              if(str_detect(line,"^filter factors") & str_detect(line,"%")) {
-                one <- str_match(line,"^filter factors ([0-9]*)")[,2]%>% replace_na(0) %>% as.numeric %>% `/`(100)
-                graf <- graf %>% pipe_select_factors(one,is_proportion=T)
-              } else
-                if(str_detect(line,"^filter factors ")) {
-                  one <- str_match(line,"^filter factors ([^ ]*)")[,2]%>% replace_na(0) %>% as.numeric
-                  graf <- graf %>% pipe_select_factors(one)
-                } else
-                  if(str_detect(line,"^remove")) graf <- graf %>% pipe_remove_orphans else
-                    if(str_detect(line,"^shrink")) {
-                      what <- str_match(line,"^shrink (.*)")[,2]%>% replace_na("")
-                      graf <- graf %>% pipe_bundle_factors(what)
-                    } else
-                      if(str_detect(line,"^hide")) {
-                        one <- str_match(line,"^hide (.*)")[,2]%>% replace_na("")
-                        graf <- graf %>% pipe_hide_factors(one)
-                      } else
-                        if(str_detect(line,"^zoom")) {
-                          one <- str_match(line,"^zoom ([0-9]*)")[,2]%>% replace_na(0)
-                          char <- str_match(line,"^zoom [0-9]* (.*)")[,2] %>% replace_na(";") %>% str_remove(" *hide$")
-                          hide <- str_detect(line,"hide *$") %>% replace_na(F)
-                          graf <- graf %>% pipe_zoom_factors(one,char,hide)
-                        } else if(str_detect(line,"^bundle")) {
-                          # browser()
-                          one <- str_match(line,"^bundle (.*)")[,2]
-                          if(is.na(one))one <- NULL
-                          graf <- graf %>% pipe_bundle_links(one)
-                        } else
-
-                          # browser()
-                          if(str_detect(line,"^ *factors")) {
-                            graf <- graf %>% pipe_metrics()### IS THIS THE BEST WAY??
-
-
-
-                            hit <- str_match(line,"^ *factors *(.*)")[,2] %>% str_trim %>% replace_na("")
-
-                            if(str_detect(hit,"^ *colou?rborder")) {
-                              val <- str_match(hit," *colou?rborder *(.*)")[,2] %>% str_trim %>% replace_na("")
-                              # if(val %in% factor_colnames(graf)){
-                              if(val %in% factor_colnames(graf))graf <-
-                                  graf %N>% pipe_color_borders(val)
-
-                              # }
-                            } else
-                              if(str_detect(hit,"^ *label")) {
-                                val <- str_match(hit," *label *(.*)")[,2] %>% str_trim %>% replace_na("")
-                                if(val %in% factor_colnames(graf))graf <-
-                                    graf %N>% pipe_label_factors(val)
-
-                                # }
-                              } else
-                                if(str_detect(hit,"^ *colou?r")) {
-                                  val <- str_match(hit," *colou?r *(.*)")[,2] %>% str_trim %>% replace_na("")
-                                  # if(val %in% factor_colnames(graf)){
-                                  if(val %in% factor_colnames(graf))graf <-
-                                      graf %N>% pipe_color_factors(val)
-
-                                  # }
-                                }
-                          }
-                  else
-                    if(str_detect(line,"^ *links")) {
-
-
-                      # graf <- graf %>% pipe_bundle_links()### IS THIS THE BEST WAY??
-
-
-                      hit <- str_match(line,"^ *links *(.*)")[,2] %>% str_trim %>% replace_na("")
-
-                      if(str_detect(hit,"^ *label")) {
-                        val <- str_match(hit," *label *(.*)")[,2] %>% str_trim %>% replace_na("")
-                        # if(val %in% link_colnames(graf)){
-                        # browser()
-                        if(val %in% link_colnames(graf)) graf <-
-                            graf %E>% pipe_label_links(val)
-
-                        # }
-                      } else
-                        if(str_detect(hit,"^ *colou?r")) {
-                          val <- str_match(hit," *colou?r *(.*)")[,2] %>% str_trim %>% replace_na("")
-                          # if(val %in% link_colnames(graf)){
-                          # browser()
-                          if(val %in% link_colnames(graf)) graf <-
-
-                              graf %E>% pipe_color_links(val)
-
-                          # }
-                        } else
-                          if(str_detect(hit,"^ *alpha")) {
-                            val <- str_match(hit," *alpha *(.*)")[,2] %>% str_trim %>% replace_na("")
-                            # if(val %in% link_colnames(graf)){
-                            if("color" %notin% link_colnames(graf)) graf <- graf %E>% mutate(color="blue") %>% activate(nodes)
-                            # browser()
-                            if(val %in% link_colnames(graf)) graf <-
-                                graf %E>% pipe_fade_links(val)
-
-
-                            # }
-                          }
-                    }
-    }
-  }
-  graf
-}
-pipe_filters <- parse_commands #alias
 
 
 # helper graph functions ----------------------------------------------------
@@ -362,7 +213,7 @@ pipe_select_links <- function(graf,top,all=F,is_proportion=F){
 }
 
 
-pipe_select_factors <- function(graf,top,all=F,is_proportion=F){
+pipe_select_factors <- function(graf,top=20,all=F,is_proportion=F){
   gr <- graf %>%
     activate(nodes) %>%
     mutate(n = centrality_degree()) %>%
@@ -606,7 +457,7 @@ pipe_fix_columns <- function(graf){
   if(!("n" %in% link_colnames(graf))) graf <- graf %E>% mutate(n=1L)
   if(!("capacity" %in% link_colnames(graf))) graf <- graf %E>% mutate(capacity=1L)
   if(!("label" %in% link_colnames(graf))) graf <- graf %E>% mutate(label="")
-  if(!("width" %in% link_colnames(graf))) graf <- graf %E>% mutate(width=5)
+  if(!("width" %in% link_colnames(graf))) graf <- graf %E>% mutate(width=.1)
   if(!("flow" %in% link_colnames(graf))) graf <- graf %E>% mutate(flow=1L)
   graf %>% activate(nodes)
 }
@@ -629,26 +480,81 @@ pipe_metrics <- function(graf){
 
 ## add formats -------------------------------------------------------------
 
+
+#' Scale factors
+#'
+#' @param graf a tidygraph
+#' @param field A numerical field in the factor table which will control the scale.
+#'
+#' @return A tidygraph with a new or overwritten column `size`in the factor table varying between .2 and 1.
+#' @export
+#'
+#' @examples
 pipe_scale_factors <- function(graf,field="n"){
   graf <- pipe_metrics(graf)
   if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
   class <- graf %>% factor_table %>% pull(UQ(sym(field))) %>% class
   if(class =="character"){warning("No such column");return(graf)}
   # browser()
-  graf %N>% mutate(size=scales::rescale(UQ(sym(field)),to=c(0.2,1))*10) %>% activate(nodes)
+  graf %N>% mutate(size=scales::rescale(UQ(sym(field)),to=c(0.2,1))) %>% activate(nodes)
 
 }
-pipe_label_factors <- function(graf,field="n"){
+
+#' Label factors
+#'
+#' @param graf A tidygraph
+#' @param field A numerical or character field in the factor table.
+#' @param clear Logical. Whether to clear any existing labels or to concatenate the new result after
+#' any existing labels. Default is `FALSE`.
+#'
+#' @return A tidygraph with a column `label`. If `clear` is FALSE, the new label is concatenated
+#' after any existing label. The new label is of the form `field: value`.
+#' @export
+#'
+#' @examples
+pipe_label_factors <- function(graf,field="n",clear=F){
+  clear=as.logical(clear)
   graf <- pipe_metrics(graf)
-  if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
-  graf %N>% mutate(label=paste0(label %>% keep(.!=""),". ",field,": ",UQ(sym(field))))
+  if(field %notin% link_colnames(graf)){warning("No such column");return(graf)}
+  graf %N>%
+    mutate(label=paste0((if(clear)NULL else paste0(label,". ")) %>% keep(.!=""),field,": ",UQ(sym(field)),". ")) %>% activate(nodes)
 }
+
+
+#' Color factors (background color)
+#'
+#' @param graf A tidygraph
+#' @param field A numerical or character field in the factor table.
+#' If it is character, the other parameters are ignored and a color-blind friendly qualitative palette is applied.
+#' @param fixed  Optionally, a color specification which will be applied everywhere and overrides `field`.
+#' @param lo Optionally, a color specification for the low end of the color range. Default is `green`.
+#' @param hi Optionally, a color specification for the high end of the color range. Default is `blue`.
+#' @param mid  Optionally, a color specification for the middle of the color range. Default is `gray`.
+#'
+#' @return A tidygraph with a new or overwritten column `color.background`in the factor table.
+#' @export
+#'
+#' @examples
 pipe_color_factors <- function(graf,field="n",lo="green",hi="blue",mid="gray",fixed=NULL){
   if(!is.null(fixed))return(graf %N>% mutate(color.background=fixed))
   graf <- pipe_metrics(graf)
   if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
   graf %N>% mutate(color.background=create_colors(UQ(sym(field)),lo=lo,hi=hi,mid=mid))
 }
+#' Color factors (border color)
+#'
+#' @param graf A tidygraph
+#' @param field A numerical or character field in the factor table.
+#' #' If it is character, the other parameters are ignored and a color-blind friendly qualitative palette is applied.
+#' @param fixed  Optionally, a color specification which will be applied everywhere and overrides `field`.
+#' @param lo Optionally, a color specification for the low end of the color range. Default is `green`.
+#' @param hi Optionally, a color specification for the high end of the color range. Default is `blue`.
+#' @param mid  Optionally, a color specification for the middle of the color range. Default is `gray`.
+#'
+#' @return A tidygraph with a new or overwritten column `color.border`in the factor table.
+#' @export
+#'
+#' @examples
 pipe_color_borders <- function(graf,field="n",lo="green",hi="blue",mid="gray",fixed=NULL){
   if(!is.null(fixed))return(graf %N>% mutate(color.border=fixed))
   graf <- pipe_metrics(graf)
@@ -656,7 +562,20 @@ pipe_color_borders <- function(graf,field="n",lo="green",hi="blue",mid="gray",fi
   graf %N>% mutate(color.border=create_colors(UQ(sym(field)),lo=lo,hi=hi,mid=mid))
 }
 
-
+#' Color links
+#'
+#' @param graf A tidygraph
+#' @param field A numerical or character field in the link table.
+#' If it is character, the other parameters are ignored and a color-blind friendly qualitative palette is applied.
+#' @param fixed  Optionally, a color specification which will be applied everywhere and overrides `field`.
+#' @param lo Optionally, a color specification for the low end of the color range. Default is `green`.
+#' @param hi Optionally, a color specification for the high end of the color range. Default is `blue`.
+#' @param mid  Optionally, a color specification for the middle of the color range. Default is `gray`.
+#'
+#' @return A tidygraph with a new or overwritten column `color`in the link table.
+#' @export
+#'
+#' @examples
 pipe_color_links <- function(graf,field="n",lo="green",hi="blue",mid="gray",fixed=NULL){
   if(!is.null(fixed))return(graf %E>% mutate(color=fixed) %>% activate(nodes))
   if(field %notin% link_colnames(graf)){warning("No such column");return(graf)}
@@ -664,6 +583,33 @@ pipe_color_links <- function(graf,field="n",lo="green",hi="blue",mid="gray",fixe
 
 
 }
+#' Fade factors
+#'
+#' @param graf A tidygraph
+#' @param field A numerical field in the link table which will control the amount of fading
+#' (the alpha value of the factors).
+#' @return A tidygraph in which the column `color.background`in the factor table has alpha proportionate to the values in `field`.
+#' @export
+#'
+#' @examples
+pipe_fade_factors <- function(graf,field="n"){
+  if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
+  if("color.background" %notin% factor_colnames(graf)){warning("No such column");return(graf)}
+  class <- graf %>% factor_table %>% pull(UQ(sym(field))) %>% class
+  if(class =="character"){warning("No such column");return(graf)}
+  # browser()
+  graf %N>% mutate(color.background=alpha(color.background,scales::rescale(UQ(sym(field)),to=c(0.2,1)))) %>% activate(nodes)
+}
+
+#' Fade links
+#'
+#' @param graf A tidygraph
+#' @param field A numerical field in the link table which will control the amount of fading
+#' (the alpha value of the links).
+#' @return A tidygraph in which the column `color`in the link table has alpha proportionate to the values in `field`.
+#' @export
+#'
+#' @examples
 pipe_fade_links <- function(graf,field="n"){
   if(field %notin% link_colnames(graf)){warning("No such column");return(graf)}
   if("color" %notin% link_colnames(graf)){warning("No such column");return(graf)}
@@ -672,16 +618,41 @@ pipe_fade_links <- function(graf,field="n"){
   # browser()
   graf %E>% mutate(color=alpha(color,scales::rescale(UQ(sym(field)),to=c(0.2,1)))) %>% activate(nodes)
 }
+
+#' Scale factors
+#'
+#' @param graf A tidygraph
+#' @param field A numerical field in the link table which will control the scale (the width of the links).
+#'
+#' @return A tidygraph with a new or overwritten column `width`in the link table varying between .2 and 1.
+#' @export
+#'
+#' @examples
 pipe_scale_links <- function(graf,field="n"){
   if(field %notin% link_colnames(graf)){warning("No such column");return(graf)}
   class <- graf %>% link_table %>% pull(UQ(sym(field))) %>% class
   if(class =="character"){warning("No such column");return(graf)}
   # browser()
-  graf %E>% mutate(width=scales::rescale(UQ(sym(field)),to=c(0.2,1))*5) %>% activate(nodes)
+  graf %E>% mutate(width=scales::rescale(UQ(sym(field)),to=c(0.2,1))) %>% activate(nodes)
 }
-pipe_label_links <- function(graf,field="n"){
+
+#' Label links
+#'
+#' @param graf A tidygraph
+#' @param field A numerical or character field in the link table.
+#' @param clear Logical. Whether to clear any existing labels or to concatenate the new result after
+#' any existing labels.
+#'
+#' @return A tidygraph with a column `label`. If `clear` is FALSE (the default), the new label is concatenated
+#' after any existing label. The new label is of the form `field: value`.
+#' @export
+#'
+#' @examples
+pipe_label_links <- function(graf,field="n",clear=F){
+  clear=as.logical(clear)
   if(field %notin% link_colnames(graf)){warning("No such column");return(graf)}
-  graf %E>% mutate(label=paste0(label %>% keep(.!=""),". ",field,": ",UQ(sym(field)))) %>% activate(nodes)
+  graf %E>%
+    mutate(label=paste0((if(clear)NULL else paste0(label,". ")) %>% keep(.!=""),field,": ",UQ(sym(field)),". ")) %>% activate(nodes)
 }
 
 
@@ -742,10 +713,10 @@ make_graph_metrics <- function(graf){
 
 make_vn <- function(graf,scale=1){
   graf <- graf %>% pipe_fix_columns()
-  nodes <- graf %N>% as_tibble %>% mutate(value=size)
+  nodes <- graf %N>% as_tibble %>% mutate(value=size*10)
   # browser()
   edges <- graf %E>% as_tibble %>%
-    vn_fan_edges()
+    vn_fan_edges() %>% mutate(width=width*10)
   if(nrow(nodes)>1){
     layout <- layout_with_sugiyama(graf)$layout*-scale
     colnames(layout) <- c("y", "x")
@@ -869,7 +840,7 @@ make_grviz <- function(
     mutate(label=clean_grv(label) %>% str_wrap(20))%>%
     mutate(fillcolor=color.background) %>%
     mutate(color=color.border) %>%
-    mutate(fontsize=(size+5)*10) %>%
+    mutate(fontsize=(size+5)*100) %>%
     # mutate(color="black") %>%
     mutate(fontcolor="black") %>%
     activate(edges) %>%
