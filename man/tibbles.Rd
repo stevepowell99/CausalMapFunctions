@@ -4,11 +4,14 @@
 \alias{tibbles}
 \alias{factor_table}
 \alias{link_table}
+\alias{meta_table}
 \title{Extracting tibbles from a tidygraph}
 \usage{
 factor_table(graf)
 
 link_table(graf)
+
+meta_table(graf)
 }
 \arguments{
 \item{graf}{A tidygraph representing a causal map.

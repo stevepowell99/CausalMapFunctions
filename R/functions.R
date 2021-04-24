@@ -84,6 +84,12 @@ factor_table <- function(graf)graf %>%
 link_table <- function(graf)graf %>%
   activate(edges) %>% as_tibble
 
+#' @rdname tibbles
+#' @export
+#'
+meta_table <- function(graf)graf %>%
+  attr("meta")
+
 
 
 #' Parse commands
@@ -190,9 +196,27 @@ create_colors <- function(vec,lo=lo,hi=hi,mid=mid){
 # main graph functions ----------------------------------------------------
 
 
+pipe_filter_meta_inner <- function(graf,...){
+  meta <- attr(graf,"meta") %>% filter(...)
+  attr(graf,"meta") <- meta
+  graf %E>%
+    filter(statement_id %in% meta$statement_id) %>%
+    activate(nodes)
+}
 
 pipe_filter_factors <- function(graf,field,value,operator="="){filter_things(graf=graf,field=field,value=value,operator=operator,what="factors")}
 pipe_filter_links <- function(graf,field,value,operator="="){filter_things(graf=graf,field=field,value=value,operator=operator,what="links")}
+pipe_filter_meta <- function(graf,field,value,operator="="){
+
+
+  if(operator=="=") graf %>%
+    pipe_filter_meta_inner(UQ(sym(field)) %in% value) %>% activate(nodes)
+  else if(operator=="contains") {
+    value <- str_replace_all(value," OR ","|") %>% str_trim
+    graf %>%
+      pipe_filter_meta_inner(str_detect(tolower(UQ(sym(field))),tolower(escapeRegex(value)))) %>% activate(nodes)
+  }
+  }
 
 
 #' Select links
@@ -670,6 +694,14 @@ pipe_label_links <- function(graf,field="n",clear=F){
 
 # outputs -----------------------------------------------------------------
 
+
+make_table <- function(graf,tab){
+  if(tab=="factors") res <- graf %>% factor_table else
+    if(tab=="links") res <- graf %>% link_table else
+    if(tab=="meta") res <- graf %>% meta_table
+
+  res #%>% select(...)
+}
 
 make_graph_metrics <- function(graf){
   metric=c(

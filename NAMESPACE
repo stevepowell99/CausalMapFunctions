@@ -2,6 +2,7 @@
 
 export(factor_table)
 export(link_table)
+export(meta_table)
 export(parse_commands)
 export(pipe_color_borders)
 export(pipe_color_factors)
