@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Color factors (border color) — pipe_color_borders • CausalMapFunctions</title>
+<title>Hide factors — pipe_hide_factors • CausalMapFunctions</title>
 
 
 <!-- jquery -->
@@ -39,8 +39,8 @@
 
 
 
-<meta property="og:title" content="Color factors (border color) — pipe_color_borders" />
-<meta property="og:description" content="Color factors (border color)" />
+<meta property="og:title" content="Hide factors — pipe_hide_factors" />
+<meta property="og:description" content="Hide factors" />
 
 
 
@@ -120,23 +120,16 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Color factors (border color)</h1>
+    <h1>Hide factors</h1>
     <small class="dont-index">Source: <a href='https://github.com/stevepowell99/CausalMapFunctions/blob/master/R/functions.R'><code>R/functions.R</code></a></small>
-    <div class="hidden name"><code>pipe_color_borders.Rd</code></div>
+    <div class="hidden name"><code>pipe_hide_factors.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>Color factors (border color)</p>
+    <p>Hide factors</p>
     </div>
 
-    <pre class="usage"><span class='fu'>pipe_color_borders</span><span class='op'>(</span>
-  <span class='va'>graf</span>,
-  field <span class='op'>=</span> <span class='st'>"n"</span>,
-  lo <span class='op'>=</span> <span class='st'>"green"</span>,
-  hi <span class='op'>=</span> <span class='st'>"blue"</span>,
-  mid <span class='op'>=</span> <span class='st'>"gray"</span>,
-  fixed <span class='op'>=</span> <span class='cn'>NULL</span>
-<span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>pipe_hide_factors</span><span class='op'>(</span><span class='va'>graf</span>, <span class='va'>value</span><span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -147,31 +140,14 @@
 In this package, nodes are called factors and edges are called links.</p></td>
     </tr>
     <tr>
-      <th>field</th>
-      <td><p>A numerical or character field in the factor table.
-#' If it is character, the other parameters are ignored and a color-blind friendly qualitative palette is applied.</p></td>
-    </tr>
-    <tr>
-      <th>lo</th>
-      <td><p>Optionally, a color specification for the low end of the color range. Default is `green`.</p></td>
-    </tr>
-    <tr>
-      <th>hi</th>
-      <td><p>Optionally, a color specification for the high end of the color range. Default is `blue`.</p></td>
-    </tr>
-    <tr>
-      <th>mid</th>
-      <td><p>Optionally, a color specification for the middle of the color range. Default is `gray`.</p></td>
-    </tr>
-    <tr>
-      <th>fixed</th>
-      <td><p>Optionally, a color specification which will be applied everywhere and overrides `field`.</p></td>
+      <th>value</th>
+      <td><p>The string to find within factor labels</p></td>
     </tr>
     </table>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>A tidymap with a new or overwritten column `color.border`in the factor table.</p>
+    <p>A map in which labels matching the string are excluded</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

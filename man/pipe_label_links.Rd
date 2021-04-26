@@ -7,7 +7,7 @@
 pipe_label_links(graf, field = "n", clear = F)
 }
 \arguments{
-\item{graf}{A tidygraph representing a causal map.
+\item{graf}{A tidymap representing a causal map.
 In this package, nodes are called factors and edges are called links.}
 
 \item{field}{A numerical or character field in the link table.}
@@ -16,7 +16,7 @@ In this package, nodes are called factors and edges are called links.}
 any existing labels.}
 }
 \value{
-A tidygraph with a column `label`. If `clear` is FALSE (the default), the new label is concatenated
+A tidymap with a column `label`. If `clear` is FALSE (the default), the new label is concatenated
 after any existing label. The new label is of the form `field: value`.
 }
 \description{

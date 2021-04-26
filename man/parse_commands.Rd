@@ -7,15 +7,19 @@
 parse_commands(graf, tex)
 }
 \arguments{
-\item{graf}{A tidygraph representing a causal map.
+\item{graf}{A tidymap representing a causal map.
 In this package, nodes are called factors and edges are called links.}
 
 \item{tex}{A set of commands to parse, separated by linebreaks if there is more than one command.
 Each line consists of two words corresponding to the name of the pipe function to be applied, e.g. `color links` calls the function `color_links`
-The function name is followed by field=value pairs corresponding to the arguments of the function such as `top=10`.}
+The function name is followed by field=value pairs corresponding to the arguments of the function such as `top=10`.
+
+This parser also provides some conenient shortcuts.
+`find links field operator value` is parsed as `find links field=field operator=operator value=value`.
+`search factors long text ...` is parsed as `search factors value=long text ...`.}
 }
 \value{
-A tidygraph, the result of successively applying the commands to the input graph.
+A tidymap, the result of successively applying the commands to the input graph.
 }
 \description{
 A parser which breaks a text input into individual commands.

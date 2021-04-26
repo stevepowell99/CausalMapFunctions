@@ -7,11 +7,11 @@
 pip_metrics(graf)
 }
 \arguments{
-\item{graf}{A tidygraph representing a causal map.
+\item{graf}{A tidymap representing a causal map.
 In this package, nodes are called factors and edges are called links.}
 }
 \value{
-A tidygraph with new or overwritten columns for factor metrics.
+A tidymap with new or overwritten columns for factor metrics.
 }
 \description{
 Create factor metrics

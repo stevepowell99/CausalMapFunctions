@@ -7,10 +7,10 @@
 pipe_select_links(graf, top)
 }
 \arguments{
-\item{graf}{A tidygraph representing a causal map.
+\item{graf}{A tidymap representing a causal map.
 In this package, nodes are called factors and edges are called links.}
 
-\item{top}{Select only the `top` links in terms of their frequency}
+\item{top}{Bundle the links and select only the `top` links in terms of their frequency}
 
 \item{is_proportion}{}
 }

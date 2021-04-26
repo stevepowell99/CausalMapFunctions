@@ -25,12 +25,12 @@ There is also a parser which takes text strings with a simpler command syntax as
 
 ## Output functions
 
-There are three output functions which are thin wrappers around visNetwork, ggraph and DiagrammeR, allowing a graph to be displayed using any of these three visualisation engines. 
+There are three output functions which are thin wrappers around visNetwork, DiagrammeR and DT, allowing a graph to be displayed using any of these three visualisation engines. 
 
 
 ## Main functions
 
-### Filter by frequency
+### Select top factors or links
 
 Show the most frequently mentioned links and or the most frequently mentioned factors
 
@@ -50,7 +50,7 @@ You can filter the map to only show factors and/or links which match either fiel
 
 This is a powerful command which allows the user to trace paths from one or more upstream factors to one or more downstream factors. Only links which are part of such paths are displayed. 
 
-### Hierarchical coding
+### Zooming with hierarchical coding
 
 Another important ability of the Causal Map Viewer is to manipulate maps which use hierarchical coding, which is a very powerful way to code causal information. It is possible to globally by roll up all factors into up to a certain level, for example, to roll them all up to their top level. But it is also possible to selectively zoom individual hierarchies while leaving others intact to any given level. 
 
@@ -65,7 +65,6 @@ Removes any factors which have no links
 A reverse search which allows the user to hide any factor containing one or more specified strings
 
 
-
 ### Additional fields
 
 Some of the commands such as path tracing create additional fields or variables for each factor and/or link. For example, when filtering by label, fields are created which can then be used to apply formatting. 
@@ -75,10 +74,5 @@ Some of the commands such as path tracing create additional fields or variables 
 For example it is possible to add the factor frequency to the factor labels. More than one label can be added: Labels are additive and are applied one after the other. 
 
 Other formatting commands such as factor and link colour can either specify a fixed colour (`links colour blue`) or can be used conditionally, so that a the colour or transparency of links can depend on any custom field existing in the original data such as, say, `gender` but also on fields created by the app e.g. frequency. 
-
-
-### Facets
-
-Split the map into facets, e.g. providing separate maps for different genders.
 
 

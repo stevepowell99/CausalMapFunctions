@@ -6,11 +6,17 @@ library(tidygraph)
 library(scales)
 
 
-
 # utilities-----------------------------------------------------------------------------
 
 notify <- message # alias
-
+return_notify <- function(tex){
+  notify(tex,3)
+  return()
+}
+break_notify <- function(tex){
+  notify(tex,3)
+  break()
+}
 
 replace_null <- function(x,replacement=0){
   if(is.null(x)) replacement else x
@@ -38,7 +44,15 @@ escapeRegex <- function(string){ #from hmisc
   gsub("([.|()\\^{}+$*?]|\\[|\\])", "\\\\\\1",
        string)
 }
+has_statements <- function(graf) !is.null(graf %>% statements_table)
+add_statements <- function(graf,statements){
+  attr(graf,"statements") <- statements
+  graf
+}
 
+# constants ---------------------------------------------------------
+
+operator_list=xc("= > < >= <= contains starts ends")
 
 # graph utilities ---------------------------------------------------------
 
@@ -64,7 +78,7 @@ load_graf_from_rds <- function(name){
 
 
 
-#' Extracting tibbles from a tidygraph
+#' Extracting tibbles from A tidymap
 #'
 #' @inheritParams parse_commands
 #' @return A tibble.
@@ -98,13 +112,17 @@ statements_table <- function(graf)graf %>%
 #' There is one command format corresponding to each of
 #' the family of pipe functions.
 #'
-#' @param graf A tidygraph representing a causal map.
+#' @param graf A tidymap representing a causal map.
 #' In this package, nodes are called factors and edges are called links.
 #' @param tex A set of commands to parse, separated by linebreaks if there is more than one command.
 #' Each line consists of two words corresponding to the name of the pipe function to be applied, e.g. `color links` calls the function `color_links`
 #' The function name is followed by field=value pairs corresponding to the arguments of the function such as `top=10`.
 #'
-#' @return A tidygraph, the result of successively applying the commands to the input graph.
+#' This parser also provides some conenient shortcuts.
+#' `find links field operator value` is parsed as `find links field=field operator=operator value=value`.
+#' `search factors long text ...` is parsed as `search factors value=long text ...`.
+#'
+#' @return A tidymap, the result of successively applying the commands to the input graph.
 #' @export
 #' @examples
 #'cashTransferMap %>% parse_commands("select factors top=10 \n color factors field=n") %>% make_vn()
@@ -116,10 +134,32 @@ parse_commands <- function(graf,tex){
     for(line in tex){
       if(str_trim(line)=="")return()
       fun <- word(line, 1,2, sep=" ")
-      if(is.na(fun))break()
+      if(is.na(fun)){notify("No such function");return(graf)}
+
 
       body <-
         str_remove(line,fun) %>%
+        str_trim
+
+      if(fun %in% c("search factors")){
+        body=paste0("value=",body)
+      }
+
+      if(fun %in% c("find links","find factors")){
+
+        operator <- str_match(body,operator_list) %>% na.omit %>% first
+
+        vals=list(
+          graf=graf,
+          field=body %>% str_extract(paste0("^.*",operator)) %>% str_remove(operator) %>% str_trim,
+          value=body %>% str_extract(paste0(operator,".*$")) %>% str_remove(operator) %>% str_trim,
+
+          operator=operator
+        )
+      }
+      else {
+      body <-
+        body %>%
         str_replace_all(" *=","=") %>%
         str_trim
 
@@ -138,9 +178,12 @@ parse_commands <- function(graf,tex){
         str_trim %>%
         str_remove_all("=$")
 
+      if(length(fields)!=length(vals)){notify("Wrong number of values");return(graf)}
+
       names(vals) <- fields
       vals$graf=graf
 
+      }
       fun <- fun %>% str_replace(" ","_") %>% paste0("pipe_",.)
       # browser()
       graf <- possibly(~do.call(fun,vals),otherwise=graf)()
@@ -193,7 +236,6 @@ create_colors <- function(vec,lo=lo,hi=hi,mid=mid){
   if(class(vec)=="character") viridis_pal_n(vec) else div_pal_n(vec,lo=lo,hi=hi,mid=mid)
 }
 
-# main graph functions ----------------------------------------------------
 
 
 pipe_find_statements_inner <- function(graf,...){
@@ -203,6 +245,8 @@ pipe_find_statements_inner <- function(graf,...){
     filter(statement_id %in% statement$statement_id) %>%
     activate(nodes)
 }
+
+# main graph functions ----------------------------------------------------
 
 # pipe_filter_factors <- function(graf,field,value,operator="="){find_things(graf=graf,field=field,value=value,operator=operator,what="factors")}
 
@@ -242,14 +286,29 @@ pipe_find_factors <- function(graf,field,value,operator="=",up=0,down=0){
   if(operator=="ends"){graf <- graf %>%  mutate(found=str_detect(tolower(label),paste0(tolower(value),"$")))}
 
 
-  if(!any(graf %>% factor_table %>% pull(found))) return(graf %>% filter(F))
+  if(!any(graf %>% factors_table %>% pull(found))) return(graf %>% filter(F))
 
-  downvec <- graf %>% distances(to=graf %>% factor_table %>% pull(found),mode="in") %>% apply(1,min) %>% `<=`(down)
-  upvec <- graf %>% distances(to=graf %>% factor_table %>% pull(found),mode="out") %>% apply(1,min) %>% `<=`(up)
+  downvec <- graf %>% distances(to=graf %>% factors_table %>% pull(found),mode="in") %>% apply(1,min) %>% `<=`(down)
+  upvec <- graf %>% distances(to=graf %>% factors_table %>% pull(found),mode="out") %>% apply(1,min) %>% `<=`(up)
   if(any(upvec)|any(downvec))graf %>% mutate(upvec=upvec,downvec=downvec) %>% filter(found|upvec|downvec) else graf %>% filter(F)
 }
 
+#' Find links
+#'
+#' @inheritParams pipe_find_factors
+#' @return
+#' @export
+#'
+#' @examples
 pipe_find_links <- function(graf,field,value,operator="="){find_things(graf=graf,field=field,value=value,operator=operator,what="links")}
+
+#' Find statements
+#'
+#' @inheritParams pipe_find_factors
+#' @return
+#' @export
+#'
+#' @examples
 pipe_find_statements <- function(graf,field,value,operator="="){
 
 
@@ -276,7 +335,7 @@ pipe_search_factors <- function(graf,value,operator="contains",up=0,down=0,...){
 #' Select links
 #'
 #' @inheritParams parse_commands
-#' @param top Select only the `top` links in terms of their frequency
+#' @param top Bundle the links and select only the `top` links in terms of their frequency
 #' @param all
 #' @param is_proportion
 #'
@@ -286,11 +345,7 @@ pipe_search_factors <- function(graf,value,operator="contains",up=0,down=0,...){
 #' @examples
 pipe_select_links <- function(graf,top){
   graf %>%
-    activate(edges) %>%
-    group_by(from,to) %>%
-    mutate(n=n()) %>%
-    pipe_bundle_links(field="n") %>%
-    ungroup %>%
+    pipe_bundle_links(field="n") %E>%
     arrange(desc(n)) %>%
     filter(n>top) %>%
         select(from,to,n,everything()) %>%
@@ -298,6 +353,17 @@ pipe_select_links <- function(graf,top){
 }
 
 
+#' Select factors
+#'
+#' @inheritParams parse_commands
+#' @param top Select only the `top` factors in terms of their frequency
+#' @param all
+#' @param is_proportion
+#'
+#' @return
+#' @export
+#'
+#' @examples
 pipe_select_factors <- function(graf,top=20,all=F){
   graf %>%
     activate(nodes) %>%
@@ -309,46 +375,111 @@ pipe_select_factors <- function(graf,top=20,all=F){
 }
 
 
-pipe_hide_factors <- function(graf,text){
-  text <- str_replace_all(text," OR ","|")
-  graf %N>% filter(str_detect(label,text,negate=T))
+#' Hide factors
+#'
+#' @inheritParams parse_commands
+#' @param value The string to find within factor labels
+#'
+#' @return A map in which labels matching the string are excluded
+#' @export
+#'
+#' @examples
+pipe_hide_factors <- function(graf,value){
+  value <- str_replace_all(value," OR ","|")
+  graf %N>% filter(str_detect(label,value,negate=T))
 }
 
 
-pipe_zoom_factors <- function(graf,level,char,hide){
+#' Zoom factors
+#' Zoom out from a map, merging factors within the saem hierarchy
+#'
+#' @inheritParams parse_commands
+#' @param level
+#' @param separator
+#' @param hide
+#'
+#' @return
+#' @export
+#'
+#' @examples
+pipe_zoom_factors <- function(graf,level,separator,hide){
   # browser()
   level=as.numeric(level)
   hide=as.logical(hide)
   if(level<1) return(graf)
   gr <- graf %>%
     activate(nodes) %>%
-    filter(!hide | str_detect(label,char)) %>%
-    mutate(label=if_else(str_detect(label,char),zoom_inner(label,level,char),label)) %>%
+    filter(!hide | str_detect(label,separator)) %>%
+    mutate(label=if_else(str_detect(label,separator),zoom_inner(label,level,separator),label)) %>%
     convert(to_contracted,label,simplify=F)  %>%
-    mutate(zoomed_=str_detect(label,char))
+    mutate(zoomed_=str_detect(label,separator))
 
-  tbl_graph(gr %>% factor_table %>% as.data.frame %>% select(label=1,zoomed_),gr %>% links_table  %>% as.data.frame)
+  tbl_graph(gr %>% factors_table %>% as.data.frame %>% select(label=1,zoomed_),gr %>% links_table  %>% as.data.frame)
 
 }
 
-pipe_bundle_factors <- function(graf,text=""){
+#' Bundle factors
+#'
+#' @inheritParams parse_commands
+#' @param value A search string.
+#'
+#' @return A tidymap in which factors matching the search string are merged into one, with rerouted links.
+#' If the search string is empty, factors with the same first word are grouped.
+#' @export
+#'
+#' @examples
+pipe_bundle_factors <- function(graf,value=""){
   graf <- graf %>% activate(nodes)
-  if(text=="") gr <- graf %>%
+  statements <- graf %>% statements_table()
+
+    gr <-
+      graf %>%
+      pip_fix_columns() %>%
+      mutate(
+        label=if(value=="")
+          str_match(label,"^[^ ]*") %>% `[`(,1)
+        else if_else(str_detect(label,value),str_match(label,paste0(value)),label)
+        ) %>%
+      group_by(label) %>%
+      mutate(new_id=cur_group_id()) %>%
+      ungroup
+
+  new_id <- gr %>% pull(new_id) %>% unlist
+  contract(gr,mapping=new_id,vertex.attr.comb = list(label="first",n="sum","ignore")) %>%
+    as_tbl_graph() %>%
+    add_statements(statements)
+
+
+}
+OLDpipe_bundle_factors <- function(graf,value=""){
+  graf <- graf %>% activate(nodes)
+  if(value=="") gr <- graf %>%
       mutate(label=str_match(label,"^[^ ]*")) %>%
       convert(to_contracted,label,simplify=F) %>%
       mutate(shrunk_=str_detect(label,"^[^ ]*"))
 
   else gr <- graf %>%
-      mutate(label=if_else(str_detect(label,text),str_match(label,paste0(text)),label)) %>%
+      mutate(label=if_else(str_detect(label,value),str_match(label,paste0(value)),label)) %>%
       convert(to_contracted,label,simplify=F)  %>%
-      mutate(shrunk_=str_detect(label,text))
+      mutate(shrunk_=str_detect(label,value))
   # browser()
-  tbl_graph(gr %>% factor_table %>% as.data.frame %>% select(label=1,shrunk_) ,gr %>% links_table  %>% as.data.frame)%>% pip_fix_columns
+  tbl_graph(gr %>% factors_table %>% as.data.frame %>% select(label=1,shrunk_) ,gr %>% links_table  %>% as.data.frame)%>% pip_fix_columns
 
   # i d on'tunderstand this convert / morph stuff and can't get a normal graph back
 
 }
 
+#' Trace paths
+#'
+#' @inheritParams parse_commands
+#' @param from
+#' @param to
+#' @param length
+#'
+#' @return
+#' @export
+#'
+#' @examples
 pipe_trace_paths <- function(graf,from,to,length){
   if(is.na(length)) {notify("You have to specify length");return(graf)}
   if(from=="") {notify("You have to specify source factors");return(graf)}
@@ -364,10 +495,10 @@ pipe_trace_paths <- function(graf,from,to,length){
 
   # browser()
 
-  if(!any(graf %>% factor_table %>% pull(found_any))) return(graf %>% filter(F))
+  if(!any(graf %>% factors_table %>% pull(found_any))) return(graf %>% filter(F))
 
-  tracedownvec <- graf %>% distances(to=graf %>% factor_table %>% pull(found_from),mode="in") %>% apply(1,min)
-  traceupvec <- graf %>% distances(to=graf %>% factor_table %>% pull(found_to),mode="out") %>% apply(1,min)
+  tracedownvec <- graf %>% distances(to=graf %>% factors_table %>% pull(found_from),mode="in") %>% apply(1,min)
+  traceupvec <- graf %>% distances(to=graf %>% factors_table %>% pull(found_to),mode="out") %>% apply(1,min)
 
   # here we need to intervene to make sure that influences don't move closer to the source, as this is a kind of loop
 
@@ -378,17 +509,8 @@ pipe_trace_paths <- function(graf,from,to,length){
                                                   bothvec,
                                                   found=found_from|found_to
   ) %>% filter(bothvec) else graf %>% filter(F)
-  # browser()
 
-  # graf <- graf %E>% mutate(backfrom=.N()$tracedownvec[from],backto=.N()$tracedownvec[to]) %>%
-  #   mutate(is_backwards=backto<=backfrom)
-  #
-  # backvec=(graf %>% pull(is_backwards))
-  # if(any(backvec))notify(glue("removing {sum(backvec)}edges which are not forwards") )
-  #
-  # graf <- graf %E>% filter(!is_backwards)
-
-  sums <- graf %>% factor_table %>% select(found_from,found_to) %>% colSums(na.rm=T)
+  sums <- graf %>% factors_table %>% select(found_from,found_to) %>% colSums(na.rm=T)
   if((sums[1]*sums[2])>10000){
     # if(sum(found_from,na.rm=T)*sum(found_to,na.rm=T)>10){
     notify("too much to trace")
@@ -397,8 +519,8 @@ pipe_trace_paths <- function(graf,from,to,length){
   graf <- graf %N>% pipe_bundle_links() %E>%
     mutate(n=if_else(is.na(n),1L,as.integer(n))) %>%
     activate(nodes)
-  from_vec <- factor_table(graf) %>% filter(found_from) %>% pull(label)
-  to_vec <- factor_table(graf) %>% filter(found_to) %>% pull(label)
+  from_vec <- factors_table(graf) %>% filter(found_from) %>% pull(label)
+  to_vec <- factors_table(graf) %>% filter(found_to) %>% pull(label)
   newnodes <- tibble(
     label=c(from_vec,"_super_source_"))
 
@@ -430,8 +552,8 @@ pipe_trace_paths <- function(graf,from,to,length){
     mutate(capacity=pmax(n,capacity,na.rm=T)) %E>%
     filter(from!=to) %>%
     activate(nodes)
-  source <- V(graf)[(graf %>% factor_table)$label=="_super_source_"]
-  sink <- V(graf)[(graf %>% factor_table)$label=="_super_sink_"]
+  source <- V(graf)[(graf %>% factors_table)$label=="_super_source_"]
+  sink <- V(graf)[(graf %>% factors_table)$label=="_super_sink_"]
   # browser()
   res <- graf %N>%
     max_flow(source=source, target=sink)
@@ -482,18 +604,41 @@ pipe_flip_opposites <- function(graf,flipchar="~"){
 
 # zero_to_one <- function(vec)(vec-min(vec,na.rm=T))/(max(vec,na.rm=T)-min(vec,na.rm=T))
 
+#' Bundle links
+#'
+#' @inheritParams parse_commands
+#' @param field
+#'
+#' @return A tidymap in which sets of coterminal, same-direction links are replaced with
+#' one link (when `field` = 'n') or more than one link for each of the values of `field`
+#' present in the data. In each case, each new link has a field n representing the number
+#' of links it is replacing, unless the links it is replacing already had values n in which
+#' case the new value of `n` is the sum of the `n` values of the constituent links.
+#' @export
+#'
+#' @examples
 pipe_bundle_links <- function(graf,field="n"){
   # browser()
-  nodes <- factor_table(graf)
+  nodes <- factors_table(graf)
   edges <- links_table(graf)
   if(nrow(nodes)==0) return(NULL)
 
 
   if(field %notin% link_colnames(graf) & field!="n" ) {notify("no such field");return(graf)}
 
-  if(field %in% link_colnames(graf) & field!="n" ) edges <- edges %>%
+  if(field %in% link_colnames(graf) &
+     field!="n" &
+     "n" %in% link_colnames(graf)) edges <- edges %>%
     group_by(from,to,UQ(sym(field))) %>%
     mutate(n=sum(n,na.rm=T)) %>%
+    mutate(rn=row_number()) %>%
+    filter(rn==1) else
+
+  if(field %in% link_colnames(graf) &
+     field!="n" &
+     "n" %notin% link_colnames(graf)) edges <- edges %>%
+    group_by(from,to,UQ(sym(field))) %>%
+    mutate(n=n()) %>%
     mutate(rn=row_number()) %>%
     filter(rn==1)
 
@@ -519,11 +664,13 @@ pipe_bundle_links <- function(graf,field="n"){
 }
 
 ## pipes but not for use with parser -------------------------------------------------------------
+
+
 #' Fix columns
 #'
 #' @inheritParams parse_commands
 #'
-#' @return A tidygraph with a additional columns.
+#' @return A tidymap with a additional columns.
 #' @export
 #'
 #'
@@ -536,7 +683,7 @@ pip_fix_columns <- function(graf){
   if(!("n" %in% factor_colnames(graf))) graf <- graf %N>% mutate(n=1L)
   if(!("size" %in% factor_colnames(graf))) graf <- graf %N>% mutate(size=1L)
   if(!("found" %in% factor_colnames(graf))) graf <- graf %N>% mutate(found=1L)
-  if(!("color" %in% link_colnames(graf))) graf <- graf %E>% mutate(color="#222222")
+  if(!("color" %in% link_colnames(graf))) graf <- graf %E>% mutate(color="#444444")
   if(!("n" %in% link_colnames(graf))) graf <- graf %E>% mutate(n=1L)
   if(!("capacity" %in% link_colnames(graf))) graf <- graf %E>% mutate(capacity=1L)
   if(!("label" %in% link_colnames(graf))) graf <- graf %E>% mutate(label="")
@@ -549,7 +696,7 @@ pip_fix_columns <- function(graf){
 #'
 #' @inheritParams parse_commands
 #'
-#' @return A tidygraph with new or overwritten columns for factor metrics.
+#' @return A tidymap with new or overwritten columns for factor metrics.
 #' @export
 #'
 #'
@@ -580,7 +727,7 @@ pip_metrics <- function(graf){
 #' @inheritParams parse_commands
 #' @param field A numerical field in the factor table which will control the scale.
 #'
-#' @return A tidygraph with a new or overwritten column `size`in the factor table varying between .2 and 1.
+#' @return A tidymap with a new or overwritten column `size`in the factor table varying between .2 and 1.
 #' @export
 #'
 #'
@@ -588,7 +735,7 @@ pip_metrics <- function(graf){
 pipe_scale_factors <- function(graf,field="n"){
   graf <- pip_metrics(graf)
   if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
-  class <- graf %>% factor_table %>% pull(UQ(sym(field))) %>% class
+  class <- graf %>% factors_table %>% pull(UQ(sym(field))) %>% class
   if(class =="character"){warning("No such column");return(graf)}
   # browser()
   graf %N>% mutate(size=scales::rescale(UQ(sym(field)),to=c(0.2,1))) %>% activate(nodes)
@@ -602,7 +749,7 @@ pipe_scale_factors <- function(graf,field="n"){
 #' @param clear Logical. Whether to clear any existing labels or to concatenate the new result after
 #' any existing labels. Default is `FALSE`.
 #'
-#' @return A tidygraph with a column `label`. If `clear` is FALSE, the new label is concatenated
+#' @return A tidymap with a column `label`. If `clear` is FALSE, the new label is concatenated
 #' after any existing label. The new label is of the form `field: value`.
 #' @export
 #'
@@ -627,7 +774,7 @@ pipe_label_factors <- function(graf,field="n",clear=F){
 #' @param hi Optionally, a color specification for the high end of the color range. Default is `blue`.
 #' @param mid  Optionally, a color specification for the middle of the color range. Default is `gray`.
 #'
-#' @return A tidygraph with a new or overwritten column `color.background`in the factor table.
+#' @return A tidymap with a new or overwritten column `color.background`in the factor table.
 #' @export
 #'
 #'
@@ -648,7 +795,7 @@ pipe_color_factors <- function(graf,field="n",lo="green",hi="blue",mid="gray",fi
 #' @param hi Optionally, a color specification for the high end of the color range. Default is `blue`.
 #' @param mid  Optionally, a color specification for the middle of the color range. Default is `gray`.
 #'
-#' @return A tidygraph with a new or overwritten column `color.border`in the factor table.
+#' @return A tidymap with a new or overwritten column `color.border`in the factor table.
 #' @export
 #'
 #'
@@ -670,7 +817,7 @@ pipe_color_borders <- function(graf,field="n",lo="green",hi="blue",mid="gray",fi
 #' @param hi Optionally, a color specification for the high end of the color range. Default is `blue`.
 #' @param mid  Optionally, a color specification for the middle of the color range. Default is `gray`.
 #'
-#' @return A tidygraph with a new or overwritten column `color`in the link table.
+#' @return A tidymap with a new or overwritten column `color`in the link table.
 #' @export
 #'
 #'
@@ -687,7 +834,7 @@ pipe_color_links <- function(graf,field="n",lo="green",hi="blue",mid="gray",fixe
 #' @inheritParams parse_commands
 #' @param field A numerical field in the link table which will control the amount of fading
 #' (the alpha value of the factors).
-#' @return A tidygraph in which the column `color.background`in the factor table has alpha proportionate to the values in `field`.
+#' @return A tidymap in which the column `color.background`in the factor table has alpha proportionate to the values in `field`.
 #' @export
 #'
 #'
@@ -695,7 +842,7 @@ pipe_color_links <- function(graf,field="n",lo="green",hi="blue",mid="gray",fixe
 pipe_fade_factors <- function(graf,field="n"){
   if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
   if("color.background" %notin% factor_colnames(graf)){warning("No such column");return(graf)}
-  class <- graf %>% factor_table %>% pull(UQ(sym(field))) %>% class
+  class <- graf %>% factors_table %>% pull(UQ(sym(field))) %>% class
   if(class =="character"){warning("No such column");return(graf)}
   # browser()
   graf %N>% mutate(color.background=alpha(color.background,scales::rescale(UQ(sym(field)),to=c(0.2,1)))) %>% activate(nodes)
@@ -706,7 +853,7 @@ pipe_fade_factors <- function(graf,field="n"){
 #' @inheritParams parse_commands
 #' @param field A numerical field in the link table which will control the amount of fading
 #' (the alpha value of the links).
-#' @return A tidygraph in which the column `color`in the link table has alpha proportionate to the values in `field`.
+#' @return A tidymap in which the column `color`in the link table has alpha proportionate to the values in `field`.
 #' @export
 #'
 #' @examples
@@ -724,7 +871,7 @@ pipe_fade_links <- function(graf,field="n"){
 #' @inheritParams parse_commands
 #' @param field A numerical field in the link table which will control the scale (the width of the links).
 #'
-#' @return A tidygraph with a new or overwritten column `width`in the link table varying between .2 and 1.
+#' @return A tidymap with a new or overwritten column `width`in the link table varying between .2 and 1.
 #' @export
 #'
 #' @examples
@@ -743,7 +890,7 @@ pipe_scale_links <- function(graf,field="n"){
 #' @param clear Logical. Whether to clear any existing labels or to concatenate the new result after
 #' any existing labels.
 #'
-#' @return A tidygraph with a column `label`. If `clear` is FALSE (the default), the new label is concatenated
+#' @return A tidymap with a column `label`. If `clear` is FALSE (the default), the new label is concatenated
 #' after any existing label. The new label is of the form `field: value`.
 #' @export
 #'
@@ -756,6 +903,53 @@ pipe_label_links <- function(graf,field="n",clear=F){
     mutate(label=paste0((if(clear)NULL else paste0(label,". ")) %>% keep(.!=""),field,": ",UQ(sym(field)),". ")) %>% activate(nodes)
 }
 
+#' Remove bracketed expressions
+#'
+#' @inheritParams parse_commands
+#' @param length line length
+#'
+#' @return A tidymap with factor labels wrapped to `length`
+#' @export
+#'
+#'
+#' @examples
+pipe_remove_brackets <- function(graf,value="["){
+  if(value=="[")graf %N>%
+    mutate(label=str_remove_all(label,"\\[.*\\]"))
+  else if(value=="(")graf %N>%
+    mutate(label=str_remove_all(label,"\\(.*\\)"))
+}
+#' Wrap factor labels
+#'
+#' @inheritParams parse_commands
+#' @param length line length
+#'
+#' @return A tidymap with factor labels wrapped to `length`
+#' @export
+#'
+#'
+#' @examples
+pipe_wrap_factors <- function(graf,length=20){
+  graf %N>%
+    mutate(label=str_remove_all(label,"\n")) %>%
+    mutate(label=str_wrap(label,length))
+}
+#' Wrap link labels
+#'
+#' @inheritParams parse_commands
+#' @param length line length
+#'
+#' @return A tidymap with link labels wrapped to `length`
+#' @export
+#'
+#'
+#' @examples
+pipe_wrap_links <- function(graf,length=20){
+  graf %E>%
+    mutate(label=str_remove_all(label,"\n")) %>%
+    mutate(label=str_wrap(label,length)) %>%
+    activate(nodes)
+}
 
 # outputs -----------------------------------------------------------------
 
@@ -781,7 +975,7 @@ make_table <- function(graf,tab){
 #' @inheritParams parse_commands
 #' @param field A numerical field in the factor table which will control the scale.
 #'
-#' @return A tidygraph with a new or overwritten column `size`in the factor table varying between .2 and 1.
+#' @return A tidymap with a new or overwritten column `size`in the factor table varying between .2 and 1.
 #' @export
 #'
 #'
@@ -990,7 +1184,7 @@ make_grviz <- function(
   grv <-  graf %>%
     activate(nodes) %>%
     # slice(1:68) %>%
-    mutate(label=clean_grv(label) %>% str_wrap(20))%>%
+    mutate(label=clean_grv(label) )%>%
     mutate(fillcolor=color.background) %>%
     mutate(color=color.border) %>%
     mutate(fontsize=(size+5)*10) %>%
@@ -999,7 +1193,7 @@ make_grviz <- function(
     activate(edges) %>%
     mutate(label=if_else(label=="",".",label))%>%
     mutate(penwidth=width*10)%>%
-    mutate(label=clean_grv(label) %>% str_wrap(20))%>%
+    mutate(label=clean_grv(label) )%>%
     # select(from,to,label)  %>%
     # group_by(from,to) %>%
     # mutate(rn=row_number()) %>%

@@ -7,7 +7,7 @@
 make_vn(graf, scale = 1)
 }
 \arguments{
-\item{graf}{A tidygraph representing a causal map.
+\item{graf}{A tidymap representing a causal map.
 In this package, nodes are called factors and edges are called links.}
 
 \item{scale}{}

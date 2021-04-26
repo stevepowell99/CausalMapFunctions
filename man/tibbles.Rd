@@ -5,7 +5,7 @@
 \alias{factors_table}
 \alias{links_table}
 \alias{statements_table}
-\title{Extracting tibbles from a tidygraph}
+\title{Extracting tibbles from A tidymap}
 \usage{
 factors_table(graf)
 
@@ -14,12 +14,12 @@ links_table(graf)
 statements_table(graf)
 }
 \arguments{
-\item{graf}{A tidygraph representing a causal map.
+\item{graf}{A tidymap representing a causal map.
 In this package, nodes are called factors and edges are called links.}
 }
 \value{
 A tibble.
 }
 \description{
-Extracting tibbles from a tidygraph
+Extracting tibbles from A tidymap
 }

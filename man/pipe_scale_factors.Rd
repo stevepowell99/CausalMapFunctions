@@ -7,13 +7,13 @@
 pipe_scale_factors(graf, field = "n")
 }
 \arguments{
-\item{graf}{A tidygraph representing a causal map.
+\item{graf}{A tidymap representing a causal map.
 In this package, nodes are called factors and edges are called links.}
 
 \item{field}{A numerical field in the factor table which will control the scale.}
 }
 \value{
-A tidygraph with a new or overwritten column `size`in the factor table varying between .2 and 1.
+A tidymap with a new or overwritten column `size`in the factor table varying between .2 and 1.
 }
 \description{
 Scale factors
