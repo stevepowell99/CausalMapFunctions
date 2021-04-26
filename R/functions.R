@@ -1240,7 +1240,7 @@ make_grviz <- function(
 clean_grv <- function(tx){
   tx %>% str_replace_all("'","&rsquo;") %>%
     str_replace_all("\"","&rsquo;") %>%
-    strip_symbols() %>%
+    # strip_symbols() %>%
     str_replace_all("\"","'") %>%
     simplify_unicode
 }
