@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{pipe_find_factors}
 \alias{pipe_find_factors}
-\title{Title}
+\title{Find factors}
 \usage{
 pipe_find_factors(graf, field, value, operator = "=", up = 0, down = 0)
 }
@@ -13,5 +13,5 @@ pipe_find_factors(graf, field, value, operator = "=", up = 0, down = 0)
 
 }
 \description{
-Title
+Find factors
 }

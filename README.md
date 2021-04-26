@@ -19,6 +19,40 @@ There are many existing tools for analysing systems diagrams and also undirected
 - the main focus is often on a flow of influence from a small set of intervention variables to a small set of focused variables downstream of them, such as key outcomes. 
 
 
+The package defines a kind of object called a tidymap which is just a tidygraph but with an additional statements table stored as an attribute. (You might expect an `activate(statements)` command but this is not implemented yet.
+
+
+Filters (manipulate, calculate, hide, combine...) are implemented as as successive operations on a tidymap. All these operations do not actually change the data (that comes later; everything atm is read-only). 
+
+So you import/load data as a tidymap and all your work steps are then just applying successive filters.
+
+Each filter returns another tidymap, suitably filtered etc. 
+
+Similarly, we create our outputs (maps, tables, reports) with filters which turn a tidymap into a map or a table.
+
+All of these filters are R functions.
+
+All of these filters can be produced and edited either in a chain of actual R functions or in the simplified format which is processed by the parser.
+
+If you filter the factors of a tidymap, e.g. show only factors with labels beginning xyz, 
+
+- also the links are filtered (removing links to removed factors)
+- the statements are not touched 
+
+If you filter the links of a tidymap, e.g. show only links with hashtags containing xyz, 
+
+- the factors are not filtered (but using a different command you can remove any factors which no longer have any links)
+- the statements are not touched 
+
+If you filter the statements of a tidymap, e.g. show only statements with texts containing xyz, 
+
+- also the links are filtered (removing links to removed statements)
+- the factors are filtered
+
+So your workflow is always:
+
+Import or load a tidymap / Filter it / Filter it / Filter it / Output an interactive map, a print map or a table.    
+
 ## Parser
 
 There is also a parser which takes text strings with a simpler command syntax as input and outputs one of these main functions. This parser is used to read text commands from the input window in Causal Map Viewer and manipulate the output map with the corresponding functions. The input text can also consist of several lines, and the commands are applied one by one in sequence, in a pipeline of commands, such that after each command, such as each command starts with the map defined by the previous line and produces a new one. 

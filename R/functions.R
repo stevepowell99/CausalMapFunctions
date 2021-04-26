@@ -250,7 +250,7 @@ pipe_find_statements_inner <- function(graf,...){
 
 # pipe_filter_factors <- function(graf,field,value,operator="="){find_things(graf=graf,field=field,value=value,operator=operator,what="factors")}
 
-#' Title
+#' Find factors
 #'
 #' @param graf
 #' @param field
