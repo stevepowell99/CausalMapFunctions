@@ -2,8 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{pipe_zoom_factors}
 \alias{pipe_zoom_factors}
-\title{Zoom factors
-Zoom out from a map, merging factors within the saem hierarchy}
+\title{Zoom factors}
 \usage{
 pipe_zoom_factors(graf, level, separator, hide)
 }
@@ -17,6 +16,5 @@ In this package, nodes are called factors and edges are called links.}
 
 }
 \description{
-Zoom factors
 Zoom out from a map, merging factors within the saem hierarchy
 }

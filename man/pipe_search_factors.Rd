@@ -2,8 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{pipe_search_factors}
 \alias{pipe_search_factors}
-\title{Search factors
-Wrapper for pipe_find_factors}
+\title{Search factors}
 \usage{
 pipe_search_factors(graf, value, operator = "contains", up = 0, down = 0, ...)
 }
@@ -14,6 +13,5 @@ pipe_search_factors(graf, value, operator = "contains", up = 0, down = 0, ...)
 
 }
 \description{
-Search factors
 Wrapper for pipe_find_factors
 }

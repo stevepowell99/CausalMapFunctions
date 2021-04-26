@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{make_grviz}
 \alias{make_grviz}
-\title{Make agraphviz map}
+\title{Make a Graphviz map}
 \usage{
 make_grviz(
   graf = NULL,
@@ -26,5 +26,5 @@ make_grviz(
 
 }
 \description{
-Make agraphviz map
+Make a Graphviz map
 }

@@ -16,9 +16,9 @@ Depends:
     tidyverse,
     glue,
     chroma,
-Suggests:
     visNetwork,
-    DiagrammeR,
+    DiagrammeR
+Suggests:
     knitr,
     rmarkdown
 RoxygenNote: 7.1.1.9001

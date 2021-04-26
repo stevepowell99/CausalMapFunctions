@@ -321,6 +321,7 @@ pipe_find_statements <- function(graf,field,value,operator="="){
   }
 }
 #' Search factors
+#'
 #' Wrapper for pipe_find_factors
 #' @inheritParams pipe_find_factors
 #'
@@ -391,6 +392,7 @@ pipe_hide_factors <- function(graf,value){
 
 
 #' Zoom factors
+#'
 #' Zoom out from a map, merging factors within the saem hierarchy
 #'
 #' @inheritParams parse_commands
@@ -1133,7 +1135,7 @@ vn_fan_edges <- function(edges){
 ## grviz -------------------------------------------------------------------
 
 
-#' Make agraphviz map
+#' Make a Graphviz map
 #'
 #' @param graf
 #' @param maxwidth
