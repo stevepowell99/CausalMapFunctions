@@ -760,7 +760,7 @@ pipe_scale_factors <- function(graf,field="n"){
 pipe_label_factors <- function(graf,field="n",clear=F){
   clear=as.logical(clear)
   graf <- pip_metrics(graf)
-  if(field %notin% link_colnames(graf)){warning("No such column");return(graf)}
+  if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
   graf %N>%
     mutate(label=paste0((if(clear)NULL else paste0(label,". ")) %>% keep(.!=""),field,": ",UQ(sym(field)),". ")) %>% activate(nodes)
 }
