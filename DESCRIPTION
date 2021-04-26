@@ -15,7 +15,6 @@ Depends:
     igraph,
     tidyverse,
     glue,
-    chroma,
     visNetwork,
     DiagrammeR
 Suggests:
