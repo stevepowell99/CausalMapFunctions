@@ -194,6 +194,103 @@ parse_commands <- function(graf,tex){
 }
 
 # helper graph functions ----------------------------------------------------
+#' Get flow
+#'
+#' @inheritParams parse_commands
+#' @description Uses maximum flow / minimum cut algorithm
+#' @return
+#' @export
+#'
+#' @examples
+get_flows <- function(graf){
+
+  if("found_from" %notin% factor_colnames(graf)) {warning("No found from column");return(NA)}
+  if("found_to" %notin% factor_colnames(graf)) {warning("No found to column");return(NA)}
+
+  graf <- graf %N>% pipe_bundle_links() %E>%
+    mutate(n=if_else(is.na(n),1L,as.integer(n))) %>%
+    activate(nodes)
+
+
+  from_vec <- factors_table(graf) %>% filter(found_from) %>% pull(label)
+  to_vec <- factors_table(graf) %>% filter(found_to) %>% pull(label)
+  newnodes <- tibble(
+    label=c(from_vec,"_super_source_"))
+
+  newedges <- tibble(
+    from="_super_source_",
+    to=from_vec,
+    capacity=Inf
+  )
+  newgraf <- tbl_graph(newnodes,newedges)
+
+
+  graf <- graf %>% graph_join(newgraf)
+  # sink
+  # sink_vec <- c("six", "seven")
+  newnodes <- tibble(
+    label=c(to_vec,"_super_sink_"))
+
+  newedges <- tibble(
+    to="_super_sink_",
+    from=to_vec,
+    capacity=Inf
+  )
+  newgraf <- tbl_graph(newnodes,newedges)
+
+
+  graf <-
+    graf %>% graph_join(newgraf) %E>%
+    mutate(capacity=if_else(is.na(capacity),1,capacity)) %>%
+    mutate(capacity=pmax(n,capacity,na.rm=T)) %E>%
+    filter(from!=to) %>%
+    activate(nodes)
+  source <- V(graf)[(graf %>% factors_table)$label=="_super_source_"]
+  sink <- V(graf)[(graf %>% factors_table)$label=="_super_sink_"]
+  res <- graf %N>%
+    max_flow(source=source, target=sink)
+
+  sources <- V(graf)[(graf %>% factors_table)$found_from %>% replace_na(F)]
+  sinks <- V(graf)[(graf %>% factors_table)$found_to %>% replace_na(F)]
+
+  if(length(sinks)>1){
+    sinkvec <- c(sink,sinks)
+
+    rn <- (graf %>% factors_table %>% filter(found_to) %>% pull(label)) %>% c("All targets",.)
+  }else {
+    sinkvec <- sinks
+    rn <- graf %>% factors_table %>% filter(found_to) %>% pull(label)
+  }
+  if(length(sources)>1){
+    sourcevec <- c(source,sources)
+    cn <- (graf %>% factors_table %>% filter(found_from) %>% pull(label)) %>% c("All sources",.)
+
+  }
+     else {
+    cn <- (graf %>% factors_table %>% filter(found_from) %>% pull(label))
+       sourcevec <- sources
+     }
+
+
+  all_flows <-
+
+    sinkvec %>% map(function(y)(sourcevec %>% map(function(x) if(x %in% sinks) Inf else max_flow(graf,x,y)$value)) %>% unlist) %>%
+    do.call("rbind",.) %>%
+    as_tibble
+
+  # note if you don't check for not in sinks, R hangs
+
+  colnames(all_flows) <- cn
+
+  all_flows <- mutate(all_flows, row_names = rn) %>%
+    select(row_names,everything())
+
+  all_flows
+
+}
+
+
+
 zoom_inner <- function(string,n,char){
   string %>% map(~str_split(.,char) %>% `[[`(1) %>% `[`(1:n) %>% keep(!is.na(.)) %>% paste0(collapse=char)) %>% unlist
 }
@@ -482,7 +579,7 @@ OLDpipe_bundle_factors <- function(graf,value=""){
 #' @export
 #'
 #' @examples
-pipe_trace_paths <- function(graf,from,to,length){
+pipe_trace_paths <- function(graf,from,to,length=4){
   if(is.na(length)) {notify("You have to specify length");return(graf)}
   if(from=="") {notify("You have to specify source factors");return(graf)}
   if(to=="") {notify("You have to specify target factors");return(graf)}
@@ -493,6 +590,7 @@ pipe_trace_paths <- function(graf,from,to,length){
   graf <- graf %>%
     mutate(found_from=str_detect(tolower(label),tolower(from))) %>%
     mutate(found_to=str_detect(tolower(label),tolower(to))) %>%
+    mutate(found_type=paste0(if_else(found_from,"source","-"),if_else(found_to,"target","-"))) %>%
     mutate(found_any=found_from|found_to)
 
   # browser()
@@ -529,93 +627,6 @@ all_flows <- get_flows(graf)
   graf
 
 
-
-}
-
-get_flows <- function(graf){
-
-  if("found_from" %notin% factor_colnames(graf)) {warning("No found from column");return(NA)}
-  if("found_to" %notin% factor_colnames(graf)) {warning("No found to column");return(NA)}
-
-  graf <- graf %N>% pipe_bundle_links() %E>%
-    mutate(n=if_else(is.na(n),1L,as.integer(n))) %>%
-    activate(nodes)
-
-
-  from_vec <- factors_table(graf) %>% filter(found_from) %>% pull(label)
-  to_vec <- factors_table(graf) %>% filter(found_to) %>% pull(label)
-  newnodes <- tibble(
-    label=c(from_vec,"_super_source_"))
-
-  newedges <- tibble(
-    from="_super_source_",
-    to=from_vec,
-    capacity=Inf
-  )
-  newgraf <- tbl_graph(newnodes,newedges)
-
-
-  graf <- graf %>% graph_join(newgraf)
-  # sink
-  # sink_vec <- c("six", "seven")
-  newnodes <- tibble(
-    label=c(to_vec,"_super_sink_"))
-
-  newedges <- tibble(
-    to="_super_sink_",
-    from=to_vec,
-    capacity=Inf
-  )
-  newgraf <- tbl_graph(newnodes,newedges)
-
-
-  graf <-
-    graf %>% graph_join(newgraf) %E>%
-    mutate(capacity=if_else(is.na(capacity),1,capacity)) %>%
-    mutate(capacity=pmax(n,capacity,na.rm=T)) %E>%
-    filter(from!=to) %>%
-    activate(nodes)
-  source <- V(graf)[(graf %>% factors_table)$label=="_super_source_"]
-  sink <- V(graf)[(graf %>% factors_table)$label=="_super_sink_"]
-  res <- graf %N>%
-    max_flow(source=source, target=sink)
-
-  sources <- V(graf)[(graf %>% factors_table)$found_from %>% replace_na(F)]
-  sinks <- V(graf)[(graf %>% factors_table)$found_to %>% replace_na(F)]
-
-  sinkvec <- c(sink,sinks)
-  sourcevec <- c(source,sources)
-  # browser()
-
-
-  all_flows <-
-
-    sinkvec %>% map(function(y)(sourcevec %>% map(function(x) if(x %in% sinks) Inf else max_flow(graf,x,y)$value)) %>% unlist) %>%
-    do.call("rbind",.) %>%
-    as_tibble
-
-# note if you don't check for not in sinks, R hangs
-
-
-  colnames(all_flows) <- (graf %>% factors_table %>% filter(found_from) %>% pull(label)) %>% c("All sources",.)
-
-  all_flows <- mutate(all_flows, row_names = (graf %>% factors_table %>% filter(found_to) %>% pull(label)) %>% c("All targets",.)) %>%
-  select(row_names,everything())
-
-  all_flows
-  #
-  # to_flows <-
-  #   sinks[(sinks %notin% sources)] %>% map(function(x) max_flow(graf,source,x)$value)
-  #
-  #
-  # all_flows <- sources %>% map(function(y){
-  #   sinks %>% map(function(x)max_flow(graf,y,x)$value)
-  # })
-  #
-  # all_flows <-
-  #   cross2(as.numeric(sources),as.numeric(sinks)) %>% map2(~max_flow(graf,source=.x,target=.y))
-
-  # notify(glue("Flow is {res$value}"))
 
 }
 
@@ -660,7 +671,7 @@ pipe_flip_opposites <- function(graf,flipchar="~"){
 #' @export
 #'
 #' @examples
-pipe_bundle_links <- function(graf,field="n"){
+pipe_bundle_links <- function(graf,counter="n",group=NULL){
   # browser()
   statements <- graf %>% statements_table()
   nodes <- factors_table(graf)
@@ -668,20 +679,22 @@ pipe_bundle_links <- function(graf,field="n"){
   if(nrow(nodes)==0) return(NULL)
 
 
-  if(field %notin% link_colnames(graf) & field!="n" ) {notify("no such field");return(graf)}
+  if(counter %notin% link_colnames(graf) & counter!="n" ) {notify("no such counter");return(graf)}
 
-  if(field %in% link_colnames(graf) &
-     field!="n" &
-     "n" %in% link_colnames(graf)) edges <- edges %>%
-    group_by(from,to,UQ(sym(field))) %>%
+  if(counter %in% link_colnames(graf) &
+     counter!="n" &
+     "n" %in% link_colnames(graf)) edges <-
+    edges %>%
+    group_by(from,to,UQ(sym(counter))) %>%
     mutate(n=sum(n,na.rm=T)) %>%
     mutate(rn=row_number()) %>%
     filter(rn==1) else
 
-      if(field %in% link_colnames(graf) &
-         field!="n" &
-         "n" %notin% link_colnames(graf)) edges <- edges %>%
-    group_by(from,to,UQ(sym(field))) %>%
+      if(counter %in% link_colnames(graf) &
+         counter!="n" &
+         "n" %notin% link_colnames(graf)) edges <-
+    edges %>%
+    group_by(from,to,UQ(sym(counter))) %>%
     mutate(n=n()) %>%
     mutate(rn=row_number()) %>%
     filter(rn==1)
