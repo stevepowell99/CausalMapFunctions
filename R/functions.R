@@ -158,30 +158,30 @@ parse_commands <- function(graf,tex){
         )
       }
       else {
-      body <-
-        body %>%
-        str_replace_all(" *=","=") %>%
-        str_trim
+        body <-
+          body %>%
+          str_replace_all(" *=","=") %>%
+          str_trim
 
-      vals <-
-        body %>%
-        str_split("[^ ]*=") %>%
-        `[[`(1) %>%
-        keep(.!="") %>%
-        str_trim %>%
-        as.list
+        vals <-
+          body %>%
+          str_split("[^ ]*=") %>%
+          `[[`(1) %>%
+          keep(.!="") %>%
+          str_trim %>%
+          as.list
 
-      fields <-
-        body %>%
-        str_extract_all("[^ ]*=") %>%
-        `[[`(1) %>%
-        str_trim %>%
-        str_remove_all("=$")
+        fields <-
+          body %>%
+          str_extract_all("[^ ]*=") %>%
+          `[[`(1) %>%
+          str_trim %>%
+          str_remove_all("=$")
 
-      if(length(fields)!=length(vals)){notify("Wrong number of values");return(graf)}
+        if(length(fields)!=length(vals)){notify("Wrong number of values");return(graf)}
 
-      names(vals) <- fields
-      vals$graf=graf
+        names(vals) <- fields
+        vals$graf=graf
 
       }
       fun <- fun %>% str_replace(" ","_") %>% paste0("pipe_",.)
@@ -277,13 +277,13 @@ pipe_find_factors <- function(graf,field,value,operator="=",up=0,down=0){
 
   if(field=="label"){
 
-  value <- str_replace_all(value," OR ","|") %>% str_trim
+    value <- str_replace_all(value," OR ","|") %>% str_trim
   }
 
   if(operator=="contains"){graf <- graf %>%  mutate(found=str_detect(tolower(label),tolower(value)))} else
-  if(operator=="="){graf <- graf %>%  mutate(found=(tolower(label)==tolower(value)))} else
-  if(operator=="starts"){graf <- graf %>%  mutate(found=str_detect(tolower(label),paste0("^",tolower(value))))} else
-  if(operator=="ends"){graf <- graf %>%  mutate(found=str_detect(tolower(label),paste0(tolower(value),"$")))}
+    if(operator=="="){graf <- graf %>%  mutate(found=(tolower(label)==tolower(value)))} else
+      if(operator=="starts"){graf <- graf %>%  mutate(found=str_detect(tolower(label),paste0("^",tolower(value))))} else
+        if(operator=="ends"){graf <- graf %>%  mutate(found=str_detect(tolower(label),paste0(tolower(value),"$")))}
 
 
   if(!any(graf %>% factors_table %>% pull(found))) return(graf %>% filter(F))
@@ -349,8 +349,8 @@ pipe_select_links <- function(graf,top){
     pipe_bundle_links(field="n") %E>%
     arrange(desc(n)) %>%
     filter(n>top) %>%
-        select(from,to,n,everything()) %>%
-        activate(nodes)
+    select(from,to,n,everything()) %>%
+    activate(nodes)
 }
 
 
@@ -371,7 +371,7 @@ pipe_select_factors <- function(graf,top=20,all=F){
     mutate(n = centrality_degree()) %>%
     mutate(n=rank(n)) %>%
     arrange(desc(n)) %>%
-          slice(1:top)
+    slice(1:top)
 
 }
 
@@ -434,17 +434,17 @@ pipe_bundle_factors <- function(graf,value=""){
   graf <- graf %>% activate(nodes)
   statements <- graf %>% statements_table()
 
-    gr <-
-      graf %>%
-      pip_fix_columns() %>%
-      mutate(
-        label=if(value=="")
-          str_match(label,"^[^ ]*") %>% `[`(,1)
-        else if_else(str_detect(label,value),str_match(label,paste0(value)),label)
-        ) %>%
-      group_by(label) %>%
-      mutate(new_id=cur_group_id()) %>%
-      ungroup
+  gr <-
+    graf %>%
+    pip_fix_columns() %>%
+    mutate(
+      label=if(value=="")
+        str_match(label,"^[^ ]*") %>% `[`(,1)
+      else if_else(str_detect(label,value),str_match(label,paste0(value)),label)
+    ) %>%
+    group_by(label) %>%
+    mutate(new_id=cur_group_id()) %>%
+    ungroup
 
   new_id <- gr %>% pull(new_id) %>% unlist
   contract(gr,mapping=new_id,vertex.attr.comb = list(label="first",n="sum","ignore")) %>%
@@ -518,9 +518,30 @@ pipe_trace_paths <- function(graf,from,to,length){
     notify("too much to trace")
     return(graf)
   }
+all_flows <- get_flows(graf)
+
+# notify(glue("Number of cuts is {res$cut %>% length}"))
+  graf <- graf %>%
+    activate(nodes) %>%
+    filter(label!="_super_sink_" & label!="_super_source_")
+
+  attr(graf,"flow")=all_flows
+  graf
+
+
+
+}
+
+get_flows <- function(graf){
+
+  if("found_from" %notin% factor_colnames(graf)) {warning("No found from column");return(NA)}
+  if("found_to" %notin% factor_colnames(graf)) {warning("No found to column");return(NA)}
+
   graf <- graf %N>% pipe_bundle_links() %E>%
     mutate(n=if_else(is.na(n),1L,as.integer(n))) %>%
     activate(nodes)
+
+
   from_vec <- factors_table(graf) %>% filter(found_from) %>% pull(label)
   to_vec <- factors_table(graf) %>% filter(found_to) %>% pull(label)
   newnodes <- tibble(
@@ -556,27 +577,47 @@ pipe_trace_paths <- function(graf,from,to,length){
     activate(nodes)
   source <- V(graf)[(graf %>% factors_table)$label=="_super_source_"]
   sink <- V(graf)[(graf %>% factors_table)$label=="_super_sink_"]
-  # browser()
   res <- graf %N>%
     max_flow(source=source, target=sink)
 
-  notify(glue("Flow is {res$value}"))
-  notify(glue("Number of cuts is {res$cut %>% length}"))
-  graf <- graf %>%
-    # mutate(flow_from=node_max_flow_from(ID(.,"_super_source_")) %>% replace_na(0)) %>%
-    # mutate(flow_to=node_max_flow_to(ID(.,"_super_sink_")) %>% replace_na(0)) %>%
-    # activate(edges) %>% mutate(flow=res$flow %>% replace_na(0) %>% replace_inf(0)) %>%
-    activate(nodes) %>%
-    filter(label!="_super_sink_" & label!="_super_source_")
+  sources <- V(graf)[(graf %>% factors_table)$found_from %>% replace_na(F)]
+  sinks <- V(graf)[(graf %>% factors_table)$found_to %>% replace_na(F)]
 
-  attr(graf,"flow")=res$value
-  graf
+  sinkvec <- c(sinks,sink)
+  sourcevec <- c(sources,source)
+  # browser()
 
 
+  all_flows <-
+
+    sinkvec %>% map(function(y)(sourcevec %>% map(function(x) if(x %in% sinks) Inf else max_flow(graf,x,y)$value)) %>% unlist) %>%
+    do.call("rbind",.) %>%
+    as_tibble
+
+
+
+
+  colnames(all_flows) <- (graf %>% factors_table %>% filter(found_from) %>% pull(label)) %>% c("All sources")
+
+  all_flows <- mutate(all_flows, row_names = (graf %>% factors_table %>% filter(found_to) %>% pull(label)) %>% c("All targets")) %>%
+  select(row_names,everything())
+
+  all_flows
+  #
+  # to_flows <-
+  #   sinks[(sinks %notin% sources)] %>% map(function(x) max_flow(graf,source,x)$value)
+  #
+  #
+  # all_flows <- sources %>% map(function(y){
+  #   sinks %>% map(function(x)max_flow(graf,y,x)$value)
+  # })
+  #
+  # all_flows <-
+  #   cross2(as.numeric(sources),as.numeric(sinks)) %>% map2(~max_flow(graf,source=.x,target=.y))
+
+  # notify(glue("Flow is {res$value}"))
 
 }
-
-
 
 
 
@@ -621,6 +662,7 @@ pipe_flip_opposites <- function(graf,flipchar="~"){
 #' @examples
 pipe_bundle_links <- function(graf,field="n"){
   # browser()
+  statements <- graf %>% statements_table()
   nodes <- factors_table(graf)
   edges <- links_table(graf)
   if(nrow(nodes)==0) return(NULL)
@@ -636,9 +678,9 @@ pipe_bundle_links <- function(graf,field="n"){
     mutate(rn=row_number()) %>%
     filter(rn==1) else
 
-  if(field %in% link_colnames(graf) &
-     field!="n" &
-     "n" %notin% link_colnames(graf)) edges <- edges %>%
+      if(field %in% link_colnames(graf) &
+         field!="n" &
+         "n" %notin% link_colnames(graf)) edges <- edges %>%
     group_by(from,to,UQ(sym(field))) %>%
     mutate(n=n()) %>%
     mutate(rn=row_number()) %>%
@@ -646,21 +688,23 @@ pipe_bundle_links <- function(graf,field="n"){
 
   else if("n" %in% link_colnames(graf))  {
     edges <- edges %>%
-    group_by(from,to) %>%
-    mutate(n=sum(n,na.rm=T)) %>%
-    mutate(rn=row_number()) %>%
-    filter(rn==1)
+      group_by(from,to) %>%
+      mutate(n=sum(n,na.rm=T)) %>%
+      mutate(rn=row_number()) %>%
+      filter(rn==1)
   }
 
   else {
     edges <- edges %>%
-    group_by(from,to) %>%
-    mutate(n=n()) %>%
-    mutate(rn=row_number()) %>%
-    filter(rn==1)
-}
+      group_by(from,to) %>%
+      mutate(n=n()) %>%
+      mutate(rn=row_number()) %>%
+      filter(rn==1)
+  }
 
-  tbl_graph(nodes,edges %>% ungroup %>% select(-rn)) %>% activate(nodes)
+  tbl_graph(nodes,edges %>% ungroup %>% select(-rn)) %>%
+    activate(nodes) %>%
+    add_statements(statements)
 
 
 }
@@ -968,9 +1012,9 @@ pipe_wrap_links <- function(graf,length=20){
 make_table <- function(graf,tab){
   if(tab=="factors") res <- graf %>% factors_table else
     if(tab=="links") res <- graf %>% links_table else
-    if(tab=="statements") res <- graf %>% statements_table
+      if(tab=="statements") res <- graf %>% statements_table
 
-  res #%>% select(...)
+      res #%>% select(...)
 }
 #' Make map-level metrics
 #'
