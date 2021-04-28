@@ -93,6 +93,30 @@
 <li>there may be many links between pairs of factors which should sometimes merged and sometimes not</li>
 <li>the main focus is often on a flow of influence from a small set of intervention variables to a small set of focused variables downstream of them, such as key outcomes.</li>
 </ul>
+<p>The package defines a kind of object called a tidymap which is just a tidygraph but with an additional statements table stored as an attribute. (You might expect an <code>activate(statements)</code> command but this is not implemented yet.</p>
+<p>Filters (manipulate, calculate, hide, combine…) are implemented as as successive operations on a tidymap. All these operations do not actually change the data (that comes later; everything atm is read-only).</p>
+<p>So you import/load data as a tidymap and all your work steps are then just applying successive filters.</p>
+<p>Each filter returns another tidymap, suitably filtered etc.</p>
+<p>Similarly, we create our outputs (maps, tables, reports) with filters which turn a tidymap into a map or a table.</p>
+<p>All of these filters are R functions.</p>
+<p>All of these filters can be produced and edited either in a chain of actual R functions or in the simplified format which is processed by the parser.</p>
+<p>If you filter the factors of a tidymap, e.g. show only factors with labels beginning xyz,</p>
+<ul>
+<li>also the links are filtered (removing links to removed factors)</li>
+<li>the statements are not touched</li>
+</ul>
+<p>If you filter the links of a tidymap, e.g. show only links with hashtags containing xyz,</p>
+<ul>
+<li>the factors are not filtered (but using a different command you can remove any factors which no longer have any links)</li>
+<li>the statements are not touched</li>
+</ul>
+<p>If you filter the statements of a tidymap, e.g. show only statements with texts containing xyz,</p>
+<ul>
+<li>also the links are filtered (removing links to removed statements)</li>
+<li>the factors are filtered</li>
+</ul>
+<p>So your workflow is always:</p>
+<p>Import or load a tidymap / Filter it / Filter it / Filter it / Output an interactive map, a print map or a table.</p>
 <div id="parser" class="section level2">
 <h2 class="hasAnchor">
 <a href="#parser" class="anchor"></a>Parser</h2>
@@ -101,14 +125,14 @@
 <div id="output-functions" class="section level2">
 <h2 class="hasAnchor">
 <a href="#output-functions" class="anchor"></a>Output functions</h2>
-<p>There are three output functions which are thin wrappers around visNetwork, ggraph and DiagrammeR, allowing a graph to be displayed using any of these three visualisation engines.</p>
+<p>There are three output functions which are thin wrappers around visNetwork, DiagrammeR and DT, allowing a graph to be displayed using any of these three visualisation engines.</p>
 </div>
 <div id="main-functions" class="section level2">
 <h2 class="hasAnchor">
 <a href="#main-functions" class="anchor"></a>Main functions</h2>
-<div id="filter-by-frequency" class="section level3">
+<div id="select-top-factors-or-links" class="section level3">
 <h3 class="hasAnchor">
-<a href="#filter-by-frequency" class="anchor"></a>Filter by frequency</h3>
+<a href="#select-top-factors-or-links" class="anchor"></a>Select top factors or links</h3>
 <p>Show the most frequently mentioned links and or the most frequently mentioned factors</p>
 </div>
 <div id="search-for-factor-labels" class="section level3">
@@ -128,9 +152,9 @@
 <a href="#path-tracing" class="anchor"></a>Path tracing</h3>
 <p>This is a powerful command which allows the user to trace paths from one or more upstream factors to one or more downstream factors. Only links which are part of such paths are displayed.</p>
 </div>
-<div id="hierarchical-coding" class="section level3">
+<div id="zooming-with-hierarchical-coding" class="section level3">
 <h3 class="hasAnchor">
-<a href="#hierarchical-coding" class="anchor"></a>Hierarchical coding</h3>
+<a href="#zooming-with-hierarchical-coding" class="anchor"></a>Zooming with hierarchical coding</h3>
 <p>Another important ability of the Causal Map Viewer is to manipulate maps which use hierarchical coding, which is a very powerful way to code causal information. It is possible to globally by roll up all factors into up to a certain level, for example, to roll them all up to their top level. But it is also possible to selectively zoom individual hierarchies while leaving others intact to any given level.</p>
 </div>
 <div id="remove" class="section level3">
@@ -153,11 +177,6 @@
 <a href="#labels" class="anchor"></a>Labels</h3>
 <p>For example it is possible to add the factor frequency to the factor labels. More than one label can be added: Labels are additive and are applied one after the other.</p>
 <p>Other formatting commands such as factor and link colour can either specify a fixed colour (<code>links colour blue</code>) or can be used conditionally, so that a the colour or transparency of links can depend on any custom field existing in the original data such as, say, <code>gender</code> but also on fields created by the app e.g. frequency.</p>
-</div>
-<div id="facets" class="section level3">
-<h3 class="hasAnchor">
-<a href="#facets" class="anchor"></a>Facets</h3>
-<p>Split the map into facets, e.g. providing separate maps for different genders.</p>
 </div>
 </div>
 </div>

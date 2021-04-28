@@ -965,9 +965,10 @@ pipe_label_links <- function(graf,field="n",clear=F){
 #' Remove bracketed expressions
 #'
 #' @inheritParams parse_commands
-#' @param length line length
+#' @param value
 #'
-#' @return A tidymap with factor labels wrapped to `length`
+#' @return A tidymap in which the factor labels have had any text enclosed with square brackets or round brackets removed
+#'
 #' @export
 #'
 #'
