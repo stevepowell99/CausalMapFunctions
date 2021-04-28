@@ -594,7 +594,7 @@ get_flows <- function(graf){
     do.call("rbind",.) %>%
     as_tibble
 
-
+# note if you don't check for not in sinks, R hangs
 
 
   colnames(all_flows) <- (graf %>% factors_table %>% filter(found_from) %>% pull(label)) %>% c("All sources")
