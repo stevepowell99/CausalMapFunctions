@@ -204,8 +204,8 @@ parse_commands <- function(graf,tex){
 #' @examples
 get_flows <- function(graf){
 
-  if("found_from" %notin% factor_colnames(graf)) {warning("No found from column");return(NA)}
-  if("found_to" %notin% factor_colnames(graf)) {warning("No found to column");return(NA)}
+  if("found_from" %notin% factor_colnames(graf)) {warning("No found_from column");return(NA)}
+  if("found_to" %notin% factor_colnames(graf)) {warning("No found_to column");return(NA)}
 
   graf <- graf %N>% pipe_bundle_links() %E>%
     mutate(n=if_else(is.na(n),1L,as.integer(n))) %>%
@@ -443,7 +443,7 @@ pipe_search_factors <- function(graf,value,operator="contains",up=0,down=0,...){
 #' @examples
 pipe_select_links <- function(graf,top){
   graf %>%
-    pipe_bundle_links(field="n") %E>%
+    pipe_bundle_links() %E>%
     arrange(desc(n)) %>%
     filter(n>top) %>%
     select(from,to,n,everything()) %>%
@@ -677,45 +677,30 @@ pipe_bundle_links <- function(graf,counter="n",group=NULL){
   nodes <- factors_table(graf)
   edges <- links_table(graf)
   if(nrow(nodes)==0) return(NULL)
+  coln <- link_colnames(graf)
 
 
   if(counter %notin% link_colnames(graf) & counter!="n" ) {notify("no such counter");return(graf)}
+  if(!is.null(group)){if(group %notin% coln) {notify("no such counter");return(graf)}}
 
-  if(counter %in% link_colnames(graf) &
-     counter!="n" &
-     "n" %in% link_colnames(graf)) edges <-
-    edges %>%
-    group_by(from,to,UQ(sym(counter))) %>%
-    mutate(n=sum(n,na.rm=T)) %>%
-    mutate(rn=row_number()) %>%
-    filter(rn==1) else
+  if(is.null(group)) edges <- edges %>% group_by(from,to) else edges <- edges %>% group_by(from,to,UQ(sym(group)))
 
-      if(counter %in% link_colnames(graf) &
-         counter!="n" &
-         "n" %notin% link_colnames(graf)) edges <-
-    edges %>%
-    group_by(from,to,UQ(sym(counter))) %>%
-    mutate(n=n()) %>%
-    mutate(rn=row_number()) %>%
-    filter(rn==1)
+  if(counter=="n"){
 
-  else if("n" %in% link_colnames(graf))  {
-    edges <- edges %>%
-      group_by(from,to) %>%
-      mutate(n=sum(n,na.rm=T)) %>%
-      mutate(rn=row_number()) %>%
-      filter(rn==1)
-  }
+  if("n" %in% coln)edges <- edges %>%
+    mutate(rn_=row_number()) %>%
+    mutate(n=sum(n))
+  else edges <- edges %>%
+    mutate(rn_=row_number()) %>%
+    mutate(n=n())
+} else edges <- edges %>%
+    mutate(rn_=row_number()) %>%
+    mutate(n=length(unique(UQ(sym(counter)))))
 
-  else {
-    edges <- edges %>%
-      group_by(from,to) %>%
-      mutate(n=n()) %>%
-      mutate(rn=row_number()) %>%
-      filter(rn==1)
-  }
 
-  tbl_graph(nodes,edges %>% ungroup %>% select(-rn)) %>%
+
+
+  tbl_graph(nodes,edges %>% filter(rn_==1) %>% ungroup %>% select(-rn_)) %>%
     activate(nodes) %>%
     add_statements(statements)
 
@@ -934,12 +919,14 @@ pipe_fade_links <- function(graf,field="n"){
 #' @export
 #'
 #' @examples
-pipe_scale_links <- function(graf,field="n"){
+pipe_scale_links <- function(graf,field="n",fixed=NULL){
+  if(!is.null(fixed))return(graf %E>% mutate(width=fixed) %>% activate(nodes))
   if(field %notin% link_colnames(graf)){warning("No such column");return(graf)}
+
   class <- graf %>% links_table %>% pull(UQ(sym(field))) %>% class
   if(class =="character"){warning("No such column");return(graf)}
   # browser()
-  graf %E>% mutate(width=scales::rescale(UQ(sym(field)),to=c(0.2,1))) %>% activate(nodes)
+  graf %E>% mutate(width=scales::rescale(UQ(sym(field)),to=c(0.1,1))) %>% activate(nodes)
 }
 
 #' Label links
@@ -1252,7 +1239,7 @@ make_grviz <- function(
     mutate(fontcolor="black") %>%
     activate(edges) %>%
     mutate(label=if_else(label=="",".",label))%>%
-    mutate(penwidth=width*10)%>%
+    mutate(penwidth=width*28)%>%
     mutate(label=clean_grv(label) )%>%
     # select(from,to,label)  %>%
     # group_by(from,to) %>%

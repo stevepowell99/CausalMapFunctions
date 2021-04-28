@@ -10,10 +10,10 @@ pipe_remove_brackets(graf, value = "[")
 \item{graf}{A tidymap representing a causal map.
 In this package, nodes are called factors and edges are called links.}
 
-\item{length}{line length}
+\item{value}{}
 }
 \value{
-A tidymap with factor labels wrapped to `length`
+A tidymap in which the factor labels have had any text enclosed with square brackets or round brackets removed
 }
 \description{
 Remove bracketed expressions
