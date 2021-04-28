@@ -583,8 +583,8 @@ get_flows <- function(graf){
   sources <- V(graf)[(graf %>% factors_table)$found_from %>% replace_na(F)]
   sinks <- V(graf)[(graf %>% factors_table)$found_to %>% replace_na(F)]
 
-  sinkvec <- c(sinks,sink)
-  sourcevec <- c(sources,source)
+  sinkvec <- c(sink,sinks)
+  sourcevec <- c(source,sources)
   # browser()
 
 
@@ -597,9 +597,9 @@ get_flows <- function(graf){
 # note if you don't check for not in sinks, R hangs
 
 
-  colnames(all_flows) <- (graf %>% factors_table %>% filter(found_from) %>% pull(label)) %>% c("All sources")
+  colnames(all_flows) <- (graf %>% factors_table %>% filter(found_from) %>% pull(label)) %>% c("All sources",.)
 
-  all_flows <- mutate(all_flows, row_names = (graf %>% factors_table %>% filter(found_to) %>% pull(label)) %>% c("All targets")) %>%
+  all_flows <- mutate(all_flows, row_names = (graf %>% factors_table %>% filter(found_to) %>% pull(label)) %>% c("All targets",.)) %>%
   select(row_names,everything())
 
   all_flows
