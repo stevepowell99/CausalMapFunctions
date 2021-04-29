@@ -501,7 +501,7 @@ pipe_hide_factors <- function(graf,value){
 #' @export
 #'
 #' @examples
-pipe_zoom_factors <- function(graf,level,separator,hide){
+pipe_zoom_factors <- function(graf,level,separator=";",hide=T){
   # browser()
   level=as.numeric(level)
   hide=as.logical(hide)
