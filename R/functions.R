@@ -1030,8 +1030,8 @@ make_table <- function(graf,tab){
 make_map_metrics <- function(graf){
   metric=c(
     igraph::edge_connectivity(graf),
-    igraph::clique_num(graf),
-    igraph::count_max_cliques(graf),
+    # igraph::clique_num(graf),
+    # igraph::count_max_cliques(graf),
     igraph::count_components(graf),
     igraph::count_motifs(graf),
     igraph::diameter(graf),
@@ -1045,8 +1045,8 @@ make_map_metrics <- function(graf){
 
   name=c(
     "adhesion",
-    "clique_num",
-    "clique_count",
+    # "clique_num",
+    # "clique_count",
     "component_count",
     "motif_count",
     "diameter",
@@ -1059,8 +1059,8 @@ make_map_metrics <- function(graf){
   )
   description=c(
     "The minimum edge connectivity.",
-    "The size of the largest clique.",
-    "The number of maximal cliques in the graph.",
+    # "The size of the largest clique.",
+    # "The number of maximal cliques in the graph.",
     "The number of unconnected components in the graph.",
     "The number of motifs in a graph.",
     "The length of the longest geodesic.",
