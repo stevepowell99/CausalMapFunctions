@@ -314,10 +314,16 @@ find_things <- function(graf,field,value,operator="=",what){
 
   if(operator=="=") graf %>%
       filter(UQ(sym(field)) %in% as.character(value)) %>% activate(nodes)
+  else if(operator=="!=")     filter(UQ(sym(field)) %notin% as.character(value)) %>% activate(nodes)
   else if(operator=="contains") {
     value <- str_replace_all(value," OR ","|") %>% str_trim
     graf %>%
       filter(str_detect(tolower(UQ(sym(field))),tolower(escapeRegex(value)))) %>% activate(nodes)
+  }
+  else if(operator=="notcontains") {
+    value <- str_replace_all(value," OR ","|") %>% str_trim
+    graf %>%
+      filter(!str_detect(tolower(UQ(sym(field))),tolower(escapeRegex(value)))) %>% activate(nodes)
   }
 
 }
@@ -378,7 +384,9 @@ pipe_find_factors <- function(graf,field,value,operator="=",up=0,down=0){
   }
 
   if(operator=="contains"){graf <- graf %>%  mutate(found=str_detect(tolower(label),tolower(value)))} else
+  if(operator=="notcontains"){graf <- graf %>%  mutate(found=!str_detect(tolower(label),tolower(value)))} else
     if(operator=="="){graf <- graf %>%  mutate(found=(tolower(label)==tolower(value)))} else
+    if(operator=="!="){graf <- graf %>%  mutate(found=(tolower(label)!=tolower(value)))} else
       if(operator=="starts"){graf <- graf %>%  mutate(found=str_detect(tolower(label),paste0("^",tolower(value))))} else
         if(operator=="ends"){graf <- graf %>%  mutate(found=str_detect(tolower(label),paste0(tolower(value),"$")))}
 
@@ -445,7 +453,7 @@ pipe_select_links <- function(graf,top){
   graf %>%
     pipe_bundle_links() %E>%
     arrange(desc(n)) %>%
-    filter(n>top) %>%
+    slice(1:top) %>%
     select(from,to,n,everything()) %>%
     activate(nodes)
 }
