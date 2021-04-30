@@ -314,7 +314,7 @@ find_things <- function(graf,field,value,operator="=",what){
 
   if(operator=="=") graf %>%
       filter(UQ(sym(field)) %in% as.character(value)) %>% activate(nodes)
-  else if(operator=="!=")     filter(UQ(sym(field)) %notin% as.character(value)) %>% activate(nodes)
+  else if(operator=="!=")  graf %>%    filter(UQ(sym(field)) %notin% as.character(value)) %>% activate(nodes)
   else if(operator=="contains") {
     value <- str_replace_all(value," OR ","|") %>% str_trim
     graf %>%
