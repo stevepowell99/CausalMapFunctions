@@ -49,10 +49,14 @@ add_statements <- function(graf,statements){
   attr(graf,"statements") <- statements
   graf
 }
+add_attribute <- function(graf,value,attr="flow"){
+  attr(graf,attr) <- value
+  graf
+}
 
 # constants ---------------------------------------------------------
 
-operator_list=xc("= > < >= <= contains starts ends")
+operator_list=xc("= less greater notcontains notequals notequal equals equal contains starts ends start end")
 
 # graph utilities ---------------------------------------------------------
 
@@ -118,7 +122,7 @@ statements_table <- function(graf)graf %>%
 #' Each line consists of two words corresponding to the name of the pipe function to be applied, e.g. `color links` calls the function `color_links`
 #' The function name is followed by field=value pairs corresponding to the arguments of the function such as `top=10`.
 #'
-#' This parser also provides some conenient shortcuts.
+#' This parser also provides some convenient shortcuts.
 #' `find links field operator value` is parsed as `find links field=field operator=operator value=value`.
 #' `search factors long text ...` is parsed as `search factors value=long text ...`.
 #'
@@ -148,6 +152,7 @@ parse_commands <- function(graf,tex){
       if(fun %in% c("find links","find factors")){
 
         operator <- str_match(body,operator_list) %>% na.omit %>% first
+      # browser()
 
         vals=list(
           graf=graf,
@@ -312,18 +317,29 @@ find_things <- function(graf,field,value,operator="=",what){
   # browser()
   if(what=="links") graf <- graf %>% activate(edges) else graf <- graf %>% activate(nodes)
 
-  if(operator=="=") graf %>%
+  if(operator %in% xc("= equals equal")) graf %>%
       filter(UQ(sym(field)) %in% as.character(value)) %>% activate(nodes)
-  else if(operator=="!=")  graf %>%    filter(UQ(sym(field)) %notin% as.character(value)) %>% activate(nodes)
-  else if(operator=="contains") {
+  else if(operator %in% xc("notequals notequal"))  {
+    value <- str_replace_all(value," OR ","|") %>% str_trim
+    graf %>%    filter(UQ(sym(field)) %notin% as.character(value)) %>% activate(nodes)
+    }
+  else if(operator %in% xc("contains")) {
     value <- str_replace_all(value," OR ","|") %>% str_trim
     graf %>%
       filter(str_detect(tolower(UQ(sym(field))),tolower(escapeRegex(value)))) %>% activate(nodes)
   }
-  else if(operator=="notcontains") {
+  else if(operator %in% xc("notcontains")) {
     value <- str_replace_all(value," OR ","|") %>% str_trim
     graf %>%
       filter(!str_detect(tolower(UQ(sym(field))),tolower(escapeRegex(value)))) %>% activate(nodes)
+  }
+  else if(operator %in% xc("greater")) {
+    graf %>%
+      filter(as.numeric(UQ(sym(field)))>as.numeric(value)) %>% activate(nodes)
+  }
+  else if(operator %in% xc("less")) {
+    graf %>%
+      filter(as.numeric(UQ(sym(field))),as.numeric(value)) %>% activate(nodes)
   }
 
 }
@@ -385,10 +401,10 @@ pipe_find_factors <- function(graf,field,value,operator="=",up=0,down=0){
 
   if(operator=="contains"){graf <- graf %>%  mutate(found=str_detect(tolower(label),tolower(value)))} else
   if(operator=="notcontains"){graf <- graf %>%  mutate(found=!str_detect(tolower(label),tolower(value)))} else
-    if(operator=="="){graf <- graf %>%  mutate(found=(tolower(label)==tolower(value)))} else
-    if(operator=="!="){graf <- graf %>%  mutate(found=(tolower(label)!=tolower(value)))} else
-      if(operator=="starts"){graf <- graf %>%  mutate(found=str_detect(tolower(label),paste0("^",tolower(value))))} else
-        if(operator=="ends"){graf <- graf %>%  mutate(found=str_detect(tolower(label),paste0(tolower(value),"$")))}
+    if(operator %in% xc("= equals equal")){graf <- graf %>%  mutate(found=(tolower(label)==tolower(value)))} else
+    if(operator %in% xc("notequals notequal")){graf <- graf %>%  mutate(found=(tolower(label)!=tolower(value)))} else
+      if(operator %in% xc("starts start")){graf <- graf %>%  mutate(found=str_detect(tolower(label),paste0("^",tolower(value))))} else
+        if(operator %in% xc("ends end")){graf <- graf %>%  mutate(found=str_detect(tolower(label),paste0(tolower(value),"$")))}
 
 
   if(!any(graf %>% factors_table %>% pull(found))) return(graf %>% filter(F))
@@ -682,6 +698,7 @@ pipe_flip_opposites <- function(graf,flipchar="~"){
 pipe_bundle_links <- function(graf,counter="n",group=NULL){
   # browser()
   statements <- graf %>% statements_table()
+  flow <- graf %>% attr("flow")
   nodes <- factors_table(graf)
   edges <- links_table(graf)
   if(nrow(nodes)==0) return(NULL)
@@ -710,7 +727,8 @@ pipe_bundle_links <- function(graf,counter="n",group=NULL){
 
   tbl_graph(nodes,edges %>% filter(rn_==1) %>% ungroup %>% select(-rn_)) %>%
     activate(nodes) %>%
-    add_statements(statements)
+    add_statements(statements) %>%
+    add_attribute(flow)
 
 
 }
@@ -760,7 +778,7 @@ pip_metrics <- function(graf){
 
   graf  %N>%
     mutate(
-      group=group_infomap(),
+      group=suppressMessages(group_infomap()),
       "in_degree"=centrality_degree(mode = "in"),
       "out_degree"=centrality_degree(mode = "out"),
       n=in_degree+out_degree,
@@ -1099,7 +1117,7 @@ make_map_metrics <- function(graf){
 make_vn <- function(graf,scale=1){
   graf <- graf %>% pip_fix_columns()
   nodes <- graf %N>% as_tibble %>% mutate(value=size*10)
-  # browser()
+  browser()
   edges <- graf %E>% as_tibble %>%
     vn_fan_edges() %>% mutate(width=width*10)
   if(nrow(nodes)>1){
