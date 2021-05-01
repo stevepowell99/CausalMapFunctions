@@ -471,6 +471,7 @@ pipe_select_links <- function(graf,top){
     arrange(desc(n)) %>%
     slice(1:top) %>%
     select(from,to,n,everything()) %>%
+    select(1:7) %>%
     activate(nodes)
 }
 
@@ -753,7 +754,7 @@ pip_fix_columns <- function(graf){
   if(!("n" %in% factor_colnames(graf))) graf <- graf %N>% mutate(n=1L)
   if(!("size" %in% factor_colnames(graf))) graf <- graf %N>% mutate(size=1L)
   if(!("found" %in% factor_colnames(graf))) graf <- graf %N>% mutate(found=1L)
-  if(!("color" %in% link_colnames(graf))) graf <- graf %E>% mutate(color="#444444")
+  if(!("color" %in% link_colnames(graf))) graf <- graf %E>% mutate(color="#22446688")
   if(!("n" %in% link_colnames(graf))) graf <- graf %E>% mutate(n=1L)
   if(!("capacity" %in% link_colnames(graf))) graf <- graf %E>% mutate(capacity=1L)
   if(!("label" %in% link_colnames(graf))) graf <- graf %E>% mutate(label="")
@@ -1117,14 +1118,15 @@ make_map_metrics <- function(graf){
 make_vn <- function(graf,scale=1){
   graf <- graf %>% pip_fix_columns()
   nodes <- graf %N>% as_tibble %>% mutate(value=size*10)
-  browser()
+  # browser()
   edges <- graf %E>% as_tibble %>%
     vn_fan_edges() %>% mutate(width=width*10)
-  if(nrow(nodes)>1){
-    layout <- layout_with_sugiyama(graf)$layout*-scale
-    colnames(layout) <- c("y", "x")
-    nodes <- data.frame(nodes, layout)
-  }
+  # if(nrow(nodes)>1){
+  #   layout <- visIgraphLayout(graf,layout = "nicely")#$layout*-scale
+  #   # layout <- layout_with_sugiyama(graf)$layout*-scale
+  #   colnames(layout) <- c("y", "x")
+  #   nodes <- data.frame(nodes, layout)
+  # }
   nodes <- nodes %>%   mutate(id=row_number())
   visNetwork(nodes,edges,background="white")   %>%
     visNodes(
@@ -1142,6 +1144,7 @@ make_vn <- function(graf,scale=1){
       arrows =
         list(to = T)
     ) %>%
+    visIgraphLayout("layout_nicely",type="full",randomSeed = 123) %>%  #remember that the native igraph sugiyama layout can cause hard freezes
     visExport(type = "png", name = "export-network",
               float = "right", label = "Save image", background = "whitesmoke", style= "") %>%
 
@@ -1254,33 +1257,29 @@ make_grviz <- function(
     if(nrow(factors_table(graf))>200) graf <- graf %>% pipe_select_factors(20)
   }
   if("id" %in% colnames(factors_table(graf)))graf <-  graf %>% select(-id)
-  grv <-  graf %>%
+
+  grv <-
+    graf %>%
     activate(nodes) %>%
-    # slice(1:68) %>%
     mutate(label=clean_grv(label) )%>%
+    mutate(tooltip=label)%>%
     mutate(fillcolor=color.background) %>%
     mutate(color=color.border) %>%
     mutate(fontsize=(size+5)*10) %>%
-    # mutate(color="black") %>%
     mutate(fontcolor="black") %>%
     activate(edges) %>%
     mutate(label=if_else(label=="",".",label))%>%
-    mutate(penwidth=width*28)%>%
     mutate(label=clean_grv(label) )%>%
-    # select(from,to,label)  %>%
-    # group_by(from,to) %>%
-    # mutate(rn=row_number()) %>%
-    # filter(rn==1) %>%
-    # ungroup %>%
+    mutate(label=replace_na(label,"."))%>% # obscure! if all are =="", error
+    # mutate(label="")%>%
+    # select(-label) %>%
+    mutate(penwidth=width*28)%>%
     mutate(arrowsize=3) %>%
     mutate(arrowhead="normal") %>%
     DiagrammeR::from_igraph() %>%
     DiagrammeR::add_global_graph_attrs("layout", grv_layout, "graph") %>%
     DiagrammeR::add_global_graph_attrs("splines", grv_splines, "graph") %>%
     DiagrammeR::add_global_graph_attrs("overlap", grv_overlap, "graph") %>%
-    # add_global_graph_attrs("nslimit1", "1", "graph") %>%
-    # add_global_graph_attrs("nslimit",  "1", "graph") %>%
-    # add_global_graph_attrs("overlap", F, "graph") %>%
     DiagrammeR::add_global_graph_attrs("labelloc", "bottom","graph") %>%
     DiagrammeR::add_global_graph_attrs("tooltip", " ", "graph") %>%
     DiagrammeR::add_global_graph_attrs("rankdir", "LR", "graph") %>%
@@ -1288,10 +1287,10 @@ make_grviz <- function(
     DiagrammeR::add_global_graph_attrs("fontname", "Arial", "graph") %>%
     DiagrammeR::add_global_graph_attrs("nodesep", 1, "graph") %>%
     DiagrammeR::add_global_graph_attrs("ranksep", 3, "graph") %>%
-
     DiagrammeR::add_global_graph_attrs("style", "filled,dashed", "graph") %>%
     DiagrammeR::add_global_graph_attrs("color", color, "graph") %>%
     DiagrammeR::add_global_graph_attrs("fillcolor", color, "graph") %>%
+
     DiagrammeR::add_global_graph_attrs("shape", "box", "node") %>%
     DiagrammeR::add_global_graph_attrs("style", "rounded, filled", "node") %>%
     DiagrammeR::add_global_graph_attrs("fixedsize", "false", "node") %>%
@@ -1301,12 +1300,13 @@ make_grviz <- function(
     DiagrammeR::add_global_graph_attrs("penwidth", "14", "node") %>%
     DiagrammeR::add_global_graph_attrs("width", "0", "node") %>%
     DiagrammeR::add_global_graph_attrs("height", "0", "node")  %>%
-    DiagrammeR::add_global_graph_attrs("fontsize", "63", "edge") %>%
-    # add_global_graph_attrs("color", "gray", "edge") %>%
-    # DiagrammeR::add_global_graph_attrs("penwidth", "10", "edge") %>%
+
+    DiagrammeR::add_global_graph_attrs("fontsize", 63, "edge") %>%
     DiagrammeR::add_global_graph_attrs("fontcolor", "#666666", "edge")
 
-  return(grv %>% DiagrammeR::render_graph())
+  return(
+    grv %>% DiagrammeR::render_graph()
+         )
 
 }
 
