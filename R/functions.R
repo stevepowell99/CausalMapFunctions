@@ -1119,14 +1119,14 @@ make_vn <- function(graf,scale=1){
   graf <- graf %>% pip_fix_columns()
   nodes <- graf %N>% as_tibble %>% mutate(value=size*10)
   # browser()
-  edges <- graf %E>% as_tibble %>%
-    vn_fan_edges() %>% mutate(width=width*10)
-  # if(nrow(nodes)>1){
-  #   layout <- visIgraphLayout(graf,layout = "nicely")#$layout*-scale
-  #   # layout <- layout_with_sugiyama(graf)$layout*-scale
-  #   colnames(layout) <- c("y", "x")
-  #   nodes <- data.frame(nodes, layout)
-  # }
+  edges <- graf %E>% as_tibble
+  if(T) edges <-  edges %>% vn_fan_edges() %>% mutate(width=width*10)
+  if(nrow(nodes)>1){
+    layout <- layout_with_sugiyama(tbl_graph(nodes,edges))$layout*-scale
+    colnames(layout) <- c("y", "x")
+    nodes <- data.frame(nodes, layout)
+    ############## don't get tempted to use the internal visnetwork layout functions - problems with fitting to screen, and they are slower ....
+  }
   nodes <- nodes %>%   mutate(id=row_number())
   visNetwork(nodes,edges,background="white")   %>%
     visNodes(
@@ -1144,7 +1144,10 @@ make_vn <- function(graf,scale=1){
       arrows =
         list(to = T)
     ) %>%
-    visIgraphLayout("layout_nicely",type="full",randomSeed = 123) %>%  #remember that the native igraph sugiyama layout can cause hard freezes
+    # visIgraphLayout("layout_nicely",type="full",physics=T,randomSeed = 123) %>%  #remember that the native igraph sugiyama layout can cause hard freezes
+    # visIgraphLayout("layout_with_sugiyama",type="full",physics=T,randomSeed = 123) %>%  #remember that the native igraph sugiyama layout can cause hard freezes
+    # you have to have physics=T or it won't fit on first drawing
+      # visEvents(type = "once", startStabilizing = "function() { this.fit({nodes:1})}") %>%
     visExport(type = "png", name = "export-network",
               float = "right", label = "Save image", background = "whitesmoke", style= "") %>%
 
@@ -1184,7 +1187,7 @@ make_vn <- function(graf,scale=1){
       ),
       nodesIdSelection = T
     )
-  # %>%
+  # # %>%
   #     visIgraphLayout(layout = "layout_with_sugiyama", randomSeed = 123, type = "full")
 
 }
