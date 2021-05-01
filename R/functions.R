@@ -371,13 +371,20 @@ pipe_find_statements_inner <- function(graf,...){
 
 #' Find factors
 #'
-#' @param graf
+#' @inheritParams pipe_find_factors
 #' @param field
 #' @param value
-#' @param operator
-#' @param up
-#' @param down
-#'
+#' @param operator c('contains','notcontains','=','notequals','greater','less','starts','ends')
+#' @param up integer
+#' @param down integer
+#' @description When field==label, you can search for whole labels and also for including keywords or flags which are common to more than one factor.
+#' Sets of labels separated by the letters OR.
+#' With this command, just the matching factors identified are returned together with the "ego network" i.e. links between these nodes which have been found.
+#' However, by adding the keywords `up` and `down` each followed by a number it is possible to add in factors
+#' which are a given number of steps upstream and or downstream of the identified factors.
+#' Fields may be from the original data and/or fields created by the app, e.g. `n` (frequency).
+
+
 #' @return
 #' @export
 #'
@@ -445,7 +452,7 @@ pipe_find_statements <- function(graf,field,value,operator="="){
 #'
 #' Wrapper for pipe_find_factors
 #' @inheritParams pipe_find_factors
-#'
+#' @description A wrapper around pipe_find factors, providing a simpler syntax
 #' @return
 #' @export
 #'
@@ -521,7 +528,13 @@ pipe_hide_factors <- function(graf,value){
 #' @param level
 #' @param separator
 #' @param hide
-#'
+#' @description Another important ability of the Causal Map Viewer is to manipulate maps which use
+#' hierarchical coding, which is a very powerful way to code causal information.
+#' It is possible to globally by roll up all factors into up to a certain level, for example,
+#' to roll them all up to their top level.
+#' But it is also possible to selectively zoom individual hierarchies while leaving others intact to any given level.
+
+
 #' @return
 #' @export
 #'
@@ -599,7 +612,10 @@ OLDpipe_bundle_factors <- function(graf,value=""){
 #' @param from
 #' @param to
 #' @param length
-#'
+#' @description This is a powerful command which allows the user to trace paths from one or more upstream factors to one or more downstream factors.
+#' Only links which are part of such paths are displayed.
+
+
 #' @return
 #' @export
 #'
@@ -659,6 +675,14 @@ all_flows <- get_flows(graf)
 
 
 
+#' Title
+#'
+#' @param graf
+#'
+#' @return
+#' @export
+#' @description Removes any factors which have no links
+#' @examples
 pipe_remove_orphans <- function(graf){
   graf %>%
     activate(nodes) %>%
@@ -822,6 +846,12 @@ pipe_scale_factors <- function(graf,field="n"){
 #'
 #' @return A tidymap with a column `label`. If `clear` is FALSE, the new label is concatenated
 #' after any existing label. The new label is of the form `field: value`.
+#' @description For example it is possible to add the factor frequency to the factor labels.
+#'  More than one label can be added: Labels are additive and are applied one after the other.
+#'  Other formatting commands such as factor and link colour can either specify a fixed colour (`links colour blue`)
+#'  or can be used conditionally, so that a the colour or transparency of links can depend on any custom field existing in the original data
+#'  such as, say, `gender` but also on fields created by the app e.g. frequency.
+
 #' @export
 #'
 #'

@@ -7,11 +7,20 @@
 pipe_find_factors(graf, field, value, operator = "=", up = 0, down = 0)
 }
 \arguments{
-\item{down}{}
+\item{operator}{c('contains','notcontains','=','notequals','greater','less','starts','ends')}
+
+\item{up}{integer}
+
+\item{down}{integer}
 }
 \value{
 
 }
 \description{
-Find factors
+When field==label, you can search for whole labels and also for including keywords or flags which are common to more than one factor.
+Sets of labels separated by the letters OR.
+With this command, just the matching factors identified are returned together with the "ego network" i.e. links between these nodes which have been found.
+However, by adding the keywords `up` and `down` each followed by a number it is possible to add in factors
+which are a given number of steps upstream and or downstream of the identified factors.
+Fields may be from the original data and/or fields created by the app, e.g. `n` (frequency).
 }

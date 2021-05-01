@@ -7,11 +7,18 @@
 pipe_search_factors(graf, value, operator = "contains", up = 0, down = 0, ...)
 }
 \arguments{
-\item{down}{}
+\item{operator}{c('contains','notcontains','=','notequals','greater','less','starts','ends')}
+
+\item{up}{integer}
+
+\item{down}{integer}
 }
 \value{
 
 }
 \description{
+A wrapper around pipe_find factors, providing a simpler syntax
+}
+\details{
 Wrapper for pipe_find_factors
 }

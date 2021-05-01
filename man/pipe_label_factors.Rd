@@ -20,5 +20,9 @@ A tidymap with a column `label`. If `clear` is FALSE, the new label is concatena
 after any existing label. The new label is of the form `field: value`.
 }
 \description{
-Label factors
+For example it is possible to add the factor frequency to the factor labels.
+ More than one label can be added: Labels are additive and are applied one after the other.
+ Other formatting commands such as factor and link colour can either specify a fixed colour (`links colour blue`)
+ or can be used conditionally, so that a the colour or transparency of links can depend on any custom field existing in the original data
+ such as, say, `gender` but also on fields created by the app e.g. frequency.
 }

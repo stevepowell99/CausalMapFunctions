@@ -9,12 +9,11 @@ pipe_trace_paths(graf, from, to, length = 4)
 \arguments{
 \item{graf}{A tidymap representing a causal map.
 In this package, nodes are called factors and edges are called links.}
-
-\item{length}{}
 }
 \value{
 
 }
 \description{
-Trace paths
+This is a powerful command which allows the user to trace paths from one or more upstream factors to one or more downstream factors.
+Only links which are part of such paths are displayed.
 }

@@ -10,27 +10,35 @@ cashTransferMap %>% make_vn
 
 These functions are used in the [Causal Map Viewer](https://causalmap.shinyapps.io/CausalMapViewer/) and are similar to those used in the [Causal Map app](http://causalmap.app). In our roadmap, these functions will eventually replace their counterparts in the Causal Map app. 
 
-The main functions input and output [tidygraph](https://github.com/thomasp85/tidygraph) graphs. 
+The main functions input and output augmented [tidygraph](https://github.com/thomasp85/tidygraph) graphs. 
+The package defines a kind of object called a tidymap which is just a tidygraph but with an additional statements table stored as an attribute. Statement tables are used in Causal Map as the underlying data which is to be coded into causal links. So each link refers to a quote from a particular statement. Statements are optional and this package can be used without them.
+(If you know Tidygraph, You might expect an `activate(statements)` command but this is not implemented yet.)
 
-There are many existing tools for analysing systems diagrams and also undirected graphs, we identified a need for a tool for analysing the kind of causal maps produced in evaluation research such as programme theories where
+In this package, nodes are called `factors` and the edges are called `links`.
 
-- text labels may be long and are important because they may be used for searching and filtering
-- there may be many links between pairs of factors which should sometimes merged and sometimes not
-- the main focus is often on a flow of influence from a small set of intervention variables to a small set of focused variables downstream of them, such as key outcomes. 
+## Motivation
 
+There are many existing tools for analysing systems diagrams and also undirected graphs, we identified a need for a tool for analysing the kind of causal maps produced in evaluation research such as programme theories where:
 
-The package defines a kind of object called a tidymap which is just a tidygraph but with an additional statements table stored as an attribute. (You might expect an `activate(statements)` command but this is not implemented yet.
+- there may be many causal factors, with long text labels 
+- the text labels are important because they may be used for searching and filtering
+- causal factors may be nested into causal hierarchies
+- there may be many co-terminal links between pairs of factors which should sometimes merged and sometimes not
+- the main focus is often on a flow of influence from a small set of intervention variables to a small set of focused variables downstream of them, such as key outcomes 
 
+## Features
 
-Filters (manipulate, calculate, hide, combine...) are implemented as as successive operations on a tidymap. All these operations do not actually change the data (that comes later; everything atm is read-only). 
+- As well as an interactive map, the package wraps DiagrammeR and igraph to produce left-to-right layouts which are particularly suitable for directed maps.
+- The new metric `Path robustness` is implemented alongside familiar node and graph metrics.
+- For hierarchical coding, tools are provided to zoom in and out of individual hierarchies and entire maps.
+
+## How it works
+
+A family of functions `pipe_*` are provided (manipulate, calculate, hide, combine...) to implement successive filtering operations on a tidymap. All these operations do not actually change the data. 
 
 So you import/load data as a tidymap and all your work steps are then just applying successive filters.
 
-Each filter returns another tidymap, suitably filtered etc. 
-
-Similarly, we create our outputs (maps, tables, reports) with filters which turn a tidymap into a map or a table.
-
-All of these filters are R functions.
+Each filter returns another tidymap, suitably filtered. 
 
 All of these filters can be produced and edited either in a chain of actual R functions or in the simplified format which is processed by the parser.
 
@@ -55,58 +63,16 @@ Import or load a tidymap / Filter it / Filter it / Filter it / Output an interac
 
 ## Parser
 
-There is also a parser which takes text strings with a simpler command syntax as input and outputs one of these main functions. This parser is used to read text commands from the input window in Causal Map Viewer and manipulate the output map with the corresponding functions. The input text can also consist of several lines, and the commands are applied one by one in sequence, in a pipeline of commands, such that after each command, such as each command starts with the map defined by the previous line and produces a new one. 
+There is also a parser which takes text strings with a simpler command syntax as input and outputs one of these main functions for each line of text. This parser is used to read text commands from the input window in Causal Map Viewer and manipulate the output map with the corresponding functions. The input text can also consist of several lines, and the commands are applied one by one in sequence, in a pipeline of commands, such that after each command, such as each command starts with the map defined by the previous line and produces a new one. 
 
 ## Output functions
 
 There are three output functions which are thin wrappers around visNetwork, DiagrammeR and DT, allowing a graph to be displayed using any of these three visualisation engines. 
 
 
-## Main functions
-
-### Select top factors or links
-
-Show the most frequently mentioned links and or the most frequently mentioned factors
-
-### Search for factor labels 
-
-You can search for whole labels and also for including keywords or flags which are common to more than one factor. 
-
-Sets of labels separated by the letters OR. 
-
-With this command, just the matching factors identified together with the "ego network" i.e. links between these nodes which have been found. However, by adding the keywords `up` and `down` each followed by a number it is possible to add in factors which are a given number of steps upstream and or downstream of the identified factors. 
-
-### Filter by value
-
-You can filter the map to only show factors and/or links which match either fields in the original data and/or fields created by the app, e.g. frequency.
-
-### Path tracing
-
-This is a powerful command which allows the user to trace paths from one or more upstream factors to one or more downstream factors. Only links which are part of such paths are displayed. 
-
-### Zooming with hierarchical coding
-
-Another important ability of the Causal Map Viewer is to manipulate maps which use hierarchical coding, which is a very powerful way to code causal information. It is possible to globally by roll up all factors into up to a certain level, for example, to roll them all up to their top level. But it is also possible to selectively zoom individual hierarchies while leaving others intact to any given level. 
-
-
-### Remove
-
-Removes any factors which have no links 
-
-
-### Hide
-
-A reverse search which allows the user to hide any factor containing one or more specified strings
-
-
 ### Additional fields
 
 Some of the commands such as path tracing create additional fields or variables for each factor and/or link. For example, when filtering by label, fields are created which can then be used to apply formatting. 
 
-### Labels
-
-For example it is possible to add the factor frequency to the factor labels. More than one label can be added: Labels are additive and are applied one after the other. 
-
-Other formatting commands such as factor and link colour can either specify a fixed colour (`links colour blue`) or can be used conditionally, so that a the colour or transparency of links can depend on any custom field existing in the original data such as, say, `gender` but also on fields created by the app e.g. frequency. 
 
 

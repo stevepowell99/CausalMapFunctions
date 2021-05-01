@@ -6,6 +6,9 @@
 \usage{
 pipe_find_statements(graf, field, value, operator = "=")
 }
+\arguments{
+\item{operator}{c('contains','notcontains','=','notequals','greater','less','starts','ends')}
+}
 \value{
 
 }

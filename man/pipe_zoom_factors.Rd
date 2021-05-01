@@ -9,12 +9,17 @@ pipe_zoom_factors(graf, level, separator = ";", hide = T)
 \arguments{
 \item{graf}{A tidymap representing a causal map.
 In this package, nodes are called factors and edges are called links.}
-
-\item{hide}{}
 }
 \value{
 
 }
 \description{
+Another important ability of the Causal Map Viewer is to manipulate maps which use
+hierarchical coding, which is a very powerful way to code causal information.
+It is possible to globally by roll up all factors into up to a certain level, for example,
+to roll them all up to their top level.
+But it is also possible to selectively zoom individual hierarchies while leaving others intact to any given level.
+}
+\details{
 Zoom out from a map, merging factors within the saem hierarchy
 }
