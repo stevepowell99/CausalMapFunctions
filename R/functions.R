@@ -1120,7 +1120,8 @@ make_vn <- function(graf,scale=1){
   nodes <- graf %N>% as_tibble %>% mutate(value=size*10)
   # browser()
   edges <- graf %E>% as_tibble
-  if(T) edges <-  edges %>% vn_fan_edges() %>% mutate(width=width*10)
+  if(T) edges <-  edges %>% vn_fan_edges() %>% mutate(width=width*10) %>%
+    select(any_of(xc("from to id color width label")))
   if(nrow(nodes)>1){
     layout <- layout_with_sugiyama(tbl_graph(nodes,edges))$layout*-scale
     colnames(layout) <- c("y", "x")
