@@ -8,7 +8,7 @@ parse_commands(graf, tex)
 }
 \arguments{
 \item{graf}{A tidymap representing a causal map.
-In this package, nodes are called factors and edges are called links.}
+In this package, nodes are called `factors` and edges are called `links.`}
 
 \item{tex}{A set of commands to parse, separated by linebreaks if there is more than one command.
 Each line consists of two words corresponding to the name of the pipe function to be applied, e.g. `color links` calls the function `color_links`
@@ -23,7 +23,7 @@ A tidymap, the result of successively applying the commands to the input graph.
 }
 \description{
 A parser which breaks a text input into individual commands.
-There is one command format corresponding to each of
+There is one command template corresponding to each of
 the family of pipe functions.
 }
 \examples{

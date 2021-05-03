@@ -8,7 +8,7 @@ pipe_scale_factors(graf, field = "n")
 }
 \arguments{
 \item{graf}{A tidymap representing a causal map.
-In this package, nodes are called factors and edges are called links.}
+In this package, nodes are called `factors` and edges are called `links.`}
 
 \item{field}{A numerical field in the factor table which will control the scale.}
 }

@@ -113,11 +113,11 @@ statements_table <- function(graf)graf %>%
 #' Parse commands
 #'
 #' A parser which breaks a text input into individual commands.
-#' There is one command format corresponding to each of
+#' There is one command template corresponding to each of
 #' the family of pipe functions.
 #'
 #' @param graf A tidymap representing a causal map.
-#' In this package, nodes are called factors and edges are called links.
+#' In this package, nodes are called `factors` and edges are called `links.`
 #' @param tex A set of commands to parse, separated by linebreaks if there is more than one command.
 #' Each line consists of two words corresponding to the name of the pipe function to be applied, e.g. `color links` calls the function `color_links`
 #' The function name is followed by field=value pairs corresponding to the arguments of the function such as `top=10`.
@@ -406,18 +406,22 @@ pipe_find_factors <- function(graf,field,value,operator="=",up=0,down=0){
     value <- str_replace_all(value," OR ","|") %>% str_trim
   }
 
-  if(operator=="contains"){graf <- graf %>%  mutate(found=str_detect(tolower(label),tolower(value)))} else
-  if(operator=="notcontains"){graf <- graf %>%  mutate(found=!str_detect(tolower(label),tolower(value)))} else
-    if(operator %in% xc("= equals equal")){graf <- graf %>%  mutate(found=(tolower(label)==tolower(value)))} else
-    if(operator %in% xc("notequals notequal")){graf <- graf %>%  mutate(found=(tolower(label)!=tolower(value)))} else
-      if(operator %in% xc("starts start")){graf <- graf %>%  mutate(found=str_detect(tolower(label),paste0("^",tolower(value))))} else
-        if(operator %in% xc("ends end")){graf <- graf %>%  mutate(found=str_detect(tolower(label),paste0(tolower(value),"$")))}
+  if(operator=="contains"){graf <- graf %>%  mutate(found=str_detect(tolower(UQ(sym(field))),tolower(value)))} else
+  if(operator=="notcontains"){graf <- graf %>%  mutate(found=!str_detect(tolower(UQ(sym(field))),tolower(value)))} else
+    if(operator %in% xc("= equals equal")){graf <- graf %>%  mutate(found=(tolower(UQ(sym(field)))==tolower(value)))} else
+    if(operator %in% xc("notequals notequal")){graf <- graf %>%  mutate(found=(tolower(UQ(sym(field)))!=tolower(value)))} else
+    if(operator %in% xc("greater")){graf <- graf %>%  mutate(found=(as.numeric(UQ(sym(field)))>as.numeric(value)))} else
+    if(operator %in% xc("less")){graf <- graf %>%  mutate(found=(as.numeric(UQ(sym(field)))<as.numeric(value)))} else
+      if(operator %in% xc("starts start")){graf <- graf %>%  mutate(found=str_detect(tolower(UQ(sym(field))),paste0("^",tolower(value))))} else
+        if(operator %in% xc("ends end")){graf <- graf %>%  mutate(found=str_detect(tolower(UQ(sym(field))),paste0(tolower(value),"$")))}
 
 
-  if(!any(graf %>% factors_table %>% pull(found))) return(graf %>% filter(F))
+
+  if(!any(graf %>% factors_table %>% pull(found))) {notify("Nothing found");return(graf %>% filter(F))}
 
   downvec <- graf %>% distances(to=graf %>% factors_table %>% pull(found),mode="in") %>% apply(1,min) %>% `<=`(down)
   upvec <- graf %>% distances(to=graf %>% factors_table %>% pull(found),mode="out") %>% apply(1,min) %>% `<=`(up)
+  browser()
   if(any(upvec)|any(downvec))graf %>% mutate(upvec=upvec,downvec=downvec) %>% filter(found|upvec|downvec) else graf %>% filter(F)
 }
 
@@ -1147,7 +1151,9 @@ make_map_metrics <- function(graf){
 #' @examples
 make_vn <- function(graf,scale=1){
   graf <- graf %>% pip_fix_columns()
-  nodes <- graf %N>% as_tibble %>% mutate(value=size*10)
+  # browser()
+  nodes <- graf %N>% as_tibble %>% mutate(value=size*10) %>%
+    select(any_of(xc("label color.background color.border title group value hidden size"))) ### restrictive in attempt to reduce random freezes
   # browser()
   edges <- graf %E>% as_tibble
   if(T) edges <-  edges %>% vn_fan_edges() %>% mutate(width=width*10) %>%
@@ -1375,3 +1381,39 @@ strip_symbols <- function(vec) vec %>%
   str_remove_all("\\n|\\r") %>%
   str_replace_all("\\s+", " ") %>%
   str_replace_all("\\'", "")
+
+
+
+# Shiny UI functions ------------------------------------------------------
+
+
+#' Robustness UI
+#'
+#' @param graf
+#'
+#' @return
+#' @export
+#'
+#' @examples
+robustUI <- function(graf){# browser()
+  flow <- attr(graf,"flow")
+
+  if(!is.null(flow)){
+    flow <-  flow %>% column_to_rownames(var="row_names")
+    flow[is.infinite(as.matrix(flow))] <- NA # because the colorbar plugin chokes on Inf
+    flow %>%
+      arrange(UQ(sym(colnames(flow)[1])) %>% desc) %>%
+      datatable(caption="Maximum flow / minimum cut",rownames = T,editable=F,extensions = 'Buttons', options = list(
+        # columnDefs = list(list(width = paste0(100/ncol(row),"%"), targets = (0:ncol(flow)))),
+        autoWidth = F,
+
+
+        dom = 'Bfrtip',
+        buttons = c('copy', 'csv', 'excel', 'pdf', 'print', I('colvis'))
+      )) %>% formatStyle(names(flow),
+                         background = styleColorBar(range(flow,na.rm=T), 'lightblue'),
+                         backgroundSize = '98% 88%',
+                         backgroundRepeat = 'no-repeat',
+                         backgroundPosition = 'center')
+  }}
+

@@ -15,7 +15,7 @@ pipe_color_borders(
 }
 \arguments{
 \item{graf}{A tidymap representing a causal map.
-In this package, nodes are called factors and edges are called links.}
+In this package, nodes are called `factors` and edges are called `links.`}
 
 \item{field}{A numerical or character field in the factor table.
 #' If it is character, the other parameters are ignored and a color-blind friendly qualitative palette is applied.}

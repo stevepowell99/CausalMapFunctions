@@ -8,7 +8,7 @@ pip_fix_columns(graf)
 }
 \arguments{
 \item{graf}{A tidymap representing a causal map.
-In this package, nodes are called factors and edges are called links.}
+In this package, nodes are called `factors` and edges are called `links.`}
 }
 \value{
 A tidymap with a additional columns.

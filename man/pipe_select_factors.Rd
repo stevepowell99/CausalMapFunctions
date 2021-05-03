@@ -8,7 +8,7 @@ pipe_select_factors(graf, top = 20, all = F)
 }
 \arguments{
 \item{graf}{A tidymap representing a causal map.
-In this package, nodes are called factors and edges are called links.}
+In this package, nodes are called `factors` and edges are called `links.`}
 
 \item{top}{Select only the `top` factors in terms of their frequency}
 

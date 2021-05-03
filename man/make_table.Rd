@@ -8,7 +8,7 @@ make_table(graf, tab)
 }
 \arguments{
 \item{graf}{A tidymap representing a causal map.
-In this package, nodes are called factors and edges are called links.}
+In this package, nodes are called `factors` and edges are called `links.`}
 
 \item{tab}{factors links or statements}
 }

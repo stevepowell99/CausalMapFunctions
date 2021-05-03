@@ -15,7 +15,7 @@ statements_table(graf)
 }
 \arguments{
 \item{graf}{A tidymap representing a causal map.
-In this package, nodes are called factors and edges are called links.}
+In this package, nodes are called `factors` and edges are called `links.`}
 }
 \value{
 A tibble.

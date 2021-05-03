@@ -8,7 +8,7 @@ pipe_remove_brackets(graf, value = "[")
 }
 \arguments{
 \item{graf}{A tidymap representing a causal map.
-In this package, nodes are called factors and edges are called links.}
+In this package, nodes are called `factors` and edges are called `links.`}
 
 \item{value}{}
 }

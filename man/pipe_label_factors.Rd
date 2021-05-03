@@ -8,7 +8,7 @@ pipe_label_factors(graf, field = "n", clear = F)
 }
 \arguments{
 \item{graf}{A tidymap representing a causal map.
-In this package, nodes are called factors and edges are called links.}
+In this package, nodes are called `factors` and edges are called `links.`}
 
 \item{field}{A numerical or character field in the factor table.}
 
