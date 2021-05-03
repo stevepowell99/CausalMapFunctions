@@ -1383,8 +1383,10 @@ strip_symbols <- function(vec) vec %>%
 #' @export
 #'
 #' @examples
-robustUI <- function(graf){# browser()
+robustUI <- function(graf){
+  # browser()
   flow <- attr(graf,"flow")
+  if(nrow(flow)==0) {notify("No paths");return(NULL)}
 
   if(!is.null(flow)){
     flow <-  flow %>% column_to_rownames(var="row_names")
