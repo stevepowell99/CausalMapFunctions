@@ -1155,7 +1155,7 @@ make_vn <- function(graf,scale=1){
   nodes <- nodes %>%   mutate(id=row_number())
   visNetwork(nodes,edges,background="white")   %>%
     visNodes(
-      shadow = list(enabled = F, size = 10),
+      shadow = list(enabled = T, size = 10),
       shape = "box",
       font=list(color="black"),
       borderWidth=2,
