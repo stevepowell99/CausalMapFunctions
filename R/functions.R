@@ -131,7 +131,7 @@ statements_table <- function(graf)graf %>%
 #' @examples
 #'cashTransferMap %>% parse_commands("select factors top=10 \n color factors field=n") %>% make_vn()
 parse_commands <- function(graf,tex){
-  tex <- tex %>% replace_null("") %>% str_split("\n") %>% `[[`(1) %>% str_trim() %>% escapeRegex
+  tex <- tex %>% replace_null("") %>% str_split("\n") %>% `[[`(1) %>% str_trim() #%>% escapeRegex
   if(length(tex)>1)tex <- tex %>% keep(.!="")
   if(tex[[1]]=="") graf <- graf else {
 
@@ -208,10 +208,10 @@ parse_commands <- function(graf,tex){
 #'
 #' @examples
 get_flows <- function(graf){
-
   if("found_from" %notin% factor_colnames(graf)) {warning("No found_from column");return(NA)}
   if("found_to" %notin% factor_colnames(graf)) {warning("No found_to column");return(NA)}
 
+  if(nrow(factors_table(graf))==0) {warning("No paths");return(NA)}
   graf <- graf %N>% pipe_bundle_links() %E>%
     mutate(n=if_else(is.na(n),1L,as.integer(n))) %>%
     activate(nodes)
@@ -317,6 +317,8 @@ find_things <- function(graf,field,value,operator="=",what){
   # browser()
   if(what=="links") graf <- graf %>% activate(edges) else graf <- graf %>% activate(nodes)
 
+  value <- value %>% escapeRegex %>% str_replace_all(" OR ","|") %>% str_trim
+
   if(operator %in% xc("= equals equal")) graf %>%
       filter(UQ(sym(field)) %in% as.character(value)) %>% activate(nodes)
   else if(operator %in% xc("notequals notequal"))  {
@@ -326,12 +328,12 @@ find_things <- function(graf,field,value,operator="=",what){
   else if(operator %in% xc("contains")) {
     value <- str_replace_all(value," OR ","|") %>% str_trim
     graf %>%
-      filter(str_detect(tolower(UQ(sym(field))),tolower(escapeRegex(value)))) %>% activate(nodes)
+      filter(str_detect(tolower(UQ(sym(field))),tolower((value)))) %>% activate(nodes)
   }
   else if(operator %in% xc("notcontains")) {
     value <- str_replace_all(value," OR ","|") %>% str_trim
     graf %>%
-      filter(!str_detect(tolower(UQ(sym(field))),tolower(escapeRegex(value)))) %>% activate(nodes)
+      filter(!str_detect(tolower(UQ(sym(field))),tolower((value)))) %>% activate(nodes)
   }
   else if(operator %in% xc("greater")) {
     graf %>%
@@ -403,7 +405,7 @@ pipe_find_factors <- function(graf,field,value,operator="=",up=0,down=0){
 
   if(field=="label"){
 
-    value <- str_replace_all(value," OR ","|") %>% str_trim
+    value <- value %>% escapeRegex %>% str_replace_all(" OR ","|") %>% str_trim
   }
 
   if(operator=="contains"){graf <- graf %>%  mutate(found=str_detect(tolower(UQ(sym(field))),tolower(value)))} else
@@ -421,7 +423,7 @@ pipe_find_factors <- function(graf,field,value,operator="=",up=0,down=0){
 
   downvec <- graf %>% distances(to=graf %>% factors_table %>% pull(found),mode="in") %>% apply(1,min) %>% `<=`(down)
   upvec <- graf %>% distances(to=graf %>% factors_table %>% pull(found),mode="out") %>% apply(1,min) %>% `<=`(up)
-  browser()
+  # browser()
   if(any(upvec)|any(downvec))graf %>% mutate(upvec=upvec,downvec=downvec) %>% filter(found|upvec|downvec) else graf %>% filter(F)
 }
 
@@ -519,7 +521,7 @@ pipe_select_factors <- function(graf,top=20,all=F){
 #'
 #' @examples
 pipe_hide_factors <- function(graf,value){
-  value <- str_replace_all(value," OR ","|")
+  value <- value %>% escapeRegex %>% str_replace_all(" OR ","|") %>% str_trim
   graf %N>% filter(str_detect(label,value,negate=T))
 }
 
@@ -572,6 +574,7 @@ pipe_zoom_factors <- function(graf,level,separator=";",hide=T){
 pipe_bundle_factors <- function(graf,value=""){
   graf <- graf %>% activate(nodes)
   statements <- graf %>% statements_table()
+  value <- value %>% escapeRegex %>% str_replace_all(" OR ","|") %>% str_trim
 
   gr <-
     graf %>%
@@ -590,23 +593,6 @@ pipe_bundle_factors <- function(graf,value=""){
     as_tbl_graph() %>%
     add_statements(statements)
 
-
-}
-OLDpipe_bundle_factors <- function(graf,value=""){
-  graf <- graf %>% activate(nodes)
-  if(value=="") gr <- graf %>%
-      mutate(label=str_match(label,"^[^ ]*")) %>%
-      convert(to_contracted,label,simplify=F) %>%
-      mutate(shrunk_=str_detect(label,"^[^ ]*"))
-
-  else gr <- graf %>%
-      mutate(label=if_else(str_detect(label,value),str_match(label,paste0(value)),label)) %>%
-      convert(to_contracted,label,simplify=F)  %>%
-      mutate(shrunk_=str_detect(label,value))
-  # browser()
-  tbl_graph(gr %>% factors_table %>% as.data.frame %>% select(label=1,shrunk_) ,gr %>% links_table  %>% as.data.frame)%>% pip_fix_columns
-
-  # i d on'tunderstand this convert / morph stuff and can't get a normal graph back
 
 }
 
@@ -629,8 +615,8 @@ pipe_trace_paths <- function(graf,from,to,length=4){
   if(from=="") {notify("You have to specify source factors");return(graf)}
   if(to=="") {notify("You have to specify target factors");return(graf)}
   graf <- graf %>% activate(nodes)
-  from <- str_replace_all(from," OR ","|") %>% str_trim
-  to <- str_replace_all(to," OR ","|") %>% str_trim
+  from <- from %>% escapeRegex %>% str_replace_all(" OR ","|") %>% str_trim
+  to <- to %>% escapeRegex %>% str_replace_all(" OR ","|") %>% str_trim
   if(from=="" & to =="") return(graf)
   graf <- graf %>%
     mutate(found_from=str_detect(tolower(label),tolower(from))) %>%
@@ -661,6 +647,8 @@ pipe_trace_paths <- function(graf,from,to,length=4){
     notify("too much to trace")
     return(graf)
   }
+
+
 all_flows <- get_flows(graf)
 
 # notify(glue("Number of cuts is {res$cut %>% length}"))
