@@ -81,6 +81,8 @@ load_graf_from_rds <- function(name){
 }
 
 
+make_search <- function(x)x %>% escapeRegex %>% str_replace_all(" OR ","|") %>% str_trim
+
 
 #' Extracting tibbles from A tidymap
 #'
@@ -317,7 +319,7 @@ find_things <- function(graf,field,value,operator="=",what){
   # browser()
   if(what=="links") graf <- graf %>% activate(edges) else graf <- graf %>% activate(nodes)
 
-  value <- value %>% escapeRegex %>% str_replace_all(" OR ","|") %>% str_trim
+  value <- value %>% make_search
 
   if(operator %in% xc("= equals equal")) graf %>%
       filter(UQ(sym(field)) %in% as.character(value)) %>% activate(nodes)
@@ -405,7 +407,7 @@ pipe_find_factors <- function(graf,field,value,operator="=",up=0,down=0){
 
   if(field=="label"){
 
-    value <- value %>% escapeRegex %>% str_replace_all(" OR ","|") %>% str_trim
+    value <- value %>% make_search
   }
 
   if(operator=="contains"){graf <- graf %>%  mutate(found=str_detect(tolower(UQ(sym(field))),tolower(value)))} else
@@ -521,7 +523,7 @@ pipe_select_factors <- function(graf,top=20,all=F){
 #'
 #' @examples
 pipe_hide_factors <- function(graf,value){
-  value <- value %>% escapeRegex %>% str_replace_all(" OR ","|") %>% str_trim
+  value <- value %>% make_search
   graf %N>% filter(str_detect(label,value,negate=T))
 }
 
@@ -574,7 +576,7 @@ pipe_zoom_factors <- function(graf,level,separator=";",hide=T){
 pipe_bundle_factors <- function(graf,value=""){
   graf <- graf %>% activate(nodes)
   statements <- graf %>% statements_table()
-  value <- value %>% escapeRegex %>% str_replace_all(" OR ","|") %>% str_trim
+  value <- value %>% make_search
 
   gr <-
     graf %>%
@@ -596,6 +598,40 @@ pipe_bundle_factors <- function(graf,value=""){
 
 }
 
+
+
+cluster_fun <- function(labs,tex){
+  ifelse(str_detect(labs,tex),tex,"")
+}
+
+#' Cluster factors
+#'
+#' @inheritParams parse_commands
+
+
+#' @return
+#' @export
+#'
+#' @examples
+pipe_cluster_factors <- function(graf,clusters=NULL){
+
+
+  if(!is.null(clusters)) {
+# browser()
+    choices <- clusters %>% escapeRegex %>% str_split(" OR ") %>% `[[`(1) %>% str_trim
+
+    nodes <- factors_table(graf)
+    nodes$cluster <- choices %>%
+      map(~cluster_fun(nodes$label,.)) %>%
+      as.data.frame() %>%
+      apply(1,function(x)paste0(x,collapse=""))
+    nodes <- nodes %>%
+      mutate(cluster=ifelse(cluster=="",NA,cluster))    %>%
+      mutate(cluster=str_remove_all(cluster,"\\\\"))
+    graf %N>% mutate(cluster = nodes$cluster)
+  }
+}
+
 #' Trace paths
 #'
 #' @inheritParams parse_commands
@@ -615,8 +651,8 @@ pipe_trace_paths <- function(graf,from,to,length=4){
   if(from=="") {notify("You have to specify source factors");return(graf)}
   if(to=="") {notify("You have to specify target factors");return(graf)}
   graf <- graf %>% activate(nodes)
-  from <- from %>% escapeRegex %>% str_replace_all(" OR ","|") %>% str_trim
-  to <- to %>% escapeRegex %>% str_replace_all(" OR ","|") %>% str_trim
+  from <- from %>% make_search
+  to <- to %>% make_search
   if(from=="" & to =="") return(graf)
   graf <- graf %>%
     mutate(found_from=str_detect(tolower(label),tolower(from))) %>%
