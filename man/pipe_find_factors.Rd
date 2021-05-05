@@ -4,7 +4,7 @@
 \alias{pipe_find_factors}
 \title{Find factors}
 \usage{
-pipe_find_factors(graf, field, value, operator = "=", up = 0, down = 0)
+pipe_find_factors(graf, field = NULL, value, operator = NULL, up = 0, down = 0)
 }
 \arguments{
 \item{operator}{c('contains','notcontains','=','notequals','greater','less','starts','ends')}
@@ -23,4 +23,10 @@ With this command, just the matching factors identified are returned together wi
 However, by adding the keywords `up` and `down` each followed by a number it is possible to add in factors
 which are a given number of steps upstream and or downstream of the identified factors.
 Fields may be from the original data and/or fields created by the app, e.g. `n` (frequency).
+
+If operator and field are both NULL, the value is treated as a simple search string for the field `label`.
+}
+\examples{
+pipe_find_factors(CashTransferMap,"Cash")
+pipe_find_factors(CashTransferMap,field="label",value="Cash",operator="contains")
 }
