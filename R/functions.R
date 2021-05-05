@@ -1353,7 +1353,7 @@ make_grviz <- function(
     DiagrammeR::add_global_graph_attrs("fontsize", "28", "graph") %>%
     DiagrammeR::add_global_graph_attrs("fontname", "Arial", "graph") %>%
     DiagrammeR::add_global_graph_attrs("nodesep", 1, "graph") %>%
-    DiagrammeR::add_global_graph_attrs("ranksep", 3, "graph") %>%
+    DiagrammeR::add_global_graph_attrs("ranksep", 3*log(nrow(factors_table(graf))), "graph") %>%
     DiagrammeR::add_global_graph_attrs("style", "filled,dashed", "graph") %>%
     DiagrammeR::add_global_graph_attrs("color", color, "graph") %>%
     DiagrammeR::add_global_graph_attrs("fillcolor", color, "graph") %>%
