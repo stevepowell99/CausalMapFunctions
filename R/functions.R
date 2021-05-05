@@ -142,19 +142,37 @@ parse_commands <- function(graf,tex){
       fun <- word(line, 1,2, sep=" ")
       if(is.na(fun)){notify("No such function");return(graf)}
 
-
       body <-
         str_remove(line,fun) %>%
         str_trim
 
-      if(fun %in% c("search factors")){
-        body=paste0("value=",body)
-      }
 
-      if(fun %in% c("find links","find factors")){
+      if(fun %in% c("find factors","find links") & !str_detect(body,operator_list %>% paste0(collapse="|"))){
+
+        vals=list(
+          graf=graf,
+          field="label",
+          value=body ,
+
+          operator="contains"
+        )
+
+      } else
+      if(fun %in% c("hide factors") ){
+        fun <- "find factors"
+
+        vals=list(
+          graf=graf,
+          field="label",
+          value=body ,
+
+          operator="notcontains"
+        )
+
+      } else
+        if(fun %in% c("find links","find factors")){
 
         operator <- str_match(body,operator_list) %>% na.omit %>% first
-      # browser()
 
         vals=list(
           graf=graf,
@@ -315,38 +333,6 @@ flip_vector <- function(tex,flipchar="~",sepchar=";"){
   lapply(tex,function(x)flip_inner(x,flipchar=flipchar,sepchar=sepchar)) %>%
     unlist(recursive=F)
 }
-find_things <- function(graf,field,value,operator="=",what){
-  # browser()
-  if(what=="links") graf <- graf %>% activate(edges) else graf <- graf %>% activate(nodes)
-
-  value <- value %>% make_search
-
-  if(operator %in% xc("= equals equal")) graf %>%
-      filter(UQ(sym(field)) %in% as.character(value)) %>% activate(nodes)
-  else if(operator %in% xc("notequals notequal"))  {
-    value <- str_replace_all(value," OR ","|") %>% str_trim
-    graf %>%    filter(UQ(sym(field)) %notin% as.character(value)) %>% activate(nodes)
-    }
-  else if(operator %in% xc("contains")) {
-    value <- str_replace_all(value," OR ","|") %>% str_trim
-    graf %>%
-      filter(str_detect(tolower(UQ(sym(field))),tolower((value)))) %>% activate(nodes)
-  }
-  else if(operator %in% xc("notcontains")) {
-    value <- str_replace_all(value," OR ","|") %>% str_trim
-    graf %>%
-      filter(!str_detect(tolower(UQ(sym(field))),tolower((value)))) %>% activate(nodes)
-  }
-  else if(operator %in% xc("greater")) {
-    graf %>%
-      filter(as.numeric(UQ(sym(field)))>as.numeric(value)) %>% activate(nodes)
-  }
-  else if(operator %in% xc("less")) {
-    graf %>%
-      filter(as.numeric(UQ(sym(field))),as.numeric(value)) %>% activate(nodes)
-  }
-
-}
 
 div_pal_n <- function(vec,lo=lo,hi=hi,mid=mid){
   div_gradient_pal(low=lo,high=hi,mid=mid)(rescale(vec)) %>% alpha(.6)
@@ -368,7 +354,70 @@ pipe_find_statements_inner <- function(graf,...){
     filter(statement_id %in% statement$statement_id) %>%
     activate(nodes)
 }
+OLDfind_things <- function(graf,field,value,operator="=",what){
+  # browser()
+  if(what=="links") graf <- graf %>% activate(edges) else graf <- graf %>% activate(nodes)
 
+  value <- value %>% make_search
+
+  if(operator %in% xc("= equals equal")) graf %>%
+    filter(UQ(sym(field)) %in% as.character(value)) %>% activate(nodes)
+  else if(operator %in% xc("notequals notequal"))  {
+    value <- str_replace_all(value," OR ","|") %>% str_trim
+    graf %>%    filter(UQ(sym(field)) %notin% as.character(value)) %>% activate(nodes)
+  }
+  else if(operator %in% xc("contains")) {
+    value <- str_replace_all(value," OR ","|") %>% str_trim
+    graf %>%
+      filter(str_detect(tolower(UQ(sym(field))),tolower((value)))) %>% activate(nodes)
+  }
+  else if(operator %in% xc("notcontains")) {
+    value <- str_replace_all(value," OR ","|") %>% str_trim
+    graf %>%
+      filter(!str_detect(tolower(UQ(sym(field))),tolower((value)))) %>% activate(nodes)
+  }
+  else if(operator %in% xc("greater")) {
+    graf %>%
+      filter(as.numeric(UQ(sym(field)))>as.numeric(value)) %>% activate(nodes)
+  }
+  else if(operator %in% xc("less")) {
+    graf %>%
+      filter(as.numeric(UQ(sym(field))),as.numeric(value)) %>% activate(nodes)
+  }
+
+}
+
+cluster_fun <- function(labs,tex){
+  ifelse(str_detect(labs,tex),tex,"")
+}
+
+find_fun <- function(graf,field=NULL,value,operator=NULL){
+
+  if(is.null(field) & is.null(operator)){
+    field="label"
+    operator="contains"
+  }
+
+  if(field=="label"){
+
+    value <- value %>% make_search
+  }
+
+  if(operator=="contains"){graf <- graf %>%  mutate(found=str_detect(tolower(UQ(sym(field))),tolower(value)))} else
+    if(operator=="notcontains"){graf <- graf %>%  mutate(found=!str_detect(tolower(UQ(sym(field))),tolower(value)))} else
+      if(operator %in% xc("= equals equal")){graf <- graf %>%  mutate(found=(tolower(UQ(sym(field)))==tolower(value)))} else
+        if(operator %in% xc("notequals notequal")){graf <- graf %>%  mutate(found=(tolower(UQ(sym(field)))!=tolower(value)))} else
+          if(operator %in% xc("greater")){graf <- graf %>%  mutate(found=(as.numeric(UQ(sym(field)))>as.numeric(value)))} else
+            if(operator %in% xc("less")){graf <- graf %>%  mutate(found=(as.numeric(UQ(sym(field)))<as.numeric(value)))} else
+              if(operator %in% xc("starts start")){graf <- graf %>%  mutate(found=str_detect(tolower(UQ(sym(field))),paste0("^",tolower(value))))} else
+                if(operator %in% xc("ends end")){graf <- graf %>%  mutate(found=str_detect(tolower(UQ(sym(field))),paste0(tolower(value),"$")))}
+
+
+
+  # if(!any(graf %>% factors_table %>% pull(found))) {notify("Nothing found");return(graf %>% filter(F))} else return(graf)
+  return(graf)
+
+}
 # main graph functions ----------------------------------------------------
 
 # pipe_filter_factors <- function(graf,field,value,operator="="){find_things(graf=graf,field=field,value=value,operator=operator,what="factors")}
@@ -393,36 +442,9 @@ pipe_find_statements_inner <- function(graf,...){
 #' @export
 #'
 #' @examples
-pipe_find_factors <- function(graf,field,value,operator="=",up=0,down=0){
+pipe_find_factors <- function(graf,field=NULL,value,operator=NULL,up=0,down=0){
 
-  graf <- graf %>% activate(nodes)
-
-  # if(operator=="=") graf %>%
-  #   filter(UQ(sym(field)) %in% value) %>% activate(nodes)
-  # else if(operator=="contains") {
-  #   value <- str_replace_all(value," OR ","|") %>% str_trim
-  #   graf %>%
-  #     filter(str_detect(tolower(UQ(sym(field))),tolower(escapeRegex(value)))) %>% activate(nodes)
-  # }
-
-  if(field=="label"){
-
-    value <- value %>% make_search
-  }
-
-  if(operator=="contains"){graf <- graf %>%  mutate(found=str_detect(tolower(UQ(sym(field))),tolower(value)))} else
-  if(operator=="notcontains"){graf <- graf %>%  mutate(found=!str_detect(tolower(UQ(sym(field))),tolower(value)))} else
-    if(operator %in% xc("= equals equal")){graf <- graf %>%  mutate(found=(tolower(UQ(sym(field)))==tolower(value)))} else
-    if(operator %in% xc("notequals notequal")){graf <- graf %>%  mutate(found=(tolower(UQ(sym(field)))!=tolower(value)))} else
-    if(operator %in% xc("greater")){graf <- graf %>%  mutate(found=(as.numeric(UQ(sym(field)))>as.numeric(value)))} else
-    if(operator %in% xc("less")){graf <- graf %>%  mutate(found=(as.numeric(UQ(sym(field)))<as.numeric(value)))} else
-      if(operator %in% xc("starts start")){graf <- graf %>%  mutate(found=str_detect(tolower(UQ(sym(field))),paste0("^",tolower(value))))} else
-        if(operator %in% xc("ends end")){graf <- graf %>%  mutate(found=str_detect(tolower(UQ(sym(field))),paste0(tolower(value),"$")))}
-
-
-
-  if(!any(graf %>% factors_table %>% pull(found))) {notify("Nothing found");return(graf %>% filter(F))}
-
+  graf <- graf %>% activate(nodes) %>% find_fun(field,value,operator)
   downvec <- graf %>% distances(to=graf %>% factors_table %>% pull(found),mode="in") %>% apply(1,min) %>% `<=`(down)
   upvec <- graf %>% distances(to=graf %>% factors_table %>% pull(found),mode="out") %>% apply(1,min) %>% `<=`(up)
   # browser()
@@ -436,7 +458,9 @@ pipe_find_factors <- function(graf,field,value,operator="=",up=0,down=0){
 #' @export
 #'
 #' @examples
-pipe_find_links <- function(graf,field,value,operator="="){find_things(graf=graf,field=field,value=value,operator=operator,what="links")}
+pipe_find_links <- function(graf,field=NULL,value,operator=NULL){
+  graf %>% activate(edges) %>% find_fun(field,value,operator) %>% filter(found) %>% activate(nodes)
+}
 
 #' Find statements
 #'
@@ -456,18 +480,7 @@ pipe_find_statements <- function(graf,field,value,operator="="){
       pipe_find_statements_inner(str_detect(tolower(UQ(sym(field))),tolower(escapeRegex(value)))) %>% activate(nodes)
   }
 }
-#' Search factors
-#'
-#' Wrapper for pipe_find_factors
-#' @inheritParams pipe_find_factors
-#' @description A wrapper around pipe_find factors, providing a simpler syntax
-#' @return
-#' @export
-#'
-#' @examples
-pipe_search_factors <- function(graf,value,operator="contains",up=0,down=0,...){ #alias
-  pipe_find_factors(graf=graf,field="label",value=value,operator=operator,up=up,down=down,...)
-}
+
 
 #' Select links
 #'
@@ -510,21 +523,6 @@ pipe_select_factors <- function(graf,top=20,all=F){
     arrange(desc(n)) %>%
     slice(1:top)
 
-}
-
-
-#' Hide factors
-#'
-#' @inheritParams parse_commands
-#' @param value The string to find within factor labels
-#'
-#' @return A map in which labels matching the string are excluded
-#' @export
-#'
-#' @examples
-pipe_hide_factors <- function(graf,value){
-  value <- value %>% make_search
-  graf %N>% filter(str_detect(label,value,negate=T))
 }
 
 
@@ -600,9 +598,6 @@ pipe_bundle_factors <- function(graf,value=""){
 
 
 
-cluster_fun <- function(labs,tex){
-  ifelse(str_detect(labs,tex),tex,"")
-}
 
 #' Cluster factors
 #'
