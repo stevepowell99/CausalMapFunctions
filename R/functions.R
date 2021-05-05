@@ -1340,6 +1340,8 @@ make_grviz <- function(
     mutate(penwidth=width*28)%>%
     mutate(arrowsize=3) %>%
     mutate(arrowhead="normal") %>%
+    select(-any_of("id")) %>%
+    activate(nodes) %>%
     DiagrammeR::from_igraph() %>%
     DiagrammeR::add_global_graph_attrs("layout", grv_layout, "graph") %>%
     DiagrammeR::add_global_graph_attrs("splines", grv_splines, "graph") %>%
@@ -1422,6 +1424,7 @@ strip_symbols <- function(vec) vec %>%
 robustUI <- function(graf){
   # browser()
   flow <- attr(graf,"flow")
+  if(is.null(flow)) {notify("No paths");return(NULL)}
   if(nrow(flow)==0) {notify("No paths");return(NULL)}
 
   if(!is.null(flow)){
@@ -1429,9 +1432,11 @@ robustUI <- function(graf){
     flow[is.infinite(as.matrix(flow))] <- NA # because the colorbar plugin chokes on Inf
     flow %>%
       arrange(UQ(sym(colnames(flow)[1])) %>% desc) %>%
-      datatable(caption="Maximum flow / minimum cut",rownames = T,editable=F,extensions = 'Buttons', options = list(
+      datatable(caption="Maximum flow / minimum cut",rownames = T,editable=F,extensions = 'Buttons',
+                options = list(
         # columnDefs = list(list(width = paste0(100/ncol(row),"%"), targets = (0:ncol(flow)))),
         autoWidth = F,
+        autoHideNavigation=T,
 
 
         dom = 'Bfrtip',
