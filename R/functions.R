@@ -140,7 +140,7 @@ parse_commands <- function(graf,tex){
     for(line in tex){
       if(str_trim(line)=="")return()
       fun <- word(line, 1,2, sep=" ")
-      if(is.na(fun)){notify("No such function");return(graf)}
+      if(is.na(fun)){notify("No such function");return(graf %>% filter(F))}
 
       body <-
         str_remove(line,fun) %>%
@@ -149,39 +149,46 @@ parse_commands <- function(graf,tex){
 
       if(fun %in% c("find factors","find links") & !str_detect(body,operator_list %>% paste0(collapse="|"))){
 
+        # browser()
+        updown <- body %>% str_match("(up *([0-9]+) *)* (down *([0-9]+)) *$")
+        up <- updown[,3] %>% replace_na(0)
+        down <- updown[,5] %>% replace_na(0)
+        body <- body %>% str_remove("(up *[0-9]+ *)* (down *[0-9]+) *$")
         vals=list(
           graf=graf,
           field="label",
           value=body ,
+          up=up,
+          down=down,
 
           operator="contains"
         )
 
-      } else
-      if(fun %in% c("hide factors") ){
-        fun <- "find factors"
-
-        vals=list(
-          graf=graf,
-          field="label",
-          value=body ,
-
-          operator="notcontains"
-        )
-
-      } else
+      }  else
         if(fun %in% c("find links","find factors")){
 
         operator <- str_match(body,operator_list) %>% na.omit %>% first
-
         vals=list(
           graf=graf,
           field=body %>% str_extract(paste0("^.*",operator)) %>% str_remove(operator) %>% str_trim,
           value=body %>% str_extract(paste0(operator,".*$")) %>% str_remove(operator) %>% str_trim,
 
+
           operator=operator
         )
-      }
+        }else
+          if(fun %in% c("hide factors") ){
+            fun <- "find factors"
+
+            vals=list(
+              graf=graf,
+              field="label",
+              value=body ,
+
+              operator="notcontains"
+            )
+
+          }
       else {
         body <-
           body %>%
@@ -203,7 +210,7 @@ parse_commands <- function(graf,tex){
           str_trim %>%
           str_remove_all("=$")
 
-        if(length(fields)!=length(vals)){notify("Wrong number of values");return(graf)}
+        if(length(fields)!=length(vals)){notify("Wrong number of values");return(graf %>% filter(F))}
 
         names(vals) <- fields
         vals$graf=graf
