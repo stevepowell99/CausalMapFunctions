@@ -436,12 +436,16 @@ find_fun <- function(graf,field=NULL,value,operator=NULL){
 #' However, by adding the keywords `up` and `down` each followed by a number it is possible to add in factors
 #' which are a given number of steps upstream and or downstream of the identified factors.
 #' Fields may be from the original data and/or fields created by the app, e.g. `n` (frequency).
+#'
+#' If operator and field are both NULL, the value is treated as a simple search string for the field `label`.
 
 
 #' @return
 #' @export
 #'
 #' @examples
+#' pipe_find_factors(CashTransferMap,"Cash")
+#' pipe_find_factors(CashTransferMap,field="label",value="Cash",operator="contains")
 pipe_find_factors <- function(graf,field=NULL,value,operator=NULL,up=0,down=0){
 
   graf <- graf %>% activate(nodes) %>% find_fun(field,value,operator)
@@ -455,9 +459,14 @@ pipe_find_factors <- function(graf,field=NULL,value,operator=NULL,up=0,down=0){
 #'
 #' @inheritParams pipe_find_factors
 #' @return
+#' @description
+#' If operator and field are both NULL, the value is treated as a simple search string for the field `label`.
 #' @export
 #'
 #' @examples
+#' pipe_find_links(CashTransferMap,"Cash")
+#' pipe_find_links(CashTransferMap,field="label",value="Cash",operator="contains")
+#' pipe_find_links(CashTransferMap,field="from",value="12",operator="greater")
 pipe_find_links <- function(graf,field=NULL,value,operator=NULL){
   graf %>% activate(edges) %>% find_fun(field,value,operator) %>% filter(found) %>% activate(nodes)
 }

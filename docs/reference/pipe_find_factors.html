@@ -40,7 +40,12 @@
 
 
 <meta property="og:title" content="Find factors — pipe_find_factors" />
-<meta property="og:description" content="Find factors" />
+<meta property="og:description" content="When field==label, you can search for whole labels and also for including keywords or flags which are common to more than one factor.
+Sets of labels separated by the letters OR.
+With this command, just the matching factors identified are returned together with the &quot;ego network&quot; i.e. links between these nodes which have been found.
+However, by adding the keywords `up` and `down` each followed by a number it is possible to add in factors
+which are a given number of steps upstream and or downstream of the identified factors.
+Fields may be from the original data and/or fields created by the app, e.g. `n` (frequency)." />
 
 
 
@@ -126,7 +131,12 @@
     </div>
 
     <div class="ref-description">
-    <p>Find factors</p>
+    <p>When field==label, you can search for whole labels and also for including keywords or flags which are common to more than one factor.
+Sets of labels separated by the letters OR.
+With this command, just the matching factors identified are returned together with the "ego network" i.e. links between these nodes which have been found.
+However, by adding the keywords `up` and `down` each followed by a number it is possible to add in factors
+which are a given number of steps upstream and or downstream of the identified factors.
+Fields may be from the original data and/or fields created by the app, e.g. `n` (frequency).</p>
     </div>
 
     <pre class="usage"><span class='fu'>pipe_find_factors</span><span class='op'>(</span><span class='va'>graf</span>, <span class='va'>field</span>, <span class='va'>value</span>, operator <span class='op'>=</span> <span class='st'>"="</span>, up <span class='op'>=</span> <span class='fl'>0</span>, down <span class='op'>=</span> <span class='fl'>0</span><span class='op'>)</span></pre>
@@ -135,8 +145,16 @@
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
+      <th>operator</th>
+      <td><p>c('contains','notcontains','=','notequals','greater','less','starts','ends')</p></td>
+    </tr>
+    <tr>
+      <th>up</th>
+      <td><p>integer</p></td>
+    </tr>
+    <tr>
       <th>down</th>
-      <td></td>
+      <td><p>integer</p></td>
     </tr>
     </table>
 

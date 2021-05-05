@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Bundle links — pipe_bundle_links • CausalMapFunctions</title>
+<title>Robustness UI — robustUI • CausalMapFunctions</title>
 
 
 <!-- jquery -->
@@ -39,8 +39,8 @@
 
 
 
-<meta property="og:title" content="Bundle links — pipe_bundle_links" />
-<meta property="og:description" content="Bundle links" />
+<meta property="og:title" content="Robustness UI — robustUI" />
+<meta property="og:description" content="Robustness UI" />
 
 
 
@@ -120,38 +120,31 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Bundle links</h1>
+    <h1>Robustness UI</h1>
     <small class="dont-index">Source: <a href='https://github.com/stevepowell99/CausalMapFunctions/blob/master/R/functions.R'><code>R/functions.R</code></a></small>
-    <div class="hidden name"><code>pipe_bundle_links.Rd</code></div>
+    <div class="hidden name"><code>robustUI.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>Bundle links</p>
+    <p>Robustness UI</p>
     </div>
 
-    <pre class="usage"><span class='fu'>pipe_bundle_links</span><span class='op'>(</span><span class='va'>graf</span>, counter <span class='op'>=</span> <span class='st'>"n"</span>, group <span class='op'>=</span> <span class='cn'>NULL</span><span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>robustUI</span><span class='op'>(</span><span class='va'>graf</span><span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
       <th>graf</th>
-      <td><p>A tidymap representing a causal map.
-In this package, nodes are called `factors` and edges are called `links.`</p></td>
-    </tr>
-    <tr>
-      <th>field</th>
       <td></td>
     </tr>
     </table>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>A tidymap in which sets of coterminal, same-direction links are replaced with
-one link (when `field` = 'n') or more than one link for each of the values of `field`
-present in the data. In each case, each new link has a field n representing the number
-of links it is replacing, unless the links it is replacing already had values n in which
-case the new value of `n` is the sum of the `n` values of the constituent links.</p>
+    
+
+
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

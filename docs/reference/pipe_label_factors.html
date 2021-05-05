@@ -40,7 +40,11 @@
 
 
 <meta property="og:title" content="Label factors — pipe_label_factors" />
-<meta property="og:description" content="Label factors" />
+<meta property="og:description" content="For example it is possible to add the factor frequency to the factor labels.
+ More than one label can be added: Labels are additive and are applied one after the other.
+ Other formatting commands such as factor and link colour can either specify a fixed colour (`links colour blue`)
+ or can be used conditionally, so that a the colour or transparency of links can depend on any custom field existing in the original data
+ such as, say, `gender` but also on fields created by the app e.g. frequency." />
 
 
 
@@ -126,7 +130,11 @@
     </div>
 
     <div class="ref-description">
-    <p>Label factors</p>
+    <p>For example it is possible to add the factor frequency to the factor labels.
+ More than one label can be added: Labels are additive and are applied one after the other.
+ Other formatting commands such as factor and link colour can either specify a fixed colour (`links colour blue`)
+ or can be used conditionally, so that a the colour or transparency of links can depend on any custom field existing in the original data
+ such as, say, `gender` but also on fields created by the app e.g. frequency.</p>
     </div>
 
     <pre class="usage"><span class='fu'>pipe_label_factors</span><span class='op'>(</span><span class='va'>graf</span>, field <span class='op'>=</span> <span class='st'>"n"</span>, clear <span class='op'>=</span> <span class='cn'>F</span><span class='op'>)</span></pre>
@@ -137,7 +145,7 @@
     <tr>
       <th>graf</th>
       <td><p>A tidymap representing a causal map.
-In this package, nodes are called factors and edges are called links.</p></td>
+In this package, nodes are called `factors` and edges are called `links.`</p></td>
     </tr>
     <tr>
       <th>field</th>
