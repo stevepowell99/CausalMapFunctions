@@ -1321,6 +1321,7 @@ make_grviz <- function(
     if(nrow(factors_table(graf))>200) graf <- graf %>% pipe_select_factors(20)
   }
   if("id" %in% colnames(factors_table(graf)))graf <-  graf %>% select(-id)
+  # if("n" %in% colnames(links_table(graf)))graf <-  graf %>% mutate(tooltip=as.character(n))
 
   grv <-
     graf %>%
