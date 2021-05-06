@@ -565,6 +565,8 @@ pipe_zoom_factors <- function(graf,level,separator=";",hide=T){
   # browser()
   level=as.numeric(level)
   hide=as.logical(hide)
+  flow=attr(graf,"flow")
+  statements <- graf %>% statements_table()
   if(level<1) return(graf)
   gr <- graf %>%
     activate(nodes) %>%
@@ -573,7 +575,9 @@ pipe_zoom_factors <- function(graf,level,separator=";",hide=T){
     convert(to_contracted,label,simplify=F)  %>%
     mutate(zoomed_=str_detect(label,separator))
 
-  tbl_graph(gr %>% factors_table %>% as.data.frame %>% select(label=1,zoomed_),gr %>% links_table  %>% as.data.frame)
+  tbl_graph(gr %>% factors_table %>% as.data.frame %>% select(label=1,zoomed_),gr %>% links_table  %>% as.data.frame) %>%
+    add_statements(statements) %>%
+    add_attribute(flow,"flow")
 
 }
 
