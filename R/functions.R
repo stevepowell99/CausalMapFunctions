@@ -150,10 +150,10 @@ parse_commands <- function(graf,tex){
       if(fun %in% c("find factors","find links") & !str_detect(body,operator_list %>% paste0(collapse="|"))){
 
         # browser()
-        updown <- body %>% str_match("(up *([0-9]+) *)* (down *([0-9]+)) *$")
+        updown <- body %>% str_match("(up *([0-9]+) *)*( down *([0-9]+))* *$")
         up <- updown[,3] %>% replace_na(0)
         down <- updown[,5] %>% replace_na(0)
-        body <- body %>% str_remove("(up *[0-9]+ *)* (down *[0-9]+) *$")
+        body <- body %>% str_remove("(up *[0-9]+ *)*( down *[0-9]+)* *$")
         vals=list(
           graf=graf,
           field="label",
@@ -565,7 +565,7 @@ pipe_zoom_factors <- function(graf,level,separator=";",hide=T){
   # browser()
   level=as.numeric(level)
   hide=as.logical(hide)
-  flow=attr(graf,"flow")
+  # flow=attr(graf,"flow")
   statements <- graf %>% statements_table()
   if(level<1) return(graf)
   gr <- graf %>%
@@ -576,8 +576,8 @@ pipe_zoom_factors <- function(graf,level,separator=";",hide=T){
     mutate(zoomed_=str_detect(label,separator))
 
   tbl_graph(gr %>% factors_table %>% as.data.frame %>% select(label=1,zoomed_),gr %>% links_table  %>% as.data.frame) %>%
-    add_statements(statements) %>%
-    add_attribute(flow,"flow")
+    add_statements(statements)# %>%
+    # add_attribute(flow,"flow")
 
 }
 
@@ -1368,7 +1368,7 @@ make_grviz <- function(
     DiagrammeR::add_global_graph_attrs("fontsize", "28", "graph") %>%
     DiagrammeR::add_global_graph_attrs("fontname", "Arial", "graph") %>%
     DiagrammeR::add_global_graph_attrs("nodesep", 1, "graph") %>%
-    DiagrammeR::add_global_graph_attrs("ranksep", 3*log(nrow(factors_table(graf))), "graph") %>%
+    DiagrammeR::add_global_graph_attrs("ranksep", 1.5*log(nrow(factors_table(graf))), "graph") %>%
     DiagrammeR::add_global_graph_attrs("style", "filled,dashed", "graph") %>%
     DiagrammeR::add_global_graph_attrs("color", color, "graph") %>%
     DiagrammeR::add_global_graph_attrs("fillcolor", color, "graph") %>%

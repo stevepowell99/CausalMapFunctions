@@ -16,7 +16,8 @@ Depends:
     tidyverse,
     glue,
     visNetwork,
-    DiagrammeR
+    DiagrammeR,
+    R (>= 2.10)
 Suggests:
     knitr,
     rmarkdown
