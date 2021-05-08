@@ -7,7 +7,12 @@
 pipe_find_statements(graf, field, value, operator = "=")
 }
 \arguments{
-\item{operator}{c('contains','notcontains','=','notequals','greater','less','starts','ends')}
+\item{field}{Field (column, variable) to search}
+
+\item{value}{Value to search for}
+
+\item{operator}{c('contains','notcontains','=','notequals','greater','less','starts','ends').
+How to search.}
 }
 \value{
 

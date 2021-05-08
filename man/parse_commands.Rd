@@ -8,23 +8,25 @@ parse_commands(graf, tex)
 }
 \arguments{
 \item{graf}{A tidymap representing a causal map.
+A tidymap is a tidygraph, which consists of a table of edges linked to a table of nodes,
+with an optional additional table of statements.
 In this package, nodes are called `factors` and edges are called `links.`}
 
 \item{tex}{A set of commands to parse, separated by linebreaks if there is more than one command.
-Each line consists of two words corresponding to the name of the pipe function to be applied, e.g. `color links` calls the function `color_links`
+Each line starts with two words corresponding to the name of the pipe function to be applied,
+e.g. `color links` calls the function `color_links`.
 The function name is followed by field=value pairs corresponding to the arguments of the function such as `top=10`.
 
-This parser also provides some convenient shortcuts.
-`find links field operator value` is parsed as `find links field=field operator=operator value=value`.
-`search factors long text ...` is parsed as `search factors value=long text ...`.}
+This parser also provides some abbreviated formats.
+`find links FIELD OPERATOR VALUE` is parsed as `find links field=FIELD operator=OPERATOR value=VALUE`.
+`search factors LONG TEXT ...` is parsed as `search factors value=LONG TEXT ...`.}
 }
 \value{
 A tidymap, the result of successively applying the commands to the input graph.
 }
 \description{
-A parser which breaks a text input into individual commands.
-There is one command template corresponding to each of
-the family of pipe functions.
+A parser which breaks a text input into individual commands and sends each
+command to one of the family of pipe_* functions.
 }
 \examples{
 cashTransferMap \%>\% parse_commands("select factors top=10 \n color factors field=n") \%>\% make_vn()

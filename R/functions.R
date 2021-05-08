@@ -6,16 +6,12 @@ library(tidygraph)
 library(scales)
 
 
-# utilities-----------------------------------------------------------------------------
+# internal utilities-----------------------------------------------------------------------------
 
 notify <- message # alias
 return_notify <- function(tex){
   notify(tex,3)
   return()
-}
-break_notify <- function(tex){
-  notify(tex,3)
-  break()
 }
 
 replace_null <- function(x,replacement=0){
@@ -44,7 +40,12 @@ escapeRegex <- function(string){ #from hmisc
   gsub("([.|()\\^{}+$*?]|\\[|\\])", "\\\\\\1",
        string)
 }
+
+# internal tidymap functions ----------------------------------------------------
+
+
 has_statements <- function(graf) !is.null(graf %>% statements_table)
+
 add_statements <- function(graf,statements){
   attr(graf,"statements") <- statements
   graf
@@ -54,17 +55,7 @@ add_attribute <- function(graf,value,attr="flow"){
   graf
 }
 
-# constants ---------------------------------------------------------
 
-operator_list=xc("= less greater notcontains notequals notequal equals equal contains starts ends start end")
-
-# graph utilities ---------------------------------------------------------
-
-
-fix_col <- function(graf,col,tab="factors",default=NA){
-  if(tab=="factors") {if (!(col %in% (graf %>% factors_table %>% colnames))) graf %>% activate(nodes) %>% mutate("{col}":=default) else graf} else
-  {if (!(col %in% (graf %>% links_table %>% colnames))) graf %>% activate(edges) %>% mutate("{col}":=default) else graf}
-}
 
 
 factor_colnames <- function(graf)graf %>% factors_table %>% colnames
@@ -82,6 +73,169 @@ load_graf_from_rds <- function(name){
 
 
 make_search <- function(x)x %>% escapeRegex %>% str_replace_all(" OR ","|") %>% str_trim
+
+
+
+zoom_inner <- function(string,n,char){
+  string %>% map(~str_split(.,char) %>% `[[`(1) %>% `[`(1:n) %>% keep(!is.na(.)) %>% paste0(collapse=char)) %>% unlist
+}
+flip_inner_component <- function(tex,flipchar="~"){
+  if_else(str_detect(tex,paste0("^ *",flipchar)),str_remove(tex,paste0("^ *",flipchar)),paste0("~",tex))
+}
+flip_inner <- function(tex,flipchar="~",sepchar=";"){
+  tex %>%
+    str_split(sepchar) %>%
+    `[[`(1) %>%
+    flip_inner_component(flipchar=flipchar) %>%
+    paste0(collapse=sepchar)
+}
+flip_vector <- function(tex,flipchar="~",sepchar=";"){
+  lapply(tex,function(x)flip_inner(x,flipchar=flipchar,sepchar=sepchar)) %>%
+    unlist(recursive=F)
+}
+
+div_pal_n <- function(vec,lo=lo,hi=hi,mid=mid){
+  div_gradient_pal(low=lo,high=hi,mid=mid)(rescale(vec)) %>% alpha(.6)
+}
+viridis_pal_n <- function(vec){
+  vec <- vec %>% as.factor %>% as.numeric
+  viridis_pal()(length(unique(vec)))[vec] %>% alpha(.6)
+}
+create_colors <- function(vec,lo=lo,hi=hi,mid=mid){
+  if(class(vec)=="character") viridis_pal_n(vec) else div_pal_n(vec,lo=lo,hi=hi,mid=mid)
+}
+
+
+
+
+cluster_fun <- function(labs,tex){
+  ifelse(str_detect(labs,tex),tex,"")
+}
+
+calculate_robustness_inner <- function(graf){
+  if("found_from" %notin% factor_colnames(graf)) {warning("No found_from column");return(NA)}
+  if("found_to" %notin% factor_colnames(graf)) {warning("No found_to column");return(NA)}
+
+  if(nrow(factors_table(graf))==0) {warning("No paths");return(NA)}
+  graf <- graf %N>% pipe_bundle_links() %E>%
+    mutate(n=if_else(is.na(n),1L,as.integer(n))) %>%
+    activate(nodes)
+
+
+  from_vec <- factors_table(graf) %>% filter(found_from) %>% pull(label)
+  to_vec <- factors_table(graf) %>% filter(found_to) %>% pull(label)
+  newnodes <- tibble(
+    label=c(from_vec,"_super_source_"))
+
+  newedges <- tibble(
+    from="_super_source_",
+    to=from_vec,
+    capacity=Inf
+  )
+  newgraf <- tbl_graph(newnodes,newedges)
+
+
+  graf <- graf %>% graph_join(newgraf)
+  # sink
+  # sink_vec <- c("six", "seven")
+  newnodes <- tibble(
+    label=c(to_vec,"_super_sink_"))
+
+  newedges <- tibble(
+    to="_super_sink_",
+    from=to_vec,
+    capacity=Inf
+  )
+  newgraf <- tbl_graph(newnodes,newedges)
+
+
+  graf <-
+    graf %>% graph_join(newgraf) %E>%
+    mutate(capacity=if_else(is.na(capacity),1,capacity)) %>%
+    mutate(capacity=pmax(n,capacity,na.rm=T)) %E>%
+    filter(from!=to) %>%
+    activate(nodes)
+  source <- V(graf)[(graf %>% factors_table)$label=="_super_source_"]
+  sink <- V(graf)[(graf %>% factors_table)$label=="_super_sink_"]
+  res <- graf %N>%
+    max_flow(source=source, target=sink)
+  sources <- V(graf)[(graf %>% factors_table)$found_from %>% replace_na(F)]
+  sinks <- V(graf)[(graf %>% factors_table)$found_to %>% replace_na(F)]
+
+  if(length(sinks)>1){
+    sinkvec <- c(sink,sinks)
+
+    rn <- (graf %>% factors_table %>% filter(found_to) %>% pull(label)) %>% c("All targets",.)
+  }else {
+    sinkvec <- sinks
+    rn <- graf %>% factors_table %>% filter(found_to) %>% pull(label)
+  }
+  if(length(sources)>1){
+    sourcevec <- c(source,sources)
+    cn <- (graf %>% factors_table %>% filter(found_from) %>% pull(label)) %>% c("All sources",.)
+
+  }
+  else {
+    cn <- (graf %>% factors_table %>% filter(found_from) %>% pull(label))
+    sourcevec <- sources
+  }
+
+
+  all_flows <-
+
+    sinkvec %>% map(function(y)(sourcevec %>% map(function(x) if(x %in% sinks) Inf else max_flow(graf,x,y)$value)) %>% unlist) %>%
+    do.call("rbind",.) %>%
+    as_tibble
+
+  # note if you don't check for not in sinks, R hangs
+
+  colnames(all_flows) <- cn
+
+  all_flows <- mutate(all_flows, row_names = rn) %>%
+    select(row_names,everything())
+
+  return(all_flows)
+
+
+}
+
+find_fun <- function(graf,field=NULL,value,operator=NULL,what){
+
+  if(is.null(field) & is.null(operator)){
+    field="label"
+    operator="contains"
+  }
+
+  if(field=="label"){
+
+    value <- value %>% make_search
+  }
+  # if("what"=="factors") graf <- graf %>% activate(nodes) else
+  # if("what"=="links") graf <- graf %>% activate(edges) else
+  #   df <- graf %>% attr("statements")
+    df <- graf
+
+  if(field %notin% colnames(df)) {notify("No such field");return(df)}
+
+  if(operator=="contains"){df <- df %>%  mutate(found=str_detect(tolower(UQ(sym(field))),tolower(value)))} else
+    if(operator=="notcontains"){df <- df %>%  mutate(found=!str_detect(tolower(UQ(sym(field))),tolower(value)))} else
+      if(operator %in% xc("= equals equal")){df <- df %>%  mutate(found=(tolower(UQ(sym(field)))==tolower(value)))} else
+        if(operator %in% xc("notequals notequal")){df <- df %>%  mutate(found=(tolower(UQ(sym(field)))!=tolower(value)))} else
+          if(operator %in% xc("greater")){df <- df %>%  mutate(found=(as.numeric(UQ(sym(field)))>as.numeric(value)))} else
+            if(operator %in% xc("less")){df <- df %>%  mutate(found=(as.numeric(UQ(sym(field)))<as.numeric(value)))} else
+              if(operator %in% xc("starts start")){df <- df %>%  mutate(found=str_detect(tolower(UQ(sym(field))),paste0("^",tolower(value))))} else
+                if(operator %in% xc("ends end")){df <- df %>%  mutate(found=str_detect(tolower(UQ(sym(field))),paste0(tolower(value),"$")))}
+
+
+  return(df)
+
+}
+# constants ---------------------------------------------------------
+
+operator_list=xc("= less greater notcontains notequals notequal equals equal contains starts ends start end")
+
+# exported tidymap utilities ---------------------------------------------------------
+
 
 
 #' Extracting tibbles from A tidymap
@@ -111,22 +265,27 @@ statements_table <- function(graf)graf %>%
   attr("statements")
 
 
+# Parser ------------------------------------------------------------------
+
+
 
 #' Parse commands
 #'
-#' A parser which breaks a text input into individual commands.
-#' There is one command template corresponding to each of
-#' the family of pipe functions.
+#' A parser which breaks a text input into individual commands and sends each
+#' command to one of the family of pipe_* functions.
 #'
 #' @param graf A tidymap representing a causal map.
+#' A tidymap is a tidygraph, which consists of a table of edges linked to a table of nodes,
+#' with an optional additional table of statements.
 #' In this package, nodes are called `factors` and edges are called `links.`
 #' @param tex A set of commands to parse, separated by linebreaks if there is more than one command.
-#' Each line consists of two words corresponding to the name of the pipe function to be applied, e.g. `color links` calls the function `color_links`
+#' Each line starts with two words corresponding to the name of the pipe function to be applied,
+#' e.g. `color links` calls the function `color_links`.
 #' The function name is followed by field=value pairs corresponding to the arguments of the function such as `top=10`.
 #'
-#' This parser also provides some convenient shortcuts.
-#' `find links field operator value` is parsed as `find links field=field operator=operator value=value`.
-#' `search factors long text ...` is parsed as `search factors value=long text ...`.
+#' This parser also provides some abbreviated formats.
+#' `find links FIELD OPERATOR VALUE` is parsed as `find links field=FIELD operator=OPERATOR value=VALUE`.
+#' `search factors LONG TEXT ...` is parsed as `search factors value=LONG TEXT ...`.
 #'
 #' @return A tidymap, the result of successively applying the commands to the input graph.
 #' @export
@@ -225,237 +384,62 @@ parse_commands <- function(graf,tex){
   graf
 }
 
-# helper graph functions ----------------------------------------------------
-#' Get flow
+
+# main graph functions ----------------------------------------------------
+
+#' Merge statements into links
 #'
 #' @inheritParams parse_commands
-#' @description Uses maximum flow / minimum cut algorithm
-#' @return
+#'
+#' @return A tidymap in which columns from the statements table are merged into the links table.
 #' @export
 #'
 #' @examples
-get_flows <- function(graf){
-  if("found_from" %notin% factor_colnames(graf)) {warning("No found_from column");return(NA)}
-  if("found_to" %notin% factor_colnames(graf)) {warning("No found_to column");return(NA)}
+#' cashTransferMap %>% pipe_merge_statements() %>% pipe_find_links(field="text",value="women",operator="contains")
+#' cashTransferMap %>% pipe_find_statements(field="text",value="women",operator="contains")
+pipe_merge_statements <- function(graf){
 
-  if(nrow(factors_table(graf))==0) {warning("No paths");return(NA)}
-  graf <- graf %N>% pipe_bundle_links() %E>%
-    mutate(n=if_else(is.na(n),1L,as.integer(n))) %>%
-    activate(nodes)
-
-
-  from_vec <- factors_table(graf) %>% filter(found_from) %>% pull(label)
-  to_vec <- factors_table(graf) %>% filter(found_to) %>% pull(label)
-  newnodes <- tibble(
-    label=c(from_vec,"_super_source_"))
-
-  newedges <- tibble(
-    from="_super_source_",
-    to=from_vec,
-    capacity=Inf
-  )
-  newgraf <- tbl_graph(newnodes,newedges)
-
-
-  graf <- graf %>% graph_join(newgraf)
-  # sink
-  # sink_vec <- c("six", "seven")
-  newnodes <- tibble(
-    label=c(to_vec,"_super_sink_"))
-
-  newedges <- tibble(
-    to="_super_sink_",
-    from=to_vec,
-    capacity=Inf
-  )
-  newgraf <- tbl_graph(newnodes,newedges)
-
-
-  graf <-
-    graf %>% graph_join(newgraf) %E>%
-    mutate(capacity=if_else(is.na(capacity),1,capacity)) %>%
-    mutate(capacity=pmax(n,capacity,na.rm=T)) %E>%
-    filter(from!=to) %>%
-    activate(nodes)
-  source <- V(graf)[(graf %>% factors_table)$label=="_super_source_"]
-  sink <- V(graf)[(graf %>% factors_table)$label=="_super_sink_"]
-  res <- graf %N>%
-    max_flow(source=source, target=sink)
-
-  sources <- V(graf)[(graf %>% factors_table)$found_from %>% replace_na(F)]
-  sinks <- V(graf)[(graf %>% factors_table)$found_to %>% replace_na(F)]
-
-  if(length(sinks)>1){
-    sinkvec <- c(sink,sinks)
-
-    rn <- (graf %>% factors_table %>% filter(found_to) %>% pull(label)) %>% c("All targets",.)
-  }else {
-    sinkvec <- sinks
-    rn <- graf %>% factors_table %>% filter(found_to) %>% pull(label)
-  }
-  if(length(sources)>1){
-    sourcevec <- c(source,sources)
-    cn <- (graf %>% factors_table %>% filter(found_from) %>% pull(label)) %>% c("All sources",.)
-
-  }
-     else {
-    cn <- (graf %>% factors_table %>% filter(found_from) %>% pull(label))
-       sourcevec <- sources
-     }
-
-
-  all_flows <-
-
-    sinkvec %>% map(function(y)(sourcevec %>% map(function(x) if(x %in% sinks) Inf else max_flow(graf,x,y)$value)) %>% unlist) %>%
-    do.call("rbind",.) %>%
-    as_tibble
-
-  # note if you don't check for not in sinks, R hangs
-
-  colnames(all_flows) <- cn
-
-  all_flows <- mutate(all_flows, row_names = rn) %>%
-    select(row_names,everything())
-
-  all_flows
-
-}
-
-
-
-zoom_inner <- function(string,n,char){
-  string %>% map(~str_split(.,char) %>% `[[`(1) %>% `[`(1:n) %>% keep(!is.na(.)) %>% paste0(collapse=char)) %>% unlist
-}
-flip_inner_component <- function(tex,flipchar="~"){
-  if_else(str_detect(tex,paste0("^ *",flipchar)),str_remove(tex,paste0("^ *",flipchar)),paste0("~",tex))
-}
-flip_inner <- function(tex,flipchar="~",sepchar=";"){
-  tex %>%
-    str_split(sepchar) %>%
-    `[[`(1) %>%
-    flip_inner_component(flipchar=flipchar) %>%
-    paste0(collapse=sepchar)
-}
-flip_vector <- function(tex,flipchar="~",sepchar=";"){
-  lapply(tex,function(x)flip_inner(x,flipchar=flipchar,sepchar=sepchar)) %>%
-    unlist(recursive=F)
-}
-
-div_pal_n <- function(vec,lo=lo,hi=hi,mid=mid){
-  div_gradient_pal(low=lo,high=hi,mid=mid)(rescale(vec)) %>% alpha(.6)
-}
-viridis_pal_n <- function(vec){
-  vec <- vec %>% as.factor %>% as.numeric
-  viridis_pal()(length(unique(vec)))[vec] %>% alpha(.6)
-}
-create_colors <- function(vec,lo=lo,hi=hi,mid=mid){
-  if(class(vec)=="character") viridis_pal_n(vec) else div_pal_n(vec,lo=lo,hi=hi,mid=mid)
-}
-
-
-
-pipe_find_statements_inner <- function(graf,...){
-  statement <- attr(graf,"statement") %>% filter(...)
-  attr(graf,"statement") <- statement
-  graf %E>%
-    filter(statement_id %in% statement$statement_id) %>%
+  graf %>%
+    activate(edges) %>%
+    left_join(attr(graf,"statements") ,by="statement_id") %>%
     activate(nodes)
 }
-OLDfind_things <- function(graf,field,value,operator="=",what){
-  # browser()
-  if(what=="links") graf <- graf %>% activate(edges) else graf <- graf %>% activate(nodes)
 
-  value <- value %>% make_search
-
-  if(operator %in% xc("= equals equal")) graf %>%
-    filter(UQ(sym(field)) %in% as.character(value)) %>% activate(nodes)
-  else if(operator %in% xc("notequals notequal"))  {
-    value <- str_replace_all(value," OR ","|") %>% str_trim
-    graf %>%    filter(UQ(sym(field)) %notin% as.character(value)) %>% activate(nodes)
-  }
-  else if(operator %in% xc("contains")) {
-    value <- str_replace_all(value," OR ","|") %>% str_trim
-    graf %>%
-      filter(str_detect(tolower(UQ(sym(field))),tolower((value)))) %>% activate(nodes)
-  }
-  else if(operator %in% xc("notcontains")) {
-    value <- str_replace_all(value," OR ","|") %>% str_trim
-    graf %>%
-      filter(!str_detect(tolower(UQ(sym(field))),tolower((value)))) %>% activate(nodes)
-  }
-  else if(operator %in% xc("greater")) {
-    graf %>%
-      filter(as.numeric(UQ(sym(field)))>as.numeric(value)) %>% activate(nodes)
-  }
-  else if(operator %in% xc("less")) {
-    graf %>%
-      filter(as.numeric(UQ(sym(field))),as.numeric(value)) %>% activate(nodes)
-  }
-
-}
-
-cluster_fun <- function(labs,tex){
-  ifelse(str_detect(labs,tex),tex,"")
-}
-
-find_fun <- function(graf,field=NULL,value,operator=NULL){
-
-  if(is.null(field) & is.null(operator)){
-    field="label"
-    operator="contains"
-  }
-
-  if(field=="label"){
-
-    value <- value %>% make_search
-  }
-
-  if(operator=="contains"){graf <- graf %>%  mutate(found=str_detect(tolower(UQ(sym(field))),tolower(value)))} else
-    if(operator=="notcontains"){graf <- graf %>%  mutate(found=!str_detect(tolower(UQ(sym(field))),tolower(value)))} else
-      if(operator %in% xc("= equals equal")){graf <- graf %>%  mutate(found=(tolower(UQ(sym(field)))==tolower(value)))} else
-        if(operator %in% xc("notequals notequal")){graf <- graf %>%  mutate(found=(tolower(UQ(sym(field)))!=tolower(value)))} else
-          if(operator %in% xc("greater")){graf <- graf %>%  mutate(found=(as.numeric(UQ(sym(field)))>as.numeric(value)))} else
-            if(operator %in% xc("less")){graf <- graf %>%  mutate(found=(as.numeric(UQ(sym(field)))<as.numeric(value)))} else
-              if(operator %in% xc("starts start")){graf <- graf %>%  mutate(found=str_detect(tolower(UQ(sym(field))),paste0("^",tolower(value))))} else
-                if(operator %in% xc("ends end")){graf <- graf %>%  mutate(found=str_detect(tolower(UQ(sym(field))),paste0(tolower(value),"$")))}
-
-
-
-  # if(!any(graf %>% factors_table %>% pull(found))) {notify("Nothing found");return(graf %>% filter(F))} else return(graf)
-  return(graf)
-
-}
-# main graph functions ----------------------------------------------------
-
-# pipe_filter_factors <- function(graf,field,value,operator="="){find_things(graf=graf,field=field,value=value,operator=operator,what="factors")}
 
 #' Find factors
 #'
 #' @inheritParams pipe_find_factors
-#' @param field
-#' @param value
-#' @param operator c('contains','notcontains','=','notequals','greater','less','starts','ends')
-#' @param up integer
-#' @param down integer
-#' @description When field==label, you can search for whole labels and also for including keywords or flags which are common to more than one factor.
-#' Sets of labels separated by the letters OR.
-#' With this command, just the matching factors identified are returned together with the "ego network" i.e. links between these nodes which have been found.
-#' However, by adding the keywords `up` and `down` each followed by a number it is possible to add in factors
-#' which are a given number of steps upstream and or downstream of the identified factors.
-#' Fields may be from the original data and/or fields created by the app, e.g. `n` (frequency).
-#'
-#' If operator and field are both NULL, the value is treated as a simple search string for the field `label`.
+#' @param field Field (column, variable) to search
+#' @param value Value to search for
+#' @param operator c('contains','notcontains','=','notequals','greater','less','starts','ends').
+#' How to search.
+#' @param up integer. Default is 0.
+#' @param down integer. Default is 0.
+#' @description Fields may be from the original data and/or fields created by the app, e.g. `n` (frequency).
 
+#' When field is 'label', 'value' can contain a vector of search terms separated by ' OR '.
+#'
+#' Text searches are case-insensitive.
 
 #' @return
+#' A tidymap containing only matching factors; if `up`!=0 then also factors this number of steps
+#' upstream of the matching factors are also included and likewise for `down`!=0.
+#' The links are filtered correspondingly to return only the "ego network" i.e. links between the returned factors.
+
+#'
+#' If operator and field are both NULL, the value is treated as a simple search string for the field `label`.
 #' @export
 #'
 #' @examples
-#' pipe_find_factors(CashTransferMap,"Cash")
-#' pipe_find_factors(CashTransferMap,field="label",value="Cash",operator="contains")
+#' pipe_find_factors(cashTransferMap,NULL,"Cash")
+#' pipe_find_factors(cashTransferMap,field="label",value="Cash",operator="contains")
+#' pipe_find_factors(cashTransferMap,field="id",value=10,operator="greater")
+#' pipe_find_factors(cashTransferMap,NULL,"purchase OR buy")
 pipe_find_factors <- function(graf,field=NULL,value,operator=NULL,up=0,down=0){
 
-  graf <- graf %>% activate(nodes) %>% find_fun(field,value,operator)
+  st <- attr(graf,"statements")
+  df <- graf %>% factors_table %>% find_fun(field,value,operator)
+  graf <- tbl_graph(df,links_table(graf)) %>% filter(found) %>% add_statements(st)
   downvec <- graf %>% distances(to=graf %>% factors_table %>% pull(found),mode="in") %>% apply(1,min) %>% `<=`(down)
   upvec <- graf %>% distances(to=graf %>% factors_table %>% pull(found),mode="out") %>% apply(1,min) %>% `<=`(up)
   # browser()
@@ -465,9 +449,8 @@ pipe_find_factors <- function(graf,field=NULL,value,operator=NULL,up=0,down=0){
 #' Find links
 #'
 #' @inheritParams pipe_find_factors
-#' @return
-#' @description
-#' If operator and field are both NULL, the value is treated as a simple search string for the field `label`.
+#' A tidymap containing only matching links. Factors are not removed, so this function may return maps with isolated factors,
+#' i.e. factors with no links.
 #' @export
 #'
 #' @examples
@@ -475,7 +458,10 @@ pipe_find_factors <- function(graf,field=NULL,value,operator=NULL,up=0,down=0){
 #' pipe_find_links(CashTransferMap,field="label",value="Cash",operator="contains")
 #' pipe_find_links(CashTransferMap,field="from",value="12",operator="greater")
 pipe_find_links <- function(graf,field=NULL,value,operator=NULL){
-  graf %>% activate(edges) %>% find_fun(field,value,operator) %>% filter(found) %>% activate(nodes)
+  st <- attr(graf,"statements")
+  df <- graf %>% links_table %>% find_fun(field,value,operator)
+  tbl_graph(factors_table(graf),df) %E>% filter(found) %>% add_statements(st) %>% activate(nodes)
+
 }
 
 #' Find statements
@@ -486,15 +472,20 @@ pipe_find_links <- function(graf,field=NULL,value,operator=NULL){
 #'
 #' @examples
 pipe_find_statements <- function(graf,field,value,operator="="){
+  if(!has_statements(graf)) {notify("No statements");return(graf)}
 
 
-  if(operator=="=") graf %>%
-    pipe_find_statements_inner(UQ(sym(field)) %in% value) %>% activate(nodes)
-  else if(operator=="contains") {
-    value <- str_replace_all(value," OR ","|") %>% str_trim
-    graf %>%
-      pipe_find_statements_inner(str_detect(tolower(UQ(sym(field))),tolower(escapeRegex(value)))) %>% activate(nodes)
-  }
+  tmp <- graf %>%
+    attr("statements") %>% find_fun(field,value,operator)  %>%
+    filter(found)
+  return(graf %>%
+           activate(edges) %>%
+           filter(statement_id %in% tmp$statement_id) %>%
+           add_statements(tmp) %>%
+           activate(nodes)
+         )
+
+
 }
 
 
@@ -700,21 +691,96 @@ pipe_trace_paths <- function(graf,from,to,length=4){
   }
 
 
-all_flows <- get_flows(graf)
+# all_flows <- calculate_robustness(graf)
 
 # notify(glue("Number of cuts is {res$cut %>% length}"))
-  graf <- graf %>%
+  graf %>%
     activate(nodes) %>%
     filter(label!="_super_sink_" & label!="_super_source_")
 
-  attr(graf,"flow")=all_flows
-  graf
+  # attr(graf,"flow")=all_flows
+  # graf
 
 
 
 }
 
 
+
+#' Calculate robustness
+#'
+#' @param graf A tidymap. To use this function, the factors table of this map must include
+#' two logical variables called `found_from` and `found_to`.
+#' If the links table contains an integer column `n`,
+#' these values are treated as the capacity of the links, otherwise the capacity for each link is taken as 1.
+#' If there are multiple links between any ordered pair of nodes, the links are combined using
+#' bundle_links()
+#' @param field An optional field by which to split the robustness calculation.
+#' @description Uses a maximum flow / minimum cut algorithm (imported from igraph)
+#' to calculate the maximum flow / minimum cut from each of the factors for which `found_from` is true
+#' to each of the factors for which `found_to` is true.
+#'
+#' calculate_robustness() is used by pipe_trace_paths().
+#'
+#' @return A tidymap with an additional attribute `flow`, a tibble (dataframe) in which
+#' the columns are each of the factors for which `found_from` is true (if there is
+#' more than one such column, and additional "All sources" column is prepended);
+#' and in which the rows are each of the factors for which `found_to` is true (if there is
+#' more than one such row, and additional "All targets" column is prepended.
+#' The (integer) values in the table represent the maximum flow / minimum cut aka Robustness
+#' score from the corresponding source factor (column) to the corresponding target factor (row).
+#' The scores for the "All sources" column are calculated by constructing an additional factor
+#' as an ultimate source which is connected to the other sources by links of infinite capacity,
+#' and likewise for the "All targets" row.
+#' If `field` is not NULL, robustness is calculated several times, once for each value of that field.
+#' In this case, what is returned is a dataframe which summarises the set of dataframes so that
+#' the value of each cell in the returned dataframe is the number of these values for which
+#' the robustness value in the corresponden is not zero.
+#'
+#' The table is sorted in descending order of the first column.
+#' @export
+#'
+#' @examples
+#' cashTransferMap %>% pipe_trace_paths(from="Cash",to="Increa",length=4) %>% pipe_merge_statements %>% pipe_calculate_robustness(field="#SourceID") %>% attr("flow")
+pipe_calculate_robustness <- function(graf,field=NULL){
+  res <- list()
+  if("found_from" %notin% factor_colnames(graf)) {warning("No found_from column");return(NA)}
+  if("found_to" %notin% factor_colnames(graf)) {warning("No found_to column");return(NA)}
+
+  if(is.null(field)) res$summary <- (calculate_robustness_inner(graf)) else
+
+  if(field %notin% link_colnames(graf)) {warning("Field not found");res$summary <- graf}
+   else {
+
+
+
+  vec <- graf %>%
+    links_table() %>%
+    pull(UQ(sym(field))) %>%
+    unique
+
+  if("" %in% vec){warning("Vector contains an empty string");vec <- vec %>% keep(.!="")}
+
+  # browser()
+  res <- vec %>% set_names(vec) %>% map(
+    function(x) graf %>%
+      pipe_find_links(field=field,value=x,operator="=") %>%
+      calculate_robustness_inner()
+  )
+
+
+  summary <- res %>% map(~(select(.,-1))%>% mutate_all(~if_else(.>0,1,0))) %>%
+    Reduce(`+`,.)
+  res$summary <- cbind(res[[1]][,1],summary) %>% as_tibble
+
+
+
+
+
+   }
+  graf %>% add_attribute(res,"flow")
+
+}
 
 
 
@@ -763,6 +829,10 @@ pipe_flip_opposites <- function(graf,flipchar="~"){
 #' @export
 #'
 #' @examples
+#' Showing separate (bundled) links for women and men:
+#' cashTransferMap %>% pipe_merge_statements() %>%  pipe_select_factors(10) %>% pipe_bundle_links(counter="n",group="1. Sex")%>% pipe_label_links(field = "n") %>% pipe_color_links(field="1. Sex") %>% pipe_scale_links() %>%  make_grviz()
+#' or, counting sources rather than statements:
+#' cashTransferMap %>% pipe_merge_statements() %>%  pipe_select_factors(10) %>% pipe_bundle_links(group="1. Sex",counter="#SourceID")%>% pipe_label_links(field = "n") %>% pipe_color_links(field="1. Sex") %>% pipe_scale_links() %>%  make_grviz()
 pipe_bundle_links <- function(graf,counter="n",group=NULL){
   # browser()
   statements <- graf %>% statements_table()
@@ -1196,7 +1266,7 @@ make_vn <- function(graf,scale=1){
   # browser()
   edges <- graf %E>% as_tibble
   if(T) edges <-  edges %>% vn_fan_edges() %>% mutate(width=width*10) %>%
-    select(any_of(xc("from to id color width label")))
+    select(any_of(xc("from to id color width label smooth.roundness smooth.enabled smooth.type")))
   if(nrow(nodes)>1){
     layout <- layout_with_sugiyama(tbl_graph(nodes,edges))$layout*-scale
     colnames(layout) <- c("y", "x")
@@ -1277,6 +1347,7 @@ vn_fan_edges <- function(edges){
     mutate(smooth.type = "continuous") %>%   #'straightCross  dynamic', 'continuous', 'discrete', 'diagonalCross', 'straightCross', 'horizontal', 'vertical', 'curlinksCW', 'curlinksCCW', 'cubicBezier'.
     mutate(n=n(),rounded=n>1 ,smooth.roundness = ifelse(rounded,rnorm(n,0,.2),0)) %>% #%>% pmin(ifelse(input$bundle_links,0,.9)))  %>%
     mutate(smooth.enabled = rounded) %>%
+    mutate(smooth.type = "diagonalCross") %>%
     ungroup()
 
 }

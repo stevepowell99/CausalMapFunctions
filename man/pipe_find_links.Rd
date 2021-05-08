@@ -6,14 +6,8 @@
 \usage{
 pipe_find_links(graf, field = NULL, value, operator = NULL)
 }
-\arguments{
-\item{operator}{c('contains','notcontains','=','notequals','greater','less','starts','ends')}
-}
-\value{
-
-}
 \description{
-If operator and field are both NULL, the value is treated as a simple search string for the field `label`.
+Find links
 }
 \examples{
 pipe_find_links(CashTransferMap,"Cash")

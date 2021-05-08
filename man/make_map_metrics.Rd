@@ -8,6 +8,8 @@ make_map_metrics(graf)
 }
 \arguments{
 \item{graf}{A tidymap representing a causal map.
+A tidymap is a tidygraph, which consists of a table of edges linked to a table of nodes,
+with an optional additional table of statements.
 In this package, nodes are called `factors` and edges are called `links.`}
 
 \item{field}{A numerical field in the factor table which will control the scale.}
