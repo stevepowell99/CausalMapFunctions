@@ -1510,9 +1510,11 @@ strip_symbols <- function(vec) vec %>%
 #' @examples
 robustUI <- function(graf){
   # browser()
-  flow <- attr(graf,"flow")
+  flow <- attr(graf,"flow")$summary
   if(is.null(flow)) {notify("No paths");return(NULL)}
   if(nrow(flow)==0) {notify("No paths");return(NULL)}
+
+  # flow <- flow
 
   if(!is.null(flow)){
     flow <-  flow %>% column_to_rownames(var="row_names")
