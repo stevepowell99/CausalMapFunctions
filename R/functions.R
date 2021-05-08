@@ -792,7 +792,7 @@ pipe_calculate_robustness <- function(graf,field=NULL){
 #' @export
 #' @description Removes any factors which have no links
 #' @examples
-pipe_remove_orphans <- function(graf){
+pipe_remove_isolated <- function(graf){
   graf %>%
     activate(nodes) %>%
     filter(!node_is_isolated())
@@ -1514,7 +1514,7 @@ robustUI <- function(graf){
   if(is.null(flow)) {notify("No paths");return(NULL)}
   if(nrow(flow)==0) {notify("No paths");return(NULL)}
 
-  # flow <- flow
+
 
   if(!is.null(flow)){
     flow <-  flow %>% column_to_rownames(var="row_names")

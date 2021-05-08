@@ -26,11 +26,14 @@ The links are filtered correspondingly to return only the "ego network" i.e. lin
 If operator and field are both NULL, the value is treated as a simple search string for the field `label`.
 }
 \description{
-When field==label, you can search for whole labels and also for including keywords or flags which are common to more than one factor.
 Fields may be from the original data and/or fields created by the app, e.g. `n` (frequency).
 When field is 'label', 'value' can contain a vector of search terms separated by ' OR '.
+
+Text searches are case-insensitive.
 }
 \examples{
-pipe_find_factors(CashTransferMap,"Cash")
-pipe_find_factors(CashTransferMap,field="label",value="Cash",operator="contains")
+pipe_find_factors(cashTransferMap,NULL,"Cash")
+pipe_find_factors(cashTransferMap,field="label",value="Cash",operator="contains")
+pipe_find_factors(cashTransferMap,field="id",value=10,operator="greater")
+pipe_find_factors(cashTransferMap,NULL,"purchase OR buy")
 }
