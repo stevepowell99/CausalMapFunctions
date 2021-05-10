@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Make a visNetwork (https://datastorm-open.github.io/visNetwork/) from a tidymap. — make_vn • CausalMapFunctions</title>
+<title>Create factor metrics — pipe_metrics • CausalMapFunctions</title>
 
 
 <!-- jquery -->
@@ -39,8 +39,8 @@
 
 
 
-<meta property="og:title" content="Make a visNetwork (https://datastorm-open.github.io/visNetwork/) from a tidymap. — make_vn" />
-<meta property="og:description" content="Make a visNetwork (https://datastorm-open.github.io/visNetwork/) from a tidymap." />
+<meta property="og:title" content="Create factor metrics — pipe_metrics" />
+<meta property="og:description" content="Create factor metrics" />
 
 
 
@@ -120,33 +120,32 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Make a visNetwork (https://datastorm-open.github.io/visNetwork/) from a tidymap.</h1>
+    <h1>Create factor metrics</h1>
     <small class="dont-index">Source: <a href='https://github.com/stevepowell99/CausalMapFunctions/blob/master/R/functions.R'><code>R/functions.R</code></a></small>
-    <div class="hidden name"><code>make_vn.Rd</code></div>
+    <div class="hidden name"><code>pipe_metrics.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>Make a visNetwork (https://datastorm-open.github.io/visNetwork/) from a tidymap.</p>
+    <p>Create factor metrics</p>
     </div>
 
-    <pre class="usage"><span class='fu'>make_vn</span><span class='op'>(</span><span class='va'>graf</span>, scale <span class='op'>=</span> <span class='fl'>1</span><span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>pipe_metrics</span><span class='op'>(</span><span class='va'>graf</span><span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
       <th>graf</th>
-      <td><p>A tidymap. The factors talbe and links table may contain additional formatting information like color.background.</p></td>
-    </tr>
-    <tr>
-      <th>scale</th>
-      <td><p>Increase from the default 1 to make the map taller.</p></td>
+      <td><p>A tidymap representing a causal map.
+A tidymap is a tidygraph, which consists of a table of edges linked to a table of nodes,
+with an optional additional table of statements.
+In this package, nodes are called `factors` and edges are called `links.`</p></td>
     </tr>
     </table>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>A visnetwork</p>
+    <p>A tidymap with new or overwritten columns for factor metrics.</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

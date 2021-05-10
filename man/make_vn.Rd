@@ -2,21 +2,18 @@
 % Please edit documentation in R/functions.R
 \name{make_vn}
 \alias{make_vn}
-\title{Make a visnetwork}
+\title{Make a visNetwork (https://datastorm-open.github.io/visNetwork/) from a tidymap.}
 \usage{
 make_vn(graf, scale = 1)
 }
 \arguments{
-\item{graf}{A tidymap representing a causal map.
-A tidymap is a tidygraph, which consists of a table of edges linked to a table of nodes,
-with an optional additional table of statements.
-In this package, nodes are called `factors` and edges are called `links.`}
+\item{graf}{A tidymap. The factors talbe and links table may contain additional formatting information like color.background.}
 
-\item{scale}{}
+\item{scale}{Increase from the default 1 to make the map taller.}
 }
 \value{
 A visnetwork
 }
 \description{
-Make a visnetwork
+Make a visNetwork (https://datastorm-open.github.io/visNetwork/) from a tidymap.
 }

@@ -89,58 +89,56 @@
 
     
     
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://stevepowell99.github.io/CausalMapFunctions">CausalMapFunctions</a></span><span class="op">)</span>
-<span class="co">#&gt; Loading required package: tidygraph</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; Attaching package: 'tidygraph'</span>
-<span class="co">#&gt; The following object is masked from 'package:stats':</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt;     filter</span>
-<span class="co">#&gt; Loading required package: igraph</span>
-<span class="co">#&gt; Warning: package 'igraph' was built under R version 3.6.3</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; Attaching package: 'igraph'</span>
-<span class="co">#&gt; The following object is masked from 'package:tidygraph':</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt;     groups</span>
-<span class="co">#&gt; The following objects are masked from 'package:stats':</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt;     decompose, spectrum</span>
-<span class="co">#&gt; The following object is masked from 'package:base':</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt;     union</span>
-<span class="co">#&gt; Loading required package: tidyverse</span>
-<span class="co">#&gt; Warning: package 'tidyverse' was built under R version 3.6.3</span>
-<span class="co">#&gt; -- Attaching packages --------------------------------------- tidyverse 1.3.1 --</span>
-<span class="co">#&gt; v ggplot2 3.3.3     v purrr   0.3.4</span>
-<span class="co">#&gt; v tibble  3.1.1     v dplyr   1.0.5</span>
-<span class="co">#&gt; v tidyr   1.1.3     v stringr 1.4.0</span>
-<span class="co">#&gt; v readr   1.4.0     v forcats 0.5.1</span>
-<span class="co">#&gt; Warning: package 'ggplot2' was built under R version 3.6.3</span>
-<span class="co">#&gt; Warning: package 'tidyr' was built under R version 3.6.3</span>
-<span class="co">#&gt; Warning: package 'readr' was built under R version 3.6.3</span>
-<span class="co">#&gt; Warning: package 'purrr' was built under R version 3.6.3</span>
-<span class="co">#&gt; Warning: package 'dplyr' was built under R version 3.6.3</span>
-<span class="co">#&gt; Warning: package 'forcats' was built under R version 3.6.3</span>
-<span class="co">#&gt; -- Conflicts ------------------------------------------ tidyverse_conflicts() --</span>
-<span class="co">#&gt; x dplyr::as_data_frame() masks tibble::as_data_frame(), igraph::as_data_frame()</span>
-<span class="co">#&gt; x purrr::compose()       masks igraph::compose()</span>
-<span class="co">#&gt; x tidyr::crossing()      masks igraph::crossing()</span>
-<span class="co">#&gt; x dplyr::filter()        masks tidygraph::filter(), stats::filter()</span>
-<span class="co">#&gt; x dplyr::groups()        masks igraph::groups(), tidygraph::groups()</span>
-<span class="co">#&gt; x dplyr::lag()           masks stats::lag()</span>
-<span class="co">#&gt; x purrr::simplify()      masks igraph::simplify()</span>
-<span class="co">#&gt; Loading required package: glue</span>
-<span class="co">#&gt; Warning: package 'glue' was built under R version 3.6.3</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; Attaching package: 'glue'</span>
-<span class="co">#&gt; The following object is masked from 'package:dplyr':</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt;     collapse</span>
-<span class="co">#&gt; Loading required package: visNetwork</span>
-<span class="co">#&gt; Warning: package 'visNetwork' was built under R version 3.6.3</span>
-<span class="co">#&gt; Loading required package: DiagrammeR</span></code></pre></div>
+<pre><code>#&gt; Loading required package: tidygraph
+#&gt; 
+#&gt; Attaching package: 'tidygraph'
+#&gt; The following object is masked from 'package:stats':
+#&gt; 
+#&gt;     filter
+#&gt; Loading required package: igraph
+#&gt; Warning: package 'igraph' was built under R version 3.6.3
+#&gt; 
+#&gt; Attaching package: 'igraph'
+#&gt; The following object is masked from 'package:tidygraph':
+#&gt; 
+#&gt;     groups
+#&gt; The following objects are masked from 'package:stats':
+#&gt; 
+#&gt;     decompose, spectrum
+#&gt; The following object is masked from 'package:base':
+#&gt; 
+#&gt;     union
+#&gt; Loading required package: tidyverse
+#&gt; Warning: package 'tidyverse' was built under R version 3.6.3
+#&gt; -- Attaching packages --------------------------------------- tidyverse 1.3.1 --
+#&gt; v ggplot2 3.3.3     v purrr   0.3.4
+#&gt; v tibble  3.1.1     v dplyr   1.0.5
+#&gt; v tidyr   1.1.3     v stringr 1.4.0
+#&gt; v readr   1.4.0     v forcats 0.5.1
+#&gt; Warning: package 'ggplot2' was built under R version 3.6.3
+#&gt; Warning: package 'tidyr' was built under R version 3.6.3
+#&gt; Warning: package 'readr' was built under R version 3.6.3
+#&gt; Warning: package 'purrr' was built under R version 3.6.3
+#&gt; Warning: package 'dplyr' was built under R version 3.6.3
+#&gt; Warning: package 'forcats' was built under R version 3.6.3
+#&gt; -- Conflicts ------------------------------------------ tidyverse_conflicts() --
+#&gt; x dplyr::as_data_frame() masks tibble::as_data_frame(), igraph::as_data_frame()
+#&gt; x purrr::compose()       masks igraph::compose()
+#&gt; x tidyr::crossing()      masks igraph::crossing()
+#&gt; x dplyr::filter()        masks tidygraph::filter(), stats::filter()
+#&gt; x dplyr::groups()        masks igraph::groups(), tidygraph::groups()
+#&gt; x dplyr::lag()           masks stats::lag()
+#&gt; x purrr::simplify()      masks igraph::simplify()
+#&gt; Loading required package: glue
+#&gt; Warning: package 'glue' was built under R version 3.6.3
+#&gt; 
+#&gt; Attaching package: 'glue'
+#&gt; The following object is masked from 'package:dplyr':
+#&gt; 
+#&gt;     collapse
+#&gt; Loading required package: visNetwork
+#&gt; Warning: package 'visNetwork' was built under R version 3.6.3
+#&gt; Loading required package: DiagrammeR</code></pre>
 <div id="causal-map-functions-in-the-causal-map-viewer" class="section level1">
 <h1 class="hasAnchor">
 <a href="#causal-map-functions-in-the-causal-map-viewer" class="anchor"></a>Causal Map Functions in the Causal Map Viewer</h1>

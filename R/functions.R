@@ -241,6 +241,7 @@ operator_list=xc("= less greater notcontains notequals notequal equals equal con
 #' Extracting tibbles from A tidymap
 #'
 #' @inheritParams parse_commands
+#' @description These three functions extract tables of factors, links or statements from a tidymap.
 #' @return A tibble.
 #' @name tibbles
 NULL
@@ -395,8 +396,8 @@ parse_commands <- function(graf,tex){
 #' @export
 #'
 #' @examples
-#' cashTransferMap %>% pipe_merge_statements() %>% pipe_find_links(field="text",value="women",operator="contains")
-#' cashTransferMap %>% pipe_find_statements(field="text",value="women",operator="contains")
+#'cashTransferMap %>% pipe_merge_statements() %>% pipe_find_links(field="text",value="women",operator="contains")
+#'cashTransferMap %>% pipe_find_statements(field="text",value="women",operator="contains")
 pipe_merge_statements <- function(graf){
 
   graf %>%
@@ -467,7 +468,7 @@ pipe_find_links <- function(graf,field=NULL,value,operator=NULL){
 #' Find statements
 #'
 #' @inheritParams pipe_find_factors
-#' @return
+#' @return A tidymap filtered by statements.
 #' @export
 #'
 #' @examples
@@ -589,7 +590,7 @@ pipe_bundle_factors <- function(graf,value=""){
 
   gr <-
     graf %>%
-    pip_fix_columns() %>%
+    pipe_fix_columns() %>%
     mutate(
       label=if(value=="")
         str_match(label,"^[^ ]*") %>% `[`(,1)
@@ -852,9 +853,9 @@ pipe_flip_opposites <- function(graf,flipchar="~"){
 #' @export
 #'
 #' @examples
-#' Showing separate (bundled) links for women and men:
+#' # Showing separate (bundled) links for women and men:
 #' cashTransferMap %>% pipe_merge_statements() %>%  pipe_select_factors(10) %>% pipe_bundle_links(counter="n",group="1. Sex")%>% pipe_label_links(field = "n") %>% pipe_color_links(field="1. Sex") %>% pipe_scale_links() %>%  make_grviz()
-#' or, counting sources rather than statements:
+#' # or, counting sources rather than statements:
 #' cashTransferMap %>% pipe_merge_statements() %>%  pipe_select_factors(10) %>% pipe_bundle_links(group="1. Sex",counter="#SourceID")%>% pipe_label_links(field = "n") %>% pipe_color_links(field="1. Sex") %>% pipe_scale_links() %>%  make_grviz()
 pipe_bundle_links <- function(graf,counter="n",group=NULL){
   # browser()
@@ -906,7 +907,7 @@ pipe_bundle_links <- function(graf,counter="n",group=NULL){
 #'
 #'
 #' @examples
-pip_fix_columns <- function(graf){
+pipe_fix_columns <- function(graf){
 
   # if(!("color" %in% factor_colnames(graf))) graf <- graf %N>% mutate(color="#222222")
   if(!("color.background" %in% factor_colnames(graf))) graf <- graf %N>% mutate(color.background="#aaaaee77")
@@ -933,7 +934,7 @@ pip_fix_columns <- function(graf){
 #'
 #' @examples
 
-pip_metrics <- function(graf){
+pipe_metrics <- function(graf){
   # browser()
   if(is.null(graf)){notify("No graph for metrics");return(graf)}
 
@@ -964,7 +965,7 @@ pip_metrics <- function(graf){
 #'
 #' @examples
 pipe_scale_factors <- function(graf,field="n"){
-  graf <- pip_metrics(graf)
+  graf <- pipe_metrics(graf)
   if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
   class <- graf %>% factors_table %>% pull(UQ(sym(field))) %>% class
   if(class =="character"){warning("No such column");return(graf)}
@@ -994,7 +995,7 @@ pipe_scale_factors <- function(graf,field="n"){
 #' @examples
 pipe_label_factors <- function(graf,field="n",clear=F){
   clear=as.logical(clear)
-  graf <- pip_metrics(graf)
+  graf <- pipe_metrics(graf)
   if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
   graf %N>%
     mutate(label=paste0((if(clear)NULL else paste0(label,". ")) %>% keep(.!=""),field,": ",UQ(sym(field)),". ")) %>% activate(nodes)
@@ -1018,7 +1019,7 @@ pipe_label_factors <- function(graf,field="n",clear=F){
 #' @examples
 pipe_color_factors <- function(graf,field="n",lo="green",hi="blue",mid="gray",fixed=NULL){
   if(!is.null(fixed))return(graf %N>% mutate(color.background=fixed))
-  graf <- pip_metrics(graf)
+  graf <- pipe_metrics(graf)
   if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
   graf %N>% mutate(color.background=create_colors(UQ(sym(field)),lo=lo,hi=hi,mid=mid))
 }
@@ -1039,7 +1040,7 @@ pipe_color_factors <- function(graf,field="n",lo="green",hi="blue",mid="gray",fi
 #' @examples
 pipe_color_borders <- function(graf,field="n",lo="green",hi="blue",mid="gray",fixed=NULL){
   if(!is.null(fixed))return(graf %N>% mutate(color.border=fixed))
-  graf <- pip_metrics(graf)
+  graf <- pipe_metrics(graf)
   if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
   graf %N>% mutate(color.border=create_colors(UQ(sym(field)),lo=lo,hi=hi,mid=mid))
 }
@@ -1145,9 +1146,9 @@ pipe_label_links <- function(graf,field="n",clear=F){
 #' Remove bracketed expressions
 #'
 #' @inheritParams parse_commands
-#' @param value
+#' @param value c("[","(")
 #'
-#' @return A tidymap in which the factor labels have had any text enclosed with square brackets or round brackets removed
+#' @return A tidymap in which the factor labels have had any text enclosed with square brackets or round brackets removed, along with the brackets.
 #'
 #' @export
 #'
@@ -1193,29 +1194,12 @@ pipe_wrap_links <- function(graf,length=20){
 
 # outputs -----------------------------------------------------------------
 
-#' Make table
-#'
-#' @inheritParams parse_commands
-#' @param tab factors links or statements
-#'
-#' @return The corresponding table
-#' @export
-#'
-#'
-#' @examples
-make_table <- function(graf,tab){
-  if(tab=="factors") res <- graf %>% factors_table else
-    if(tab=="links") res <- graf %>% links_table else
-      if(tab=="statements") res <- graf %>% statements_table
 
-      res #%>% select(...)
-}
 #' Make map-level metrics
 #'
 #' @inheritParams parse_commands
-#' @param field A numerical field in the factor table which will control the scale.
 #'
-#' @return A tidymap with a new or overwritten column `size`in the factor table varying between .2 and 1.
+#' @return A tibble with map-level metrics
 #' @export
 #'
 #'
@@ -1271,10 +1255,10 @@ make_map_metrics <- function(graf){
 
 ## visNetwork --------------------------------------------------------------
 
-#' Make a visnetwork
+#' Make a visNetwork (https://datastorm-open.github.io/visNetwork/) from a tidymap.
 #'
-#' @inheritParams parse_commands
-#' @param scale
+#' @param graf A tidymap. The factors talbe and links table may contain additional formatting information like color.background.
+#' @param scale Increase from the default 1 to make the map taller.
 #'
 #' @return A visnetwork
 #' @export
@@ -1282,13 +1266,13 @@ make_map_metrics <- function(graf){
 #'
 #' @examples
 make_vn <- function(graf,scale=1){
-  graf <- graf %>% pip_fix_columns()
+  graf <- graf %>% pipe_fix_columns()
   # browser()
   nodes <- graf %N>% as_tibble %>% mutate(value=size*10) %>%
     select(any_of(xc("label color.background color.border title group value hidden size"))) ### restrictive in attempt to reduce random freezes
   # browser()
   edges <- graf %E>% as_tibble
-  if(T) edges <-  edges %>% vn_fan_edges() %>% mutate(width=width*10) %>%
+  edges <-  edges %>% vn_fan_edges() %>% mutate(width=width*10) %>%
     select(any_of(xc("from to id color width label smooth.roundness smooth.enabled smooth.type")))
   if(nrow(nodes)>1){
     layout <- layout_with_sugiyama(tbl_graph(nodes,edges))$layout*-scale
@@ -1382,20 +1366,20 @@ vn_fan_edges <- function(edges){
 ## grviz -------------------------------------------------------------------
 
 
-#' Make a Graphviz map
+#' Make a Graphviz map [https://graphviz.org/documentation/](https://graphviz.org/documentation/)
 #'
-#' @param graf
+#' @param graf A tidymap. Link and factor tables may contain columns to control formatting
+#' such as `color.border`.
 #' @param maxwidth
-#' @param grv_cluster
-#' @param grv_cluster_select
-#' @param grv_layout
-#' @param grv_splines
-#' @param grv_overlap
-#' @param color
+#' @param grv_layout What layout to use. Default is `dot`.
+#' @param grv_splines How to create splines. See Graphviz documentation.
+#' @param grv_overlap See Graphviz documentation.
+#' @param color Default font color
 #' @param ranksep_slider
 #' @param nodesep_slider
-#' @param wrap_slider
-#' @param safe_limit
+#' @param safe_limit Integer. Large maps with many edges can take a long time to layout.
+#' If !is.null(safe_limit), the resulting map is simplified by bundling edges and selecting
+#' most frequent factors.
 #'
 #' @return
 #' @export
@@ -1404,30 +1388,27 @@ vn_fan_edges <- function(edges){
 make_grviz <- function(
   graf=NULL,
   maxwidth=NULL,
-  grv_cluster=F,
-  grv_cluster_select=NULL,
   grv_layout="dot",
-  grv_splines="splines",
+  grv_splines ="splines",
   grv_overlap=F,
   color="grey",
   ranksep_slider=3,
   nodesep_slider=20,
-  wrap_slider=12,
-  safe_limit=T
+  safe_limit=200
 
 ){
   # graf b
   # browser()
   if(is.null(graf))return()
-  graf <- graf %>% pip_fix_columns()
+  graf <- graf %>% pipe_fix_columns()
 
-  if(safe_limit & nrow(links_table(graf))>200){
+  if(!is.null(safe_limit) & nrow(links_table(graf))>replace_null(safe_limit,200)){
     notify("Map is too large for print view; consolidating.",3)
     graf <- graf %>%
       pipe_bundle_links() %>%
       pipe_label_links("n")
 
-    if(nrow(factors_table(graf))>200) graf <- graf %>% pipe_select_factors(20)
+    if(nrow(factors_table(graf))>safe_limit) graf <- graf %>% pipe_select_factors(safe_limit/10)
   }
   if("id" %in% colnames(factors_table(graf)))graf <-  graf %>% select(-id)
   # if("n" %in% colnames(links_table(graf)))graf <-  graf %>% mutate(tooltip=as.character(n))

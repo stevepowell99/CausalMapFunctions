@@ -2,7 +2,13 @@
 
 This is a set of functions for manipulating and simplifying causal maps. 
 
-Load example data with:
+Load example data:
+
+```
+cashTransferMap
+```
+
+Visualise it:
 
 ```
 cashTransferMap %>% make_vn

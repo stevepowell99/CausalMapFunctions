@@ -15,7 +15,7 @@ pipe_find_statements(graf, field, value, operator = "=")
 How to search.}
 }
 \value{
-
+A tidymap filtered by statements.
 }
 \description{
 Find statements

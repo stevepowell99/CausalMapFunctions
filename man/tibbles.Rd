@@ -23,5 +23,5 @@ In this package, nodes are called `factors` and edges are called `links.`}
 A tibble.
 }
 \description{
-Extracting tibbles from A tidymap
+These three functions extract tables of factors, links or statements from a tidymap.
 }

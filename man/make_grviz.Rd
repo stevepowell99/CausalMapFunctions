@@ -2,29 +2,39 @@
 % Please edit documentation in R/functions.R
 \name{make_grviz}
 \alias{make_grviz}
-\title{Make a Graphviz map}
+\title{Make a Graphviz map [https://graphviz.org/documentation/](https://graphviz.org/documentation/)}
 \usage{
 make_grviz(
   graf = NULL,
   maxwidth = NULL,
-  grv_cluster = F,
-  grv_cluster_select = NULL,
   grv_layout = "dot",
   grv_splines = "splines",
   grv_overlap = F,
   color = "grey",
   ranksep_slider = 3,
   nodesep_slider = 20,
-  wrap_slider = 12,
-  safe_limit = T
+  safe_limit = 200
 )
 }
 \arguments{
-\item{safe_limit}{}
+\item{graf}{A tidymap. Link and factor tables may contain columns to control formatting
+such as `color.border`.}
+
+\item{grv_layout}{What layout to use. Default is `dot`.}
+
+\item{grv_splines}{How to create splines. See Graphviz documentation.}
+
+\item{grv_overlap}{See Graphviz documentation.}
+
+\item{color}{Default font color}
+
+\item{safe_limit}{Integer. Large maps with many edges can take a long time to layout.
+If !is.null(safe_limit), the resulting map is simplified by bundling edges and selecting
+most frequent factors.}
 }
 \value{
 
 }
 \description{
-Make a Graphviz map
+Make a Graphviz map [https://graphviz.org/documentation/](https://graphviz.org/documentation/)
 }

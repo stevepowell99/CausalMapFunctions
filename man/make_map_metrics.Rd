@@ -11,11 +11,9 @@ make_map_metrics(graf)
 A tidymap is a tidygraph, which consists of a table of edges linked to a table of nodes,
 with an optional additional table of statements.
 In this package, nodes are called `factors` and edges are called `links.`}
-
-\item{field}{A numerical field in the factor table which will control the scale.}
 }
 \value{
-A tidymap with a new or overwritten column `size`in the factor table varying between .2 and 1.
+A tibble with map-level metrics
 }
 \description{
 Make map-level metrics
