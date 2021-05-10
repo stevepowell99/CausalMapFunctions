@@ -101,8 +101,12 @@ viridis_pal_n <- function(vec){
   vec <- vec %>% as.factor %>% as.numeric
   viridis_pal()(length(unique(vec)))[vec] %>% alpha(.6)
 }
+brewer_pal_n <- function(vec){
+  vec <- vec %>% as.factor %>% as.numeric
+  brewer_pal("qual")(length(unique(vec)))[vec] %>% alpha(.9)
+}
 create_colors <- function(vec,lo=lo,hi=hi,mid=mid){
-  if(class(vec)=="character") viridis_pal_n(vec) else div_pal_n(vec,lo=lo,hi=hi,mid=mid)
+  if(class(vec)=="character") brewer_pal_n(vec) else div_pal_n(vec,lo=lo,hi=hi,mid=mid)
 }
 
 
