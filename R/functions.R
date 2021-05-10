@@ -638,6 +638,29 @@ pipe_cluster_factors <- function(graf,clusters=NULL){
   }
 }
 
+#' Trace robustness
+#'
+#' @inheritParams parse_commands
+#' @param from
+#' @param to
+#' @param length
+#' @param field An optional field by which to split the calculate_robustness calculation and output.
+#' @description This is a powerful command which allows the user to trace paths from one or more upstream factors to one or more downstream factors.
+#' Only links which are part of such paths are displayed.
+#' This function wraps trace_paths and calculate_robustness
+
+
+#' @return
+#' @export
+#'
+#' @examples
+pipe_trace_robustness <- function(graf,from,to,length=4,field=NULL){
+  graf %>%
+    pipe_trace_paths(from=from,to=to,length=length) %>%
+    pipe_calculate_robustness(field=field)
+
+}
+
 #' Trace paths
 #'
 #' @inheritParams parse_commands
