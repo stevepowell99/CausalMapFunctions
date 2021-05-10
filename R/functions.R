@@ -307,7 +307,7 @@ parse_commands <- function(graf,tex){
         str_trim
 
 
-      if(fun %in% c("find factors","find links") & !str_detect(body,operator_list %>% paste0(collapse="|"))){
+      if(fun %in% c("find factors","find links") & !str_detect(body,operator_list %>% keep(.!="=") %>% paste0(collapse="|"))){
 
         # browser()
         updown <- body %>% str_match("(up *([0-9]+) *)*( down *([0-9]+))* *$")
