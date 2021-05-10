@@ -440,7 +440,7 @@ pipe_find_factors <- function(graf,field=NULL,value,operator=NULL,up=0,down=0){
 
   st <- attr(graf,"statements")
   df <- graf %>% factors_table %>% find_fun(field,value,operator)
-  graf <- tbl_graph(df,links_table(graf)) %>% filter(found) %>% add_statements(st)
+  graf <- tbl_graph(df,links_table(graf)) %>% add_statements(st)
   downvec <- graf %>% distances(to=graf %>% factors_table %>% pull(found),mode="in") %>% apply(1,min) %>% `<=`(down)
   upvec <- graf %>% distances(to=graf %>% factors_table %>% pull(found),mode="out") %>% apply(1,min) %>% `<=`(up)
   # browser()
