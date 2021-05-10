@@ -40,12 +40,9 @@
 
 
 <meta property="og:title" content="Find factors — pipe_find_factors" />
-<meta property="og:description" content="When field==label, you can search for whole labels and also for including keywords or flags which are common to more than one factor.
-Sets of labels separated by the letters OR.
-With this command, just the matching factors identified are returned together with the &quot;ego network&quot; i.e. links between these nodes which have been found.
-However, by adding the keywords `up` and `down` each followed by a number it is possible to add in factors
-which are a given number of steps upstream and or downstream of the identified factors.
-Fields may be from the original data and/or fields created by the app, e.g. `n` (frequency)." />
+<meta property="og:description" content="Fields may be from the original data and/or fields created by the app, e.g. `n` (frequency).
+When field is 'label', 'value' can contain a vector of search terms separated by ' OR '.
+Text searches are case-insensitive." />
 
 
 
@@ -131,39 +128,140 @@ Fields may be from the original data and/or fields created by the app, e.g. `n` 
     </div>
 
     <div class="ref-description">
-    <p>When field==label, you can search for whole labels and also for including keywords or flags which are common to more than one factor.
-Sets of labels separated by the letters OR.
-With this command, just the matching factors identified are returned together with the "ego network" i.e. links between these nodes which have been found.
-However, by adding the keywords `up` and `down` each followed by a number it is possible to add in factors
-which are a given number of steps upstream and or downstream of the identified factors.
-Fields may be from the original data and/or fields created by the app, e.g. `n` (frequency).</p>
+    <p>Fields may be from the original data and/or fields created by the app, e.g. `n` (frequency).
+When field is 'label', 'value' can contain a vector of search terms separated by ' OR '.</p>
+<p>Text searches are case-insensitive.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>pipe_find_factors</span><span class='op'>(</span><span class='va'>graf</span>, <span class='va'>field</span>, <span class='va'>value</span>, operator <span class='op'>=</span> <span class='st'>"="</span>, up <span class='op'>=</span> <span class='fl'>0</span>, down <span class='op'>=</span> <span class='fl'>0</span><span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>pipe_find_factors</span><span class='op'>(</span><span class='va'>graf</span>, field <span class='op'>=</span> <span class='cn'>NULL</span>, <span class='va'>value</span>, operator <span class='op'>=</span> <span class='cn'>NULL</span>, up <span class='op'>=</span> <span class='fl'>0</span>, down <span class='op'>=</span> <span class='fl'>0</span><span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
+      <th>field</th>
+      <td><p>Field (column, variable) to search</p></td>
+    </tr>
+    <tr>
+      <th>value</th>
+      <td><p>Value to search for</p></td>
+    </tr>
+    <tr>
       <th>operator</th>
-      <td><p>c('contains','notcontains','=','notequals','greater','less','starts','ends')</p></td>
+      <td><p>c('contains','notcontains','=','notequals','greater','less','starts','ends').
+How to search.</p></td>
     </tr>
     <tr>
       <th>up</th>
-      <td><p>integer</p></td>
+      <td><p>integer. Default is 0.</p></td>
     </tr>
     <tr>
       <th>down</th>
-      <td><p>integer</p></td>
+      <td><p>integer. Default is 0.</p></td>
     </tr>
     </table>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    
+    <p>A tidymap containing only matching factors; if `up`!=0 then also factors this number of steps
+upstream of the matching factors are also included and likewise for `down`!=0.
+The links are filtered correspondingly to return only the "ego network" i.e. links between the returned factors.</p>
+<p>If operator and field are both NULL, the value is treated as a simple search string for the field `label`.</p>
 
-
-
+    <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
+    <pre class="examples"><div class='input'><span class='fu'>pipe_find_factors</span><span class='op'>(</span><span class='va'>cashTransferMap</span>,<span class='cn'>NULL</span>,<span class='st'>"Cash"</span><span class='op'>)</span>
+</div><div class='output co'>#&gt; <span style='color: #949494;'># A tbl_graph: 7 nodes and 6 edges
+#&gt; #
+#&gt; # A directed acyclic multigraph with 3 components
+#&gt; #
+#&gt; # Node Data: 7 x 6 (active)</span><span>
+#&gt;      id label                                    factor_note found upvec downvec
+#&gt;   </span><span style='color: #949494;font-style: italic;'>&lt;int&gt;</span><span> </span><span style='color: #949494;font-style: italic;'>&lt;chr&gt;</span><span>                                    </span><span style='color: #949494;font-style: italic;'>&lt;chr&gt;</span><span>       </span><span style='color: #949494;font-style: italic;'>&lt;lgl&gt;</span><span> </span><span style='color: #949494;font-style: italic;'>&lt;lgl&gt;</span><span> </span><span style='color: #949494;font-style: italic;'>&lt;lgl&gt;</span><span>  
+#&gt; </span><span style='color: #BCBCBC;'>1</span><span>     5 (IEA) Social Cash Transfer (OrgX) [E]    </span><span style='color: #BB0000;'>NA</span><span>          TRUE  TRUE  TRUE   
+#&gt; </span><span style='color: #BCBCBC;'>2</span><span>     6 (IEA) Social Cash Transfer (Gov) [I]     </span><span style='color: #BB0000;'>NA</span><span>          TRUE  TRUE  TRUE   
+#&gt; </span><span style='color: #BCBCBC;'>3</span><span>    29 (IEA) Social Cash Transfer (Oranisation~ </span><span style='color: #BB0000;'>NA</span><span>          TRUE  TRUE  TRUE   
+#&gt; </span><span style='color: #BCBCBC;'>4</span><span>    31 (IEA) Social Cash Transfer not working ~ </span><span style='color: #BB0000;'>NA</span><span>          TRUE  TRUE  TRUE   
+#&gt; </span><span style='color: #BCBCBC;'>5</span><span>   100 (IEA) Cash shared between villagers [N]  </span><span style='color: #BB0000;'>NA</span><span>          TRUE  TRUE  TRUE   
+#&gt; </span><span style='color: #BCBCBC;'>6</span><span>   101 (IEA) Limited impact of Social Cash Tra~ </span><span style='color: #BB0000;'>NA</span><span>          TRUE  TRUE  TRUE   
+#&gt; </span><span style='color: #949494;'># ... with 1 more row</span><span>
+#&gt; </span><span style='color: #949494;'>#
+#&gt; # Edge Data: 6 x 18</span><span>
+#&gt;    from    to statement_id quote note  label attribution definition
+#&gt;   </span><span style='color: #949494;font-style: italic;'>&lt;int&gt;</span><span> </span><span style='color: #949494;font-style: italic;'>&lt;int&gt;</span><span>        </span><span style='color: #949494;font-style: italic;'>&lt;int&gt;</span><span> </span><span style='color: #949494;font-style: italic;'>&lt;chr&gt;</span><span> </span><span style='color: #949494;font-style: italic;'>&lt;chr&gt;</span><span> </span><span style='color: #949494;font-style: italic;'>&lt;chr&gt;</span><span> </span><span style='color: #949494;font-style: italic;'>&lt;chr&gt;</span><span>       </span><span style='color: #949494;font-style: italic;'>&lt;chr&gt;</span><span>     
+#&gt; </span><span style='color: #BCBCBC;'>1</span><span>     4     5            5 She ~ </span><span style='color: #949494;'>""</span><span>    </span><span style='color: #949494;'>""</span><span>    </span><span style='color: #BB0000;'>NA</span><span>          </span><span style='color: #BB0000;'>NA</span><span>        
+#&gt; </span><span style='color: #BCBCBC;'>2</span><span>     4     7          181 With~ </span><span style='color: #949494;'>""</span><span>    </span><span style='color: #949494;'>""</span><span>    </span><span style='color: #BB0000;'>NA</span><span>          </span><span style='color: #BB0000;'>NA</span><span>        
+#&gt; </span><span style='color: #BCBCBC;'>3</span><span>     4     7          198 Impo~ </span><span style='color: #949494;'>""</span><span>    </span><span style='color: #949494;'>""</span><span>    </span><span style='color: #BB0000;'>NA</span><span>          </span><span style='color: #BB0000;'>NA</span><span>        
+#&gt; </span><span style='color: #949494;'># ... with 3 more rows, and 10 more variables: project_attribution &lt;chr&gt;,</span><span>
+#&gt; </span><span style='color: #949494;'>#   valence_attribution &lt;chr&gt;, strength &lt;dbl&gt;, neg_from &lt;int&gt;, neg_to &lt;int&gt;,</span><span>
+#&gt; </span><span style='color: #949494;'>#   hashtags &lt;chr&gt;, id &lt;int&gt;, actualisation &lt;dbl&gt;, certainty &lt;dbl&gt;,</span><span>
+#&gt; </span><span style='color: #949494;'>#   weight &lt;dbl&gt;</span><span></div><div class='input'><span class='fu'>pipe_find_factors</span><span class='op'>(</span><span class='va'>cashTransferMap</span>,field<span class='op'>=</span><span class='st'>"label"</span>,value<span class='op'>=</span><span class='st'>"Cash"</span>,operator<span class='op'>=</span><span class='st'>"contains"</span><span class='op'>)</span>
+</div><div class='output co'>#&gt; </span><span style='color: #949494;'># A tbl_graph: 7 nodes and 6 edges
+#&gt; #
+#&gt; # A directed acyclic multigraph with 3 components
+#&gt; #
+#&gt; # Node Data: 7 x 6 (active)</span><span>
+#&gt;      id label                                    factor_note found upvec downvec
+#&gt;   </span><span style='color: #949494;font-style: italic;'>&lt;int&gt;</span><span> </span><span style='color: #949494;font-style: italic;'>&lt;chr&gt;</span><span>                                    </span><span style='color: #949494;font-style: italic;'>&lt;chr&gt;</span><span>       </span><span style='color: #949494;font-style: italic;'>&lt;lgl&gt;</span><span> </span><span style='color: #949494;font-style: italic;'>&lt;lgl&gt;</span><span> </span><span style='color: #949494;font-style: italic;'>&lt;lgl&gt;</span><span>  
+#&gt; </span><span style='color: #BCBCBC;'>1</span><span>     5 (IEA) Social Cash Transfer (OrgX) [E]    </span><span style='color: #BB0000;'>NA</span><span>          TRUE  TRUE  TRUE   
+#&gt; </span><span style='color: #BCBCBC;'>2</span><span>     6 (IEA) Social Cash Transfer (Gov) [I]     </span><span style='color: #BB0000;'>NA</span><span>          TRUE  TRUE  TRUE   
+#&gt; </span><span style='color: #BCBCBC;'>3</span><span>    29 (IEA) Social Cash Transfer (Oranisation~ </span><span style='color: #BB0000;'>NA</span><span>          TRUE  TRUE  TRUE   
+#&gt; </span><span style='color: #BCBCBC;'>4</span><span>    31 (IEA) Social Cash Transfer not working ~ </span><span style='color: #BB0000;'>NA</span><span>          TRUE  TRUE  TRUE   
+#&gt; </span><span style='color: #BCBCBC;'>5</span><span>   100 (IEA) Cash shared between villagers [N]  </span><span style='color: #BB0000;'>NA</span><span>          TRUE  TRUE  TRUE   
+#&gt; </span><span style='color: #BCBCBC;'>6</span><span>   101 (IEA) Limited impact of Social Cash Tra~ </span><span style='color: #BB0000;'>NA</span><span>          TRUE  TRUE  TRUE   
+#&gt; </span><span style='color: #949494;'># ... with 1 more row</span><span>
+#&gt; </span><span style='color: #949494;'>#
+#&gt; # Edge Data: 6 x 18</span><span>
+#&gt;    from    to statement_id quote note  label attribution definition
+#&gt;   </span><span style='color: #949494;font-style: italic;'>&lt;int&gt;</span><span> </span><span style='color: #949494;font-style: italic;'>&lt;int&gt;</span><span>        </span><span style='color: #949494;font-style: italic;'>&lt;int&gt;</span><span> </span><span style='color: #949494;font-style: italic;'>&lt;chr&gt;</span><span> </span><span style='color: #949494;font-style: italic;'>&lt;chr&gt;</span><span> </span><span style='color: #949494;font-style: italic;'>&lt;chr&gt;</span><span> </span><span style='color: #949494;font-style: italic;'>&lt;chr&gt;</span><span>       </span><span style='color: #949494;font-style: italic;'>&lt;chr&gt;</span><span>     
+#&gt; </span><span style='color: #BCBCBC;'>1</span><span>     4     5            5 She ~ </span><span style='color: #949494;'>""</span><span>    </span><span style='color: #949494;'>""</span><span>    </span><span style='color: #BB0000;'>NA</span><span>          </span><span style='color: #BB0000;'>NA</span><span>        
+#&gt; </span><span style='color: #BCBCBC;'>2</span><span>     4     7          181 With~ </span><span style='color: #949494;'>""</span><span>    </span><span style='color: #949494;'>""</span><span>    </span><span style='color: #BB0000;'>NA</span><span>          </span><span style='color: #BB0000;'>NA</span><span>        
+#&gt; </span><span style='color: #BCBCBC;'>3</span><span>     4     7          198 Impo~ </span><span style='color: #949494;'>""</span><span>    </span><span style='color: #949494;'>""</span><span>    </span><span style='color: #BB0000;'>NA</span><span>          </span><span style='color: #BB0000;'>NA</span><span>        
+#&gt; </span><span style='color: #949494;'># ... with 3 more rows, and 10 more variables: project_attribution &lt;chr&gt;,</span><span>
+#&gt; </span><span style='color: #949494;'>#   valence_attribution &lt;chr&gt;, strength &lt;dbl&gt;, neg_from &lt;int&gt;, neg_to &lt;int&gt;,</span><span>
+#&gt; </span><span style='color: #949494;'>#   hashtags &lt;chr&gt;, id &lt;int&gt;, actualisation &lt;dbl&gt;, certainty &lt;dbl&gt;,</span><span>
+#&gt; </span><span style='color: #949494;'>#   weight &lt;dbl&gt;</span><span></div><div class='input'><span class='fu'>pipe_find_factors</span><span class='op'>(</span><span class='va'>cashTransferMap</span>,field<span class='op'>=</span><span class='st'>"id"</span>,value<span class='op'>=</span><span class='fl'>10</span>,operator<span class='op'>=</span><span class='st'>"greater"</span><span class='op'>)</span>
+</div><div class='output co'>#&gt; </span><span style='color: #949494;'># A tbl_graph: 117 nodes and 806 edges
+#&gt; #
+#&gt; # A directed multigraph with 11 components
+#&gt; #
+#&gt; # Node Data: 117 x 6 (active)</span><span>
+#&gt;      id label                                   factor_note found upvec downvec
+#&gt;   </span><span style='color: #949494;font-style: italic;'>&lt;int&gt;</span><span> </span><span style='color: #949494;font-style: italic;'>&lt;chr&gt;</span><span>                                   </span><span style='color: #949494;font-style: italic;'>&lt;chr&gt;</span><span>       </span><span style='color: #949494;font-style: italic;'>&lt;lgl&gt;</span><span> </span><span style='color: #949494;font-style: italic;'>&lt;lgl&gt;</span><span> </span><span style='color: #949494;font-style: italic;'>&lt;lgl&gt;</span><span>  
+#&gt; </span><span style='color: #BCBCBC;'>1</span><span>    11 (RW) Part of Organisation X project [E] </span><span style='color: #BB0000;'>NA</span><span>          TRUE  TRUE  TRUE   
+#&gt; </span><span style='color: #BCBCBC;'>2</span><span>    12 (IEA) Government HSA                    </span><span style='color: #BB0000;'>NA</span><span>          TRUE  TRUE  TRUE   
+#&gt; </span><span style='color: #BCBCBC;'>3</span><span>    13 (HN) More food                          </span><span style='color: #BB0000;'>NA</span><span>          TRUE  TRUE  TRUE   
+#&gt; </span><span style='color: #BCBCBC;'>4</span><span>    14 (RW) Husband returned to household      </span><span style='color: #BB0000;'>NA</span><span>          TRUE  TRUE  TRUE   
+#&gt; </span><span style='color: #BCBCBC;'>5</span><span>    15 (BF) Purchased livestock                </span><span style='color: #BB0000;'>NA</span><span>          TRUE  TRUE  TRUE   
+#&gt; </span><span style='color: #BCBCBC;'>6</span><span>    16 (BF) Demonstration plot [E]             </span><span style='color: #BB0000;'>NA</span><span>          TRUE  TRUE  TRUE   
+#&gt; </span><span style='color: #949494;'># ... with 111 more rows</span><span>
+#&gt; </span><span style='color: #949494;'>#
+#&gt; # Edge Data: 806 x 18</span><span>
+#&gt;    from    to statement_id quote note  label attribution definition
+#&gt;   </span><span style='color: #949494;font-style: italic;'>&lt;int&gt;</span><span> </span><span style='color: #949494;font-style: italic;'>&lt;int&gt;</span><span>        </span><span style='color: #949494;font-style: italic;'>&lt;int&gt;</span><span> </span><span style='color: #949494;font-style: italic;'>&lt;chr&gt;</span><span> </span><span style='color: #949494;font-style: italic;'>&lt;chr&gt;</span><span> </span><span style='color: #949494;font-style: italic;'>&lt;chr&gt;</span><span> </span><span style='color: #949494;font-style: italic;'>&lt;chr&gt;</span><span>       </span><span style='color: #949494;font-style: italic;'>&lt;chr&gt;</span><span>     
+#&gt; </span><span style='color: #BCBCBC;'>1</span><span>    39    40            2 </span><span style='color: #949494;'>"</span><span>The~ </span><span style='color: #949494;'>""</span><span>    </span><span style='color: #949494;'>""</span><span>    </span><span style='color: #BB0000;'>NA</span><span>          </span><span style='color: #BB0000;'>NA</span><span>        
+#&gt; </span><span style='color: #BCBCBC;'>2</span><span>    40    41            2 </span><span style='color: #949494;'>"</span><span>Suc~ </span><span style='color: #949494;'>""</span><span>    </span><span style='color: #949494;'>""</span><span>    </span><span style='color: #BB0000;'>NA</span><span>          </span><span style='color: #BB0000;'>NA</span><span>        
+#&gt; </span><span style='color: #BCBCBC;'>3</span><span>    49    50            3 </span><span style='color: #949494;'>"</span><span>The~ </span><span style='color: #949494;'>""</span><span>    </span><span style='color: #949494;'>""</span><span>    </span><span style='color: #BB0000;'>NA</span><span>          </span><span style='color: #BB0000;'>NA</span><span>        
+#&gt; </span><span style='color: #949494;'># ... with 803 more rows, and 10 more variables: project_attribution &lt;chr&gt;,</span><span>
+#&gt; </span><span style='color: #949494;'>#   valence_attribution &lt;chr&gt;, strength &lt;dbl&gt;, neg_from &lt;int&gt;, neg_to &lt;int&gt;,</span><span>
+#&gt; </span><span style='color: #949494;'>#   hashtags &lt;chr&gt;, id &lt;int&gt;, actualisation &lt;dbl&gt;, certainty &lt;dbl&gt;,</span><span>
+#&gt; </span><span style='color: #949494;'>#   weight &lt;dbl&gt;</span><span></div><div class='input'><span class='fu'>pipe_find_factors</span><span class='op'>(</span><span class='va'>cashTransferMap</span>,<span class='cn'>NULL</span>,<span class='st'>"purchase OR buy"</span><span class='op'>)</span>
+</div><div class='output co'>#&gt; </span><span style='color: #949494;'># A tbl_graph: 3 nodes and 0 edges
+#&gt; #
+#&gt; # A rooted forest with 3 trees
+#&gt; #
+#&gt; # Node Data: 3 x 6 (active)</span><span>
+#&gt;      id label                                    factor_note found upvec downvec
+#&gt;   </span><span style='color: #949494;font-style: italic;'>&lt;int&gt;</span><span> </span><span style='color: #949494;font-style: italic;'>&lt;chr&gt;</span><span>                                    </span><span style='color: #949494;font-style: italic;'>&lt;chr&gt;</span><span>       </span><span style='color: #949494;font-style: italic;'>&lt;lgl&gt;</span><span> </span><span style='color: #949494;font-style: italic;'>&lt;lgl&gt;</span><span> </span><span style='color: #949494;font-style: italic;'>&lt;lgl&gt;</span><span>  
+#&gt; </span><span style='color: #BCBCBC;'>1</span><span>    15 (BF) Purchased livestock                 </span><span style='color: #BB0000;'>NA</span><span>          TRUE  TRUE  TRUE   
+#&gt; </span><span style='color: #BCBCBC;'>2</span><span>    37 (BF) Organisation A failed to buy soya   </span><span style='color: #BB0000;'>NA</span><span>          TRUE  TRUE  TRUE   
+#&gt; </span><span style='color: #BCBCBC;'>3</span><span>    66 (IEA) No longer sell assets to buy food~ </span><span style='color: #BB0000;'>NA</span><span>          TRUE  TRUE  TRUE   
+#&gt; </span><span style='color: #949494;'>#
+#&gt; # Edge Data: 0 x 18</span><span>
+#&gt; </span><span style='color: #949494;'># ... with 18 variables: from &lt;int&gt;, to &lt;int&gt;, statement_id &lt;int&gt;, quote &lt;chr&gt;,</span><span>
+#&gt; </span><span style='color: #949494;'>#   note &lt;chr&gt;, label &lt;chr&gt;, attribution &lt;chr&gt;, definition &lt;chr&gt;,</span><span>
+#&gt; </span><span style='color: #949494;'>#   project_attribution &lt;chr&gt;, valence_attribution &lt;chr&gt;, strength &lt;dbl&gt;,</span><span>
+#&gt; </span><span style='color: #949494;'>#   neg_from &lt;int&gt;, neg_to &lt;int&gt;, hashtags &lt;chr&gt;, id &lt;int&gt;,</span><span>
+#&gt; </span><span style='color: #949494;'>#   actualisation &lt;dbl&gt;, certainty &lt;dbl&gt;, weight &lt;dbl&gt;</span><span></div></span></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">

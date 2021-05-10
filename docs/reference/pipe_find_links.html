@@ -129,23 +129,15 @@
     <p>Find links</p>
     </div>
 
-    <pre class="usage"><span class='fu'>pipe_find_links</span><span class='op'>(</span><span class='va'>graf</span>, <span class='va'>field</span>, <span class='va'>value</span>, operator <span class='op'>=</span> <span class='st'>"="</span><span class='op'>)</span></pre>
-
-    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
-    <table class="ref-arguments">
-    <colgroup><col class="name" /><col class="desc" /></colgroup>
-    <tr>
-      <th>operator</th>
-      <td><p>c('contains','notcontains','=','notequals','greater','less','starts','ends')</p></td>
-    </tr>
-    </table>
-
-    <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
-
-    
+    <pre class="usage"><span class='fu'>pipe_find_links</span><span class='op'>(</span><span class='va'>graf</span>, field <span class='op'>=</span> <span class='cn'>NULL</span>, <span class='va'>value</span>, operator <span class='op'>=</span> <span class='cn'>NULL</span><span class='op'>)</span></pre>
 
 
 
+    <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
+    <pre class="examples"><div class='input'><span class='fu'>pipe_find_links</span><span class='op'>(</span><span class='va'>CashTransferMap</span>,<span class='st'>"Cash"</span><span class='op'>)</span>
+</div><div class='output co'>#&gt; <span class='error'>Error in pipe_find_links(CashTransferMap, "Cash"): object 'CashTransferMap' not found</span></div><div class='input'><span class='fu'>pipe_find_links</span><span class='op'>(</span><span class='va'>CashTransferMap</span>,field<span class='op'>=</span><span class='st'>"label"</span>,value<span class='op'>=</span><span class='st'>"Cash"</span>,operator<span class='op'>=</span><span class='st'>"contains"</span><span class='op'>)</span>
+</div><div class='output co'>#&gt; <span class='error'>Error in pipe_find_links(CashTransferMap, field = "label", value = "Cash",     operator = "contains"): object 'CashTransferMap' not found</span></div><div class='input'><span class='fu'>pipe_find_links</span><span class='op'>(</span><span class='va'>CashTransferMap</span>,field<span class='op'>=</span><span class='st'>"from"</span>,value<span class='op'>=</span><span class='st'>"12"</span>,operator<span class='op'>=</span><span class='st'>"greater"</span><span class='op'>)</span>
+</div><div class='output co'>#&gt; <span class='error'>Error in pipe_find_links(CashTransferMap, field = "from", value = "12",     operator = "greater"): object 'CashTransferMap' not found</span></div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">

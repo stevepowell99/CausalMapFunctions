@@ -87,6 +87,7 @@
 <pre><code>cashTransferMap %&gt;% make_vn</code></pre>
 <p>These functions are used in the <a href="https://causalmap.shinyapps.io/CausalMapViewer/">Causal Map Viewer</a> and are similar to those used in the <a href="http://causalmap.app">Causal Map app</a>. In our roadmap, these functions will eventually replace their counterparts in the Causal Map app.</p>
 <p>The main functions input and output augmented <a href="https://github.com/thomasp85/tidygraph">tidygraph</a> graphs. The package defines a kind of object called a tidymap which is just a tidygraph but with an additional statements table stored as an attribute. Statement tables are used in Causal Map as the underlying data which is to be coded into causal links. So each link refers to a quote from a particular statement. Statements are optional and this package can be used without them. (If you know Tidygraph, You might expect an <code>activate(statements)</code> command but this is not implemented yet.)</p>
+<p>The package also contains some UI functions used in the Causal Map Viewer which provide plot and table outputs.</p>
 <p>In this package, nodes are called <code>factors</code> and the edges are called <code>links</code>.</p>
 <div id="motivation" class="section level2">
 <h2 class="hasAnchor">

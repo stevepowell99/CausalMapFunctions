@@ -14,6 +14,8 @@ The main functions input and output augmented [tidygraph](https://github.com/tho
 The package defines a kind of object called a tidymap which is just a tidygraph but with an additional statements table stored as an attribute. Statement tables are used in Causal Map as the underlying data which is to be coded into causal links. So each link refers to a quote from a particular statement. Statements are optional and this package can be used without them.
 (If you know Tidygraph, You might expect an `activate(statements)` command but this is not implemented yet.)
 
+The package also contains some UI functions used in the Causal Map Viewer which provide plot and table outputs.
+
 In this package, nodes are called `factors` and the edges are called `links`.
 
 ## Motivation
