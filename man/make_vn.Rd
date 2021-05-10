@@ -2,12 +2,12 @@
 % Please edit documentation in R/functions.R
 \name{make_vn}
 \alias{make_vn}
-\title{Make a visNetwork (https://datastorm-open.github.io/visNetwork/) from a tidymap.}
+\title{Make a visNetwork}
 \usage{
 make_vn(graf, scale = 1)
 }
 \arguments{
-\item{graf}{A tidymap. The factors talbe and links table may contain additional formatting information like color.background.}
+\item{graf}{A tidymap. The factors table and links table may contain additional formatting information like color.background.}
 
 \item{scale}{Increase from the default 1 to make the map taller.}
 }

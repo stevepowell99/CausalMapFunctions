@@ -42,5 +42,5 @@ to each of the factors for which `found_to` is true.
 calculate_robustness() is used by pipe_trace_paths().
 }
 \examples{
-cashTransferMap \%>\% pipe_trace_paths(from="Cash",to="Increa",length=4) \%>\% pipe_merge_statements \%>\% pipe_calculate_robustness(field="#SourceID") \%>\% attr("flow")
+if(F)cashTransferMap \%>\% pipe_trace_paths(from="Cash",to="Increa",length=4) \%>\% pipe_merge_statements \%>\% pipe_calculate_robustness(field="#SourceID") \%>\% attr("flow")
 }

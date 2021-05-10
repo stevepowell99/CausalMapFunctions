@@ -4,6 +4,7 @@ library(visNetwork)
 library(tidyverse)
 library(tidygraph)
 library(scales)
+#library(RColorBrewer)
 
 
 # internal utilities-----------------------------------------------------------------------------
@@ -103,7 +104,7 @@ viridis_pal_n <- function(vec){
 }
 brewer_pal_n <- function(vec){
   vec <- vec %>% as.factor %>% as.numeric
-  brewer_pal("qual")(length(unique(vec)))[vec] %>% alpha(.9)
+  scales::brewer_pal("qual")(length(unique(vec)))[vec] %>% alpha(.9)
 }
 create_colors <- function(vec,lo=lo,hi=hi,mid=mid){
   if(class(vec)=="character") brewer_pal_n(vec) else div_pal_n(vec,lo=lo,hi=hi,mid=mid)
@@ -190,6 +191,8 @@ calculate_robustness_inner <- function(graf){
     sinkvec %>% map(function(y)(sourcevec %>% map(function(x) if(x %in% sinks) Inf else max_flow(graf,x,y)$value)) %>% unlist) %>%
     do.call("rbind",.) %>%
     as_tibble
+
+  all_flows[all_flows==Inf] <- NA
 
   # note if you don't check for not in sinks, R hangs
 
@@ -459,9 +462,9 @@ pipe_find_factors <- function(graf,field=NULL,value,operator=NULL,up=0,down=0){
 #' @export
 #'
 #' @examples
-#' pipe_find_links(CashTransferMap,"Cash")
-#' pipe_find_links(CashTransferMap,field="label",value="Cash",operator="contains")
-#' pipe_find_links(CashTransferMap,field="from",value="12",operator="greater")
+#' pipe_find_links(cashTransferMap,value="Cash")
+#' pipe_find_links(cashTransferMap,field="label",value="Cash",operator="contains")
+#' pipe_find_links(cashTransferMap,field="from",value="12",operator="greater")
 pipe_find_links <- function(graf,field=NULL,value,operator=NULL){
   st <- attr(graf,"statements")
   df <- graf %>% links_table %>% find_fun(field,value,operator)
@@ -769,7 +772,7 @@ pipe_trace_paths <- function(graf,from,to,length=4){
 #' @export
 #'
 #' @examples
-#' cashTransferMap %>% pipe_trace_paths(from="Cash",to="Increa",length=4) %>% pipe_merge_statements %>% pipe_calculate_robustness(field="#SourceID") %>% attr("flow")
+#' if(F)cashTransferMap %>% pipe_trace_paths(from="Cash",to="Increa",length=4) %>% pipe_merge_statements %>% pipe_calculate_robustness(field="#SourceID") %>% attr("flow")
 pipe_calculate_robustness <- function(graf,field=NULL){
   res <- list()
   if("found_from" %notin% factor_colnames(graf)) {warning("No found_from column");return(NA)}
@@ -797,7 +800,7 @@ pipe_calculate_robustness <- function(graf,field=NULL){
   )
 
 
-  summary <- res %>% map(~(select(.,-1))%>% mutate_all(~if_else(.>0,1,0))) %>%
+  summary <- res %>% map(~(select(.,-1))%>% mutate_all(~if_else(.>0 ,1,0))) %>%
     Reduce(`+`,.)
   res$summary <- cbind(res[[1]][,1],summary) %>% as_tibble
 
@@ -812,13 +815,14 @@ pipe_calculate_robustness <- function(graf,field=NULL){
 
 
 
-#' Title
+#' Remove isolated factors
 #'
 #' @param graf
 #'
 #' @return
 #' @export
-#' @description Removes any factors which have no links
+#' @description Removes any factors which have no links.
+#' This can be useful after any function like pipe_select_links() which remove links.
 #' @examples
 pipe_remove_isolated <- function(graf){
   graf %>%
@@ -858,9 +862,9 @@ pipe_flip_opposites <- function(graf,flipchar="~"){
 #'
 #' @examples
 #' # Showing separate (bundled) links for women and men:
-#' cashTransferMap %>% pipe_merge_statements() %>%  pipe_select_factors(10) %>% pipe_bundle_links(counter="n",group="1. Sex")%>% pipe_label_links(field = "n") %>% pipe_color_links(field="1. Sex") %>% pipe_scale_links() %>%  make_grviz()
+#' if(F)cashTransferMap %>% pipe_merge_statements() %>%  pipe_select_factors(10) %>% pipe_bundle_links(counter="n",group="1. Sex")%>% pipe_label_links(field = "n") %>% pipe_color_links(field="1. Sex") %>% pipe_scale_links() %>%  make_grviz()
 #' # or, counting sources rather than statements:
-#' cashTransferMap %>% pipe_merge_statements() %>%  pipe_select_factors(10) %>% pipe_bundle_links(group="1. Sex",counter="#SourceID")%>% pipe_label_links(field = "n") %>% pipe_color_links(field="1. Sex") %>% pipe_scale_links() %>%  make_grviz()
+#' if(F)cashTransferMap %>% pipe_merge_statements() %>%  pipe_select_factors(10) %>% pipe_bundle_links(group="1. Sex",counter="#SourceID")%>% pipe_label_links(field = "n") %>% pipe_color_links(field="1. Sex") %>% pipe_scale_links() %>%  make_grviz()
 pipe_bundle_links <- function(graf,counter="n",group=NULL){
   # browser()
   statements <- graf %>% statements_table()
@@ -1259,9 +1263,10 @@ make_map_metrics <- function(graf){
 
 ## visNetwork --------------------------------------------------------------
 
-#' Make a visNetwork (https://datastorm-open.github.io/visNetwork/) from a tidymap.
+#' Make a visNetwork
+#' @description Make a visNetwork (https://datastorm-open.github.io/visNetwork/) from a tidymap.
 #'
-#' @param graf A tidymap. The factors talbe and links table may contain additional formatting information like color.background.
+#' @param graf A tidymap. The factors table and links table may contain additional formatting information like color.background.
 #' @param scale Increase from the default 1 to make the map taller.
 #'
 #' @return A visnetwork

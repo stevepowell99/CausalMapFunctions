@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{pipe_remove_isolated}
 \alias{pipe_remove_isolated}
-\title{Title}
+\title{Remove isolated factors}
 \usage{
 pipe_remove_isolated(graf)
 }
@@ -13,5 +13,6 @@ pipe_remove_isolated(graf)
 
 }
 \description{
-Removes any factors which have no links
+Removes any factors which have no links.
+This can be useful after any function like pipe_select_links() which remove links.
 }

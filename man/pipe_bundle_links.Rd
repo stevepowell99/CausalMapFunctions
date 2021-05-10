@@ -26,7 +26,7 @@ Bundle links
 }
 \examples{
 # Showing separate (bundled) links for women and men:
-cashTransferMap \%>\% pipe_merge_statements() \%>\%  pipe_select_factors(10) \%>\% pipe_bundle_links(counter="n",group="1. Sex")\%>\% pipe_label_links(field = "n") \%>\% pipe_color_links(field="1. Sex") \%>\% pipe_scale_links() \%>\%  make_grviz()
+if(F)cashTransferMap \%>\% pipe_merge_statements() \%>\%  pipe_select_factors(10) \%>\% pipe_bundle_links(counter="n",group="1. Sex")\%>\% pipe_label_links(field = "n") \%>\% pipe_color_links(field="1. Sex") \%>\% pipe_scale_links() \%>\%  make_grviz()
 # or, counting sources rather than statements:
-cashTransferMap \%>\% pipe_merge_statements() \%>\%  pipe_select_factors(10) \%>\% pipe_bundle_links(group="1. Sex",counter="#SourceID")\%>\% pipe_label_links(field = "n") \%>\% pipe_color_links(field="1. Sex") \%>\% pipe_scale_links() \%>\%  make_grviz()
+if(F)cashTransferMap \%>\% pipe_merge_statements() \%>\%  pipe_select_factors(10) \%>\% pipe_bundle_links(group="1. Sex",counter="#SourceID")\%>\% pipe_label_links(field = "n") \%>\% pipe_color_links(field="1. Sex") \%>\% pipe_scale_links() \%>\%  make_grviz()
 }
