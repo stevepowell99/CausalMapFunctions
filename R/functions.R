@@ -1535,7 +1535,7 @@ robustUI <- function(graf){
     brks <- c(quantile(flow, probs = seq(.05, .9899, .05), na.rm = TRUE),
               quantile(flow, probs = seq(.99, 1, .001), na.rm = TRUE))
     clrs <- round(seq(255, 40, length.out = length(brks) + 1), 0) %>%
-      {paste0("rgb(255,", ., ",", ., ")")}
+      {paste0("rgb(",.,",", ., ",", "255)")}
     flow %>%
       arrange(UQ(sym(colnames(flow)[1])) %>% desc) %>%
       datatable(caption="Maximum flow / minimum cut",rownames = T,editable=F,extensions = 'Buttons',
