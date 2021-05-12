@@ -272,6 +272,16 @@ links_table <- function(graf)graf %>%
 statements_table <- function(graf)graf %>%
   attr("statements")
 
+#' @rdname tibbles
+#' @export
+#'
+links_table_full <- function(graf){
+  graf %>%
+    links_table %>%
+    left_join(factors_table(graf) %>% mutate(id=row_number()) %>% select(from=id,label_from=label),by="from") %>%
+    left_join(factors_table(graf) %>% mutate(id=row_number()) %>% select(to=id,label_to=label),by="to") %>%
+    select(label_from,label_to,everything())
+}
 
 # Parser ------------------------------------------------------------------
 

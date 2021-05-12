@@ -5,6 +5,8 @@ This is a set of functions for manipulating and simplifying causal maps.
 Load example data:
 
 ```
+devtools::install_github("stevepowell99/CausalMapFunctions")
+library(CausalMapFunctions)
 cashTransferMap
 ```
 
