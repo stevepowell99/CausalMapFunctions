@@ -213,7 +213,7 @@ find_fun <- function(graf,field=NULL,value,operator=NULL,what){
     operator="contains"
   }
 
-  if(field=="label"){
+  if(field %in% xc("label text")){
 
     value <- value %>% make_search
   }
@@ -303,7 +303,10 @@ links_table_full <- function(graf){
 #'
 #' This parser also provides some abbreviated formats.
 #' `find links FIELD OPERATOR VALUE` is parsed as `find links field=FIELD operator=OPERATOR value=VALUE`.
-#' `search factors LONG TEXT ...` is parsed as `search factors value=LONG TEXT ...`.
+#' `find factors FIELD OPERATOR VALUE` is parsed as `find factors field=FIELD operator=OPERATOR value=VALUE`.
+#' `search factors TEXT ...` is parsed as `search factors field=label value=TEXT operator=contains`.
+#' `search links TEXT ...` is parsed as `search links field=label value=TEXT operator=contains`.
+#' `search statements TEXT ...` is parsed as `search statements field=text value=TEXT operator=contains`.
 #'
 #' @return A tidymap, the result of successively applying the commands to the input graph.
 #' @export
@@ -324,6 +327,7 @@ parse_commands <- function(graf,tex){
         str_trim
 
 
+        # browser()
       if(fun %in% c("find factors","find links") & !str_detect(body,operator_list %>% keep(.!="=") %>% paste0(collapse="|"))){
 
         # browser()
@@ -337,6 +341,21 @@ parse_commands <- function(graf,tex){
           value=body ,
           up=up,
           down=down,
+
+          operator="contains"
+        )
+
+      }  else
+      if(fun %in% c("find statements") & !str_detect(body,operator_list %>% keep(.!="=") %>% paste0(collapse="|"))){
+
+        updown <- body %>% str_match("(up *([0-9]+) *)*( down *([0-9]+))* *$")
+        up <- updown[,3] %>% replace_na(0)
+        down <- updown[,5] %>% replace_na(0)
+        body <- body %>% str_remove("(up *[0-9]+ *)*( down *[0-9]+)* *$")
+        vals=list(
+          graf=graf,
+          field="text",
+          value=body,
 
           operator="contains"
         )
