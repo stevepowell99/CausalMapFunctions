@@ -321,6 +321,7 @@ parse_commands <- function(graf,tex){
       if(str_trim(line)=="")return()
       fun <- word(line, 1,2, sep=" ")
       if(is.na(fun)){notify("No such function");return(graf %>% filter(F))}
+      if(!exists(str_replace(fun," ","_") %>% paste0("pipe_",.))){notify("No such function");return(graf %>% filter(F))}
 
       body <-
         str_remove(line,fun) %>%
