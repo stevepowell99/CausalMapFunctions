@@ -206,8 +206,11 @@ calculate_robustness_inner <- function(graf){
 
 }
 
+unwrap <- function(str){
+  str_replace_all(str,"\n"," ")
+}
 find_fun <- function(graf,field=NULL,value,operator=NULL,what){
-
+# browser()
   if(is.null(field) & is.null(operator)){
     field="label"
     operator="contains"
@@ -224,14 +227,14 @@ find_fun <- function(graf,field=NULL,value,operator=NULL,what){
 
   if(field %notin% colnames(df)) {notify("No such field");return(df)}
 
-  if(operator=="contains"){df <- df %>%  mutate(found=str_detect(tolower(UQ(sym(field))),tolower(value)))} else
-    if(operator=="notcontains"){df <- df %>%  mutate(found=!str_detect(tolower(UQ(sym(field))),tolower(value)))} else
-      if(operator %in% xc("= equals equal")){df <- df %>%  mutate(found=(tolower(UQ(sym(field)))==tolower(value)))} else
-        if(operator %in% xc("notequals notequal")){df <- df %>%  mutate(found=(tolower(UQ(sym(field)))!=tolower(value)))} else
+  if(operator=="contains"){df <- df %>%  mutate(found=str_detect(tolower(unwrap(UQ(sym(field)))),tolower(value)))} else
+    if(operator=="notcontains"){df <- df %>%  mutate(found=!str_detect(tolower(unwrap(UQ(sym(field)))),tolower(value)))} else
+      if(operator %in% xc("= equals equal")){df <- df %>%  mutate(found=(tolower(unwrap(UQ(sym(field))))==tolower(value)))} else
+        if(operator %in% xc("notequals notequal")){df <- df %>%  mutate(found=(tolower(unwrap(UQ(sym(field))))!=tolower(value)))} else
           if(operator %in% xc("greater")){df <- df %>%  mutate(found=(as.numeric(UQ(sym(field)))>as.numeric(value)))} else
             if(operator %in% xc("less")){df <- df %>%  mutate(found=(as.numeric(UQ(sym(field)))<as.numeric(value)))} else
-              if(operator %in% xc("starts start")){df <- df %>%  mutate(found=str_detect(tolower(UQ(sym(field))),paste0("^",tolower(value))))} else
-                if(operator %in% xc("ends end")){df <- df %>%  mutate(found=str_detect(tolower(UQ(sym(field))),paste0(tolower(value),"$")))}
+              if(operator %in% xc("starts start")){df <- df %>%  mutate(found=str_detect(tolower(unwrap(UQ(sym(field)))),paste0("^",tolower(value))))} else
+                if(operator %in% xc("ends end")){df <- df %>%  mutate(found=str_detect(tolower(unwrap(UQ(sym(field)))),paste0(tolower(value),"$")))}
 
 
   return(df)
