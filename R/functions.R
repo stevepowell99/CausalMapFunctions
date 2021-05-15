@@ -332,7 +332,7 @@ parse_commands <- function(graf,tex){
 
 
         # browser()
-      if(fun %in% c("find factors","find links") & !str_detect(body,operator_list %>% keep(.!="=") %>% paste0(collapse="|"))){
+      if(fun %in% c("find factors") & !str_detect(body,operator_list %>% keep(.!="=") %>% paste0(collapse="|"))){
 
         # browser()
         updown <- body %>% str_match("(up *([0-9]+) *)*( down *([0-9]+))* *$")
@@ -345,6 +345,20 @@ parse_commands <- function(graf,tex){
           value=body ,
           up=up,
           down=down,
+
+          operator="contains"
+        )
+
+      }  else
+      if(fun %in% c("find links") & !str_detect(body,operator_list %>% keep(.!="=") %>% paste0(collapse="|"))){
+
+        # browser()
+        updown <- body %>% str_match("(up *([0-9]+) *)*( down *([0-9]+))* *$")
+        body <- body %>% str_remove("(up *[0-9]+ *)*( down *[0-9]+)* *$")
+        vals=list(
+          graf=graf,
+          field="quote",
+          value=body ,
 
           operator="contains"
         )
