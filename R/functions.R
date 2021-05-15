@@ -330,8 +330,10 @@ parse_commands <- function(graf,tex){
         str_remove(line,fun) %>%
         str_trim
 
+        # browser()
 
         # browser()
+      # case: just text nothing else
       if(fun %in% c("find factors") & !str_detect(body,operator_list %>% keep(.!="=") %>% paste0(collapse="|"))){
 
         # browser()
@@ -352,7 +354,6 @@ parse_commands <- function(graf,tex){
       }  else
       if(fun %in% c("find links") & !str_detect(body,operator_list %>% keep(.!="=") %>% paste0(collapse="|"))){
 
-        # browser()
         updown <- body %>% str_match("(up *([0-9]+) *)*( down *([0-9]+))* *$")
         body <- body %>% str_remove("(up *[0-9]+ *)*( down *[0-9]+)* *$")
         vals=list(
@@ -379,9 +380,10 @@ parse_commands <- function(graf,tex){
         )
 
       }  else
-        if(fun %in% c("find links","find factors")){
+      # case: field operator value
+        if(fun %in% c("find links","find factors") & !str_detect(body,"=")){
 
-        operator <- str_match(body,operator_list) %>% na.omit %>% first
+        operator <- str_match(body,operator_list %>% keep(.!="=")) %>% na.omit %>% first
         vals=list(
           graf=graf,
           field=body %>% str_extract(paste0("^.*",operator)) %>% str_remove(operator) %>% str_trim,
