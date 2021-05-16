@@ -288,7 +288,128 @@ links_table_full <- function(graf){
 
 # Parser ------------------------------------------------------------------
 
+#' Parse line
+#'
+#' The engine for parse_commands
+#' @param graf A tidymap representing a causal map.
+#' @param line A line of text to be parsed
+#' @return A list containing the function name and a list of parameters.
+#' @export
+parse_line <- function(line,graf){
+  if(str_trim(line)=="")return()
+  fun <- word(line, 1,2, sep=" ")
+  if(is.na(fun)){notify("No such function");return(graf %>% filter(F))}
+  if(!exists(str_replace(fun," ","_") %>% paste0("pipe_",.))){notify("No such function");return(graf %>% filter(F))}
 
+  body <-
+    str_remove(line,fun) %>%
+    str_trim
+
+  # browser()
+
+  # browser()
+  # case: just text nothing else
+  if(fun %in% c("find factors") & !str_detect(body,operator_list %>% keep(.!="=") %>% paste0(collapse="|"))){
+
+    # browser()
+    updown <- body %>% str_match("(up *([0-9]+) *)*( down *([0-9]+))* *$")
+    up <- updown[,3] %>% replace_na(0)
+    down <- updown[,5] %>% replace_na(0)
+    body <- body %>% str_remove("(up *[0-9]+ *)*( down *[0-9]+)* *$")
+    vals=list(
+      graf=graf,
+      field="label",
+      value=body ,
+      up=up,
+      down=down,
+
+      operator="contains"
+    )
+
+  }  else
+    if(fun %in% c("find links") & !str_detect(body,operator_list %>% keep(.!="=") %>% paste0(collapse="|"))){
+
+      updown <- body %>% str_match("(up *([0-9]+) *)*( down *([0-9]+))* *$")
+      body <- body %>% str_remove("(up *[0-9]+ *)*( down *[0-9]+)* *$")
+      vals=list(
+        graf=graf,
+        field="quote",
+        value=body ,
+
+        operator="contains"
+      )
+
+    }  else
+      if(fun %in% c("find statements") & !str_detect(body,operator_list %>% keep(.!="=") %>% paste0(collapse="|"))){
+
+        updown <- body %>% str_match("(up *([0-9]+) *)*( down *([0-9]+))* *$")
+        up <- updown[,3] %>% replace_na(0)
+        down <- updown[,5] %>% replace_na(0)
+        body <- body %>% str_remove("(up *[0-9]+ *)*( down *[0-9]+)* *$")
+        vals=list(
+          graf=graf,
+          field="text",
+          value=body,
+
+          operator="contains"
+        )
+
+      }  else
+        # case: field operator value
+        if(fun %in% c("find links","find factors") & !str_detect(body,"=")){
+
+          operator <- str_match(body,operator_list %>% keep(.!="=")) %>% na.omit %>% first
+          vals=list(
+            graf=graf,
+            field=body %>% str_extract(paste0("^.*",operator)) %>% str_remove(operator) %>% str_trim,
+            value=body %>% str_extract(paste0(operator,".*$")) %>% str_remove(operator) %>% str_trim,
+
+
+            operator=operator
+          )
+        }else
+          if(fun %in% c("hide factors") ){
+            fun <- "find factors"
+
+            vals=list(
+              graf=graf,
+              field="label",
+              value=body ,
+
+              operator="notcontains"
+            )
+
+          }
+  else {
+    body <-
+      body %>%
+      str_replace_all(" *=","=") %>%
+      str_trim
+
+    vals <-
+      body %>%
+      str_split("[^ ]*=") %>%
+      `[[`(1) %>%
+      keep(.!="") %>%
+      str_trim %>%
+      as.list
+
+    fields <-
+      body %>%
+      str_extract_all("[^ ]*=") %>%
+      `[[`(1) %>%
+      str_trim %>%
+      str_remove_all("=$")
+
+    if(length(fields)!=length(vals)){notify("Wrong number of values");return(graf %>% filter(F))}
+
+    names(vals) <- fields
+    vals$graf=graf
+
+  }
+  fun <- fun %>% str_replace(" ","_") %>% paste0("pipe_",.)
+  return(list(fun=fun,vals=vals))
+}
 
 #' Parse commands
 #'
@@ -321,120 +442,10 @@ parse_commands <- function(graf,tex){
   if(tex[[1]]=="") graf <- graf else {
 
     for(line in tex){
-      if(str_trim(line)=="")return()
-      fun <- word(line, 1,2, sep=" ")
-      if(is.na(fun)){notify("No such function");return(graf %>% filter(F))}
-      if(!exists(str_replace(fun," ","_") %>% paste0("pipe_",.))){notify("No such function");return(graf %>% filter(F))}
-
-      body <-
-        str_remove(line,fun) %>%
-        str_trim
-
-        # browser()
-
-        # browser()
-      # case: just text nothing else
-      if(fun %in% c("find factors") & !str_detect(body,operator_list %>% keep(.!="=") %>% paste0(collapse="|"))){
-
-        # browser()
-        updown <- body %>% str_match("(up *([0-9]+) *)*( down *([0-9]+))* *$")
-        up <- updown[,3] %>% replace_na(0)
-        down <- updown[,5] %>% replace_na(0)
-        body <- body %>% str_remove("(up *[0-9]+ *)*( down *[0-9]+)* *$")
-        vals=list(
-          graf=graf,
-          field="label",
-          value=body ,
-          up=up,
-          down=down,
-
-          operator="contains"
-        )
-
-      }  else
-      if(fun %in% c("find links") & !str_detect(body,operator_list %>% keep(.!="=") %>% paste0(collapse="|"))){
-
-        updown <- body %>% str_match("(up *([0-9]+) *)*( down *([0-9]+))* *$")
-        body <- body %>% str_remove("(up *[0-9]+ *)*( down *[0-9]+)* *$")
-        vals=list(
-          graf=graf,
-          field="quote",
-          value=body ,
-
-          operator="contains"
-        )
-
-      }  else
-      if(fun %in% c("find statements") & !str_detect(body,operator_list %>% keep(.!="=") %>% paste0(collapse="|"))){
-
-        updown <- body %>% str_match("(up *([0-9]+) *)*( down *([0-9]+))* *$")
-        up <- updown[,3] %>% replace_na(0)
-        down <- updown[,5] %>% replace_na(0)
-        body <- body %>% str_remove("(up *[0-9]+ *)*( down *[0-9]+)* *$")
-        vals=list(
-          graf=graf,
-          field="text",
-          value=body,
-
-          operator="contains"
-        )
-
-      }  else
-      # case: field operator value
-        if(fun %in% c("find links","find factors") & !str_detect(body,"=")){
-
-        operator <- str_match(body,operator_list %>% keep(.!="=")) %>% na.omit %>% first
-        vals=list(
-          graf=graf,
-          field=body %>% str_extract(paste0("^.*",operator)) %>% str_remove(operator) %>% str_trim,
-          value=body %>% str_extract(paste0(operator,".*$")) %>% str_remove(operator) %>% str_trim,
-
-
-          operator=operator
-        )
-        }else
-          if(fun %in% c("hide factors") ){
-            fun <- "find factors"
-
-            vals=list(
-              graf=graf,
-              field="label",
-              value=body ,
-
-              operator="notcontains"
-            )
-
-          }
-      else {
-        body <-
-          body %>%
-          str_replace_all(" *=","=") %>%
-          str_trim
-
-        vals <-
-          body %>%
-          str_split("[^ ]*=") %>%
-          `[[`(1) %>%
-          keep(.!="") %>%
-          str_trim %>%
-          as.list
-
-        fields <-
-          body %>%
-          str_extract_all("[^ ]*=") %>%
-          `[[`(1) %>%
-          str_trim %>%
-          str_remove_all("=$")
-
-        if(length(fields)!=length(vals)){notify("Wrong number of values");return(graf %>% filter(F))}
-
-        names(vals) <- fields
-        vals$graf=graf
-
-      }
-      fun <- fun %>% str_replace(" ","_") %>% paste0("pipe_",.)
       # browser()
-      graf <- possibly(~do.call(fun,vals),otherwise=graf)()
+      tmp <- parse_line(line,graf)
+
+      graf <- possibly(~do.call(tmp$fun,tmp$vals),otherwise=graf)()
 
     }
   }
