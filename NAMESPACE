@@ -2,10 +2,12 @@
 
 export(factors_table)
 export(links_table)
+export(links_table_full)
 export(make_grviz)
 export(make_map_metrics)
 export(make_vn)
 export(parse_commands)
+export(parse_line)
 export(pipe_bundle_factors)
 export(pipe_bundle_links)
 export(pipe_calculate_robustness)

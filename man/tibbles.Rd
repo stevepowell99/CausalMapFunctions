@@ -5,6 +5,7 @@
 \alias{factors_table}
 \alias{links_table}
 \alias{statements_table}
+\alias{links_table_full}
 \title{Extracting tibbles from A tidymap}
 \usage{
 factors_table(graf)
@@ -12,6 +13,8 @@ factors_table(graf)
 links_table(graf)
 
 statements_table(graf)
+
+links_table_full(graf)
 }
 \arguments{
 \item{graf}{A tidymap representing a causal map.

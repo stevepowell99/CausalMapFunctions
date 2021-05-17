@@ -19,7 +19,10 @@ The function name is followed by field=value pairs corresponding to the argument
 
 This parser also provides some abbreviated formats.
 `find links FIELD OPERATOR VALUE` is parsed as `find links field=FIELD operator=OPERATOR value=VALUE`.
-`search factors LONG TEXT ...` is parsed as `search factors value=LONG TEXT ...`.}
+`find factors FIELD OPERATOR VALUE` is parsed as `find factors field=FIELD operator=OPERATOR value=VALUE`.
+`search factors TEXT ...` is parsed as `search factors field=label value=TEXT operator=contains`.
+`search links TEXT ...` is parsed as `search links field=label value=TEXT operator=contains`.
+`search statements TEXT ...` is parsed as `search statements field=text value=TEXT operator=contains`.}
 }
 \value{
 A tidymap, the result of successively applying the commands to the input graph.
