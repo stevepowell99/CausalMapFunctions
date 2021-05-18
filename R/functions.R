@@ -896,7 +896,7 @@ pipe_flip_opposites <- function(graf,flipchar="~"){
   graf %N>%
     mutate(
       is_flipped=str_detect(label,paste0("^ *",flipchar)),
-      label=if_else(is_flipped,flip_vector(label),label)
+      label=if_else(is_flipped,flip_vector(label,flipchar = flipchar),label)
     ) %>%
     activate(edges) %>%
     mutate(from_flipped=.N()$is_flipped[from]) %>%
@@ -1435,8 +1435,8 @@ vn_fan_edges <- function(edges){
 ## grviz -------------------------------------------------------------------
 
 
-#' Make a Graphviz map [https://graphviz.org/documentation/](https://graphviz.org/documentation/)
-#'
+#' Make a Graphviz map
+#' @description Make a Graphviz map: https://graphviz.org/documentation/
 #' @param graf A tidymap. Link and factor tables may contain columns to control formatting
 #' such as `color.border`.
 #' @param maxwidth
