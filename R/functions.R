@@ -305,7 +305,6 @@ parse_line <- function(line,graf){
     str_remove(line,fun) %>%
     str_trim
 
-  # browser()
 
   # browser()
   # case: just text nothing else
@@ -1435,6 +1434,53 @@ vn_fan_edges <- function(edges){
 ## grviz -------------------------------------------------------------------
 
 
+#' Settings for a Graphviz map
+#' @description Graphviz map: https://graphviz.org/documentation/
+#' @param graf A tidymap. Link and factor tables may contain columns to control formatting
+#' such as `color.border`.
+#' @param maxwidth
+#' @param grv_layout What layout to use. Default is `dot`.
+#' @param grv_splines How to create splines. See Graphviz documentation.
+#' @param grv_overlap See Graphviz documentation.
+#' @param color Default font color
+#' @param ranksep_slider
+#' @param nodesep_slider
+#' @param safe_limit Integer. Large maps with many edges can take a long time to layout.
+#' If !is.null(safe_limit), the resulting map is simplified by bundling edges and selecting
+#' most frequent factors.
+#'
+#' @return
+#' @export
+#'
+#' @examples
+pipe_set_print <- function(
+  graf=NULL,
+  maxwidth=NULL,
+  grv_layout="dot",
+  grv_splines ="splines",
+  grv_overlap=F,
+  color="grey",
+  ranksep_slider=3,
+  nodesep_slider=20,
+  safe_limit=200
+
+){
+  graf %>%
+    add_attribute(
+      list(
+             maxwidth=maxwidth,
+             grv_layout=grv_layout,
+             grv_splines=grv_splines,
+             grv_overlap=grv_overlap,
+             color=color,
+             ranksep_slider=ranksep_slider,
+             nodesep_slider=nodesep_slider,
+             safe_limit=safe_limit
+      ),
+      attr="set_print"
+    )
+}
+
 #' Make a Graphviz map
 #' @description Make a Graphviz map: https://graphviz.org/documentation/
 #' @param graf A tidymap. Link and factor tables may contain columns to control formatting
@@ -1457,17 +1503,28 @@ vn_fan_edges <- function(edges){
 make_grviz <- function(
   graf=NULL,
   maxwidth=NULL,
-  grv_layout="dot",
-  grv_splines ="splines",
-  grv_overlap=F,
-  color="grey",
-  ranksep_slider=3,
-  nodesep_slider=20,
-  safe_limit=200
+  grv_layout=NULL,
+  grv_splines=NULL,
+  grv_overlap=NULL,
+  color=NULL,
+  ranksep_slider=NULL,
+  nodesep_slider=NULL,
+  safe_limit=NULL
 
 ){
   # graf b
-  # browser()
+  # if(is.null(grv_layout))
+
+
+  maxwidth <- replace_null(maxwidth,graf %>% attr("set_print") %>% .$maxwidth %>% replace_null("dot"))
+  grv_layout <- replace_null(grv_layout,graf %>% attr("set_print") %>% .$grv_layout %>% replace_null("dot"))
+  grv_splines <- replace_null(grv_splines,graf %>% attr("set_print") %>% .$grv_splines %>% replace_null("splines"))
+  grv_overlap <- replace_null(grv_overlap,graf %>% attr("set_print") %>% .$grv_overlap %>% replace_null(F))
+  color <- replace_null(color,graf %>% attr("set_print") %>% .$color %>% replace_null("grey"))
+  ranksep_slider <- replace_null(ranksep_slider,graf %>% attr("set_print") %>% .$ranksep_slider %>% replace_null(3))
+  nodesep_slider <- replace_null(nodesep_slider,graf %>% attr("set_print") %>% .$nodesep_slider %>% replace_null(20))
+  safe_limit <- replace_null(safe_limit,graf %>% attr("set_print") %>% .$safe_limit %>% replace_null(200))
+
   if(is.null(graf))return()
   graf <- graf %>% pipe_fix_columns()
 
