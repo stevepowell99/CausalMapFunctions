@@ -1517,8 +1517,8 @@ make_grviz <- function(
 
 
   maxwidth <- replace_null(maxwidth,graf %>% attr("set_print") %>% .$maxwidth %>% replace_null("dot"))
-  grv_layout <- replace_null(grv_layout,graf %>% attr("set_print") %>% .$grv_layout %>% replace_null("dot"))
-  grv_splines <- replace_null(grv_splines,graf %>% attr("set_print") %>% .$grv_splines %>% replace_null("splines"))
+  grv_layout <- replace_null(grv_layout,graf %>% attr("set_print") %>% .$grv_layout %>% replace_null(if_else(nrow(graf %>% factors_table)>100,"twopi","dot")))
+  grv_splines <- replace_null(grv_splines,graf %>% attr("set_print") %>% .$grv_splines %>% replace_null(if_else(nrow(graf %>% factors_table)>100,"lines","splines")))
   grv_overlap <- replace_null(grv_overlap,graf %>% attr("set_print") %>% .$grv_overlap %>% replace_null(F))
   color <- replace_null(color,graf %>% attr("set_print") %>% .$color %>% replace_null("grey"))
   ranksep_slider <- replace_null(ranksep_slider,graf %>% attr("set_print") %>% .$ranksep_slider %>% replace_null(3))
@@ -1536,6 +1536,8 @@ make_grviz <- function(
 
     if(nrow(factors_table(graf))>safe_limit) graf <- graf %>% pipe_select_factors(safe_limit/10)
   }
+
+
   if("id" %in% colnames(factors_table(graf)))graf <-  graf %>% select(-id)
   # if("n" %in% colnames(links_table(graf)))graf <-  graf %>% mutate(tooltip=as.character(n))
 
