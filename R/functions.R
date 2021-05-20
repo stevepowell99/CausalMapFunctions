@@ -837,7 +837,7 @@ pipe_calculate_robustness <- function(graf,field=NULL){
   res <- list()
   if("found_from" %notin% factor_colnames(graf)) {warning("No found_from column");return(NA)}
   if("found_to" %notin% factor_colnames(graf)) {warning("No found_to column");return(NA)}
-  if(field=="")field <- NULL
+  if(field %>% replace_null("")=="")field <- NULL
 
   if(is.null(field)) res$summary <- (calculate_robustness_inner(graf)) else
 
