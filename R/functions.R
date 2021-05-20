@@ -380,6 +380,7 @@ parse_line <- function(line,graf){
 
           }
   else {
+    # browser()
     body <-
       body %>%
       str_replace_all(" *=","=") %>%
@@ -388,8 +389,8 @@ parse_line <- function(line,graf){
     vals <-
       body %>%
       str_split("[^ ]*=") %>%
-      `[[`(1) %>%
-      keep(.!="") %>%
+      pluck(1) %>%
+      `[`(-1) %>%
       str_trim %>%
       as.list
 
@@ -822,7 +823,7 @@ pipe_trace_paths <- function(graf,from,to,length=4){
 #' The scores for the "All sources" column are calculated by constructing an additional factor
 #' as an ultimate source which is connected to the other sources by links of infinite capacity,
 #' and likewise for the "All targets" row.
-#' If `field` is not NULL, robustness is calculated several times, once for each value of that field.
+#' If `field` is not NULL (or not the empty string), robustness is calculated several times, once for each value of that field.
 #' In this case, what is returned is a dataframe which summarises the set of dataframes so that
 #' the value of each cell in the returned dataframe is the number of these values for which
 #' the robustness value in the corresponden is not zero.
@@ -836,6 +837,7 @@ pipe_calculate_robustness <- function(graf,field=NULL){
   res <- list()
   if("found_from" %notin% factor_colnames(graf)) {warning("No found_from column");return(NA)}
   if("found_to" %notin% factor_colnames(graf)) {warning("No found_to column");return(NA)}
+  if(field=="")field <- NULL
 
   if(is.null(field)) res$summary <- (calculate_robustness_inner(graf)) else
 
@@ -1515,21 +1517,23 @@ make_grviz <- function(
   # graf b
   # if(is.null(grv_layout))
 
+  safe_limit <- replace_null(safe_limit,graf %>% attr("set_print") %>% .$safe_limit %>% replace_null(200))
+  if((nrow(graf %>% links_table)>safe_limit))notify("Map larger than 'safe limit'; setting print layout to twopi")
+  if((nrow(graf %>% links_table)>safe_limit))notify("Map larger than 'safe limit'; setting print layout to use straight edges")
 
   maxwidth <- replace_null(maxwidth,graf %>% attr("set_print") %>% .$maxwidth %>% replace_null("dot"))
-  grv_layout <- replace_null(grv_layout,graf %>% attr("set_print") %>% .$grv_layout %>% replace_null(if_else(nrow(graf %>% factors_table)>100,"twopi","dot")))
-  grv_splines <- replace_null(grv_splines,graf %>% attr("set_print") %>% .$grv_splines %>% replace_null(if_else(nrow(graf %>% factors_table)>100,"lines","splines")))
+  grv_layout <- replace_null(grv_layout,graf %>% attr("set_print") %>% .$grv_layout %>% replace_null(if_else(nrow(graf %>% factors_table)>safe_limit,"twopi","dot")))
+  grv_splines <- replace_null(grv_splines,graf %>% attr("set_print") %>% .$grv_splines %>% replace_null(if_else(nrow(graf %>% factors_table)>safe_limit,"lines","splines")))
   grv_overlap <- replace_null(grv_overlap,graf %>% attr("set_print") %>% .$grv_overlap %>% replace_null(F))
   color <- replace_null(color,graf %>% attr("set_print") %>% .$color %>% replace_null("grey"))
   ranksep_slider <- replace_null(ranksep_slider,graf %>% attr("set_print") %>% .$ranksep_slider %>% replace_null(3))
   nodesep_slider <- replace_null(nodesep_slider,graf %>% attr("set_print") %>% .$nodesep_slider %>% replace_null(20))
-  safe_limit <- replace_null(safe_limit,graf %>% attr("set_print") %>% .$safe_limit %>% replace_null(200))
 
   if(is.null(graf))return()
   graf <- graf %>% pipe_fix_columns()
 
   if(!is.null(safe_limit) & nrow(links_table(graf))>replace_null(safe_limit,200)){
-    notify("Map is too large for print view; consolidating.",3)
+    notify("Map larger than 'safe limit'; bundling and labelling links")
     graf <- graf %>%
       pipe_bundle_links() %>%
       pipe_label_links("n")
