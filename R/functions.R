@@ -184,8 +184,19 @@ calculate_robustness_inner <- function(graf){
     cn <- (graf %>% factors_table %>% filter(found_from) %>% pull(label))
     sourcevec <- sources
   }
-
-
+graf %>% distance_table()
+## actually this is stupid because you don't need to calculate flow, you can just
+## look at the distances. However flow is hardly any slower, so why not.
+## Here is the same thing with distances - it isn't any faster.
+#   if(quick){
+# # browser()
+#   all_flows <-
+#     sinkvec %>% map(function(y)(sourcevec %>% map(function(x) if(x %in% sinks) Inf else shortest_paths(graf,x,y,mode="out")$vpath %>% pluck(1) %>% length %>% `>`(1))) %>% unlist) %>%
+#     do.call("rbind",.) %>%
+#     as_tibble %>%
+#     mutate_all(as.numeric)
+# }
+#     else
   all_flows <-
 
     sinkvec %>% map(function(y)(sourcevec %>% map(function(x) if(x %in% sinks) Inf else max_flow(graf,x,y)$value)) %>% unlist) %>%
