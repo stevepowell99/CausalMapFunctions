@@ -758,6 +758,7 @@ pipe_trace_paths <- function(graf,from,to,length=4){
   if(is.na(length)) {notify("You have to specify length");return(graf)}
   if(from=="") {notify("You have to specify source factors");return(graf)}
   if(to=="") {notify("You have to specify target factors");return(graf)}
+  # browser()
   graf <- graf %>% activate(nodes)
   from <- from %>% make_search
   to <- to %>% make_search
@@ -846,8 +847,9 @@ pipe_trace_paths <- function(graf,from,to,length=4){
 #' if(F)cashTransferMap %>% pipe_trace_paths(from="Cash",to="Increa",length=4) %>% pipe_merge_statements %>% pipe_calculate_robustness(field="#SourceID") %>% attr("flow")
 pipe_calculate_robustness <- function(graf,field=NULL){
   res <- list()
-  if("found_from" %notin% factor_colnames(graf)) {warning("No found_from column");return(NA)}
-  if("found_to" %notin% factor_colnames(graf)) {warning("No found_to column");return(NA)}
+  # browser()
+  if("found_from" %notin% factor_colnames(graf)) {warning("No found_from column");return(graf)}  # if("found_from" %notin% factor_colnames(graf)) {warning("No found_from column");return(graf)}
+  if("found_to" %notin% factor_colnames(graf)) {warning("No found_to column");return(graf)}
   if(field %>% replace_null("")=="")field <- NULL
 
   if(is.null(field)) res$summary <- (calculate_robustness_inner(graf)) else
