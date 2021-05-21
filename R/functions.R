@@ -1684,8 +1684,16 @@ robustUI <- function(graf){
               quantile(flow, probs = seq(.99, 1, .001), na.rm = TRUE))
     clrs <- round(seq(255, 40, length.out = length(brks) + 1), 0) %>%
       {paste0("rgb(",.,",", ., ",", "255)")}
+    flow <- flow %>%
+      arrange(UQ(sym(colnames(flow)[1])) %>% desc)
+
+    ## because if all targets / all sources is NA, top row will not be All targets
+    if("All targets" %in% rownames(flow)){
+      flow <-
+        bind_rows(flow["All targets",],flow[rownames(flow)!="All targets",])
+    }
+
     flow %>%
-      arrange(UQ(sym(colnames(flow)[1])) %>% desc) %>%
       datatable(caption="Maximum flow / minimum cut",rownames = T,editable=F,extensions = 'Buttons',
                 options = list(
         # columnDefs = list(list(width = paste0(100/ncol(row),"%"), targets = (0:ncol(flow)))),
