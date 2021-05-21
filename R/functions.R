@@ -1469,13 +1469,20 @@ vn_fan_edges <- function(edges){
 pipe_set_print <- function(
   graf=NULL,
   maxwidth=NULL,
-  grv_layout="dot",
-  grv_splines ="splines",
-  grv_overlap=F,
-  color="grey",
-  ranksep_slider=3,
-  nodesep_slider=20,
-  safe_limit=200
+  grv_layout=NULL,
+  grv_splines=NULL,
+  grv_overlap=NULL,
+  color=NULL,
+  ranksep_slider=NULL,
+  nodesep_slider=NULL,
+  safe_limit=NULL
+  # grv_layout="dot",
+  # grv_splines ="splines",
+  # grv_overlap=F,
+  # color="grey",
+  # ranksep_slider=3,
+  # nodesep_slider=20,
+  # safe_limit=200
 
 ){
   graf %>%
@@ -1527,14 +1534,21 @@ make_grviz <- function(
 ){
   # graf b
   # if(is.null(grv_layout))
-
+# browser()
   safe_limit <- replace_null(safe_limit,graf %>% attr("set_print") %>% .$safe_limit %>% replace_null(200))
-  if((nrow(graf %>% links_table)>safe_limit))notify("Map larger than 'safe limit'; setting print layout to twopi")
-  if((nrow(graf %>% links_table)>safe_limit))notify("Map larger than 'safe limit'; setting print layout to use straight edges")
+
+
+  # if((nrow(graf %>% factors_table)>safe_limit/3))notify("Map larger than 'safe limit'; setting print layout to twopi")
+  # if((nrow(graf %>% links_table)>safe_limit))notify("Map larger than 'safe limit'; setting print layout to use straight edges")
 
   maxwidth <- replace_null(maxwidth,graf %>% attr("set_print") %>% .$maxwidth %>% replace_null("dot"))
-  grv_layout <- replace_null(grv_layout,graf %>% attr("set_print") %>% .$grv_layout %>% replace_null(if_else(nrow(graf %>% factors_table)>safe_limit,"twopi","dot")))
-  grv_splines <- replace_null(grv_splines,graf %>% attr("set_print") %>% .$grv_splines %>% replace_null(if_else(nrow(graf %>% factors_table)>safe_limit,"lines","splines")))
+
+  grv_layout <- replace_null(grv_layout,
+                             graf %>% attr("set_print") %>% .$grv_layout %>% replace_null(
+                               if_else(nrow(graf %>% factors_table)>safe_limit/3,"twopi","dot")))
+
+
+  grv_splines <- replace_null(grv_splines,graf %>% attr("set_print") %>% .$grv_splines %>% replace_null(if_else(nrow(graf %>% factors_table)>safe_limit/3,"lines","splines")))
   grv_overlap <- replace_null(grv_overlap,graf %>% attr("set_print") %>% .$grv_overlap %>% replace_null(F))
   color <- replace_null(color,graf %>% attr("set_print") %>% .$color %>% replace_null("grey"))
   ranksep_slider <- replace_null(ranksep_slider,graf %>% attr("set_print") %>% .$ranksep_slider %>% replace_null(3))
@@ -1549,7 +1563,7 @@ make_grviz <- function(
       pipe_bundle_links() %>%
       pipe_label_links("n")
 
-    if(nrow(factors_table(graf))>safe_limit) graf <- graf %>% pipe_select_factors(safe_limit/10)
+    # if(nrow(factors_table(graf))>safe_limit) graf <- graf %>% pipe_select_factors(safe_limit/10)
   }
 
 
