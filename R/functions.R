@@ -80,6 +80,10 @@ make_search <- function(x)x %>% escapeRegex %>% str_replace_all(" OR ","|") %>% 
 zoom_inner <- function(string,n,char){
   string %>% map(~str_split(.,char) %>% `[[`(1) %>% `[`(1:n) %>% keep(!is.na(.)) %>% paste0(collapse=char)) %>% unlist
 }
+
+zoom_index <- function(vec){
+  vec %>% map(function(y)(y==unique(vec)) %>% which %>% min) %>% unlist
+}
 flip_inner_component <- function(tex,flipchar="~"){
   if_else(str_detect(tex,paste0("^ *",flipchar)),str_remove(tex,paste0("^ *",flipchar)),paste0("~",tex))
 }
@@ -227,7 +231,7 @@ find_fun <- function(graf,field=NULL,value,operator=NULL,what){
     operator="contains"
   }
 
-  if(field %in% xc("label text")){
+  if(field %in% xc("label text from_label to_label")){
 
     value <- value %>% make_search
   }
@@ -290,11 +294,15 @@ statements_table <- function(graf)graf %>%
 #' @export
 #'
 links_table_full <- function(graf){
+  # browser()
+  if("old_label_" %notin% colnames(factors_table(graf))) graf <- graf %>% mutate(old_label_=label)
   graf %>%
     links_table %>%
-    left_join(factors_table(graf) %>% mutate(id=row_number()) %>% select(from=id,label_from=label),by="from") %>%
-    left_join(factors_table(graf) %>% mutate(id=row_number()) %>% select(to=id,label_to=label),by="to") %>%
-    select(label_from,label_to,everything())
+    select(-any_of(c("from_old_label_","to_old_label_","from_label","to_label"))) %>%
+    left_join((factors_table(graf) %>% mutate(id=row_number()) %>% select(from=id,from_label=label,from_old_label_=old_label_)),by="from") %>%
+    select(-any_of(c("to_old_label_","to_label"))) %>%
+    left_join((factors_table(graf) %>% mutate(id=row_number()) %>% select(to=id,to_label=label,to_old_label_=old_label_)),by="to") %>%
+    select(from_label,to_label,from_old_label_,to_old_label_,everything())
 }
 
 # Parser ------------------------------------------------------------------
@@ -537,8 +545,9 @@ pipe_find_factors <- function(graf,field=NULL,value,operator=NULL,up=0,down=0){
 #' pipe_find_links(cashTransferMap,field="label",value="Cash",operator="contains")
 #' pipe_find_links(cashTransferMap,field="from",value="12",operator="greater")
 pipe_find_links <- function(graf,field=NULL,value,operator=NULL){
+# browser()
   st <- attr(graf,"statements")
-  df <- graf %>% links_table %>% find_fun(field,value,operator)
+  df <- graf %>% links_table_full %>% find_fun(field,value,operator)
   tbl_graph(factors_table(graf),df) %E>% filter(found) %>% add_statements(st) %>% activate(nodes)
 
 }
@@ -631,23 +640,39 @@ pipe_select_factors <- function(graf,top=20,all=F){
 #' @export
 #'
 #' @examples
-pipe_zoom_factors <- function(graf,level,separator=";",hide=T){
-  # browser()
+pipe_zoom_factors <- function(graf,level=1,separator=";",hide=T){
   level=as.numeric(level)
   hide=as.logical(hide)
   # flow=attr(graf,"flow")
   statements <- graf %>% statements_table()
   if(level<1) return(graf)
+
+
   gr <- graf %>%
     activate(nodes) %>%
     filter(!hide | str_detect(label,separator)) %>%
-    mutate(label=if_else(str_detect(label,separator),zoom_inner(label,level,separator),label)) %>%
-    convert(to_contracted,label,simplify=F)  %>%
-    mutate(zoomed_=str_detect(label,separator))
+    mutate(old_label=label,label=if_else(str_detect(old_label,separator),zoom_inner(old_label,level,separator),old_label))
+  old_nodes <- gr %>% factors_table()
 
-  tbl_graph(gr %>% factors_table %>% as.data.frame %>% select(label=1,zoomed_),gr %>% links_table  %>% as.data.frame) %>%
-    add_statements(statements)# %>%
-    # add_attribute(flow,"flow")
+
+  lookup <- zoom_index(gr %>% pull(label))
+
+  gr <- gr %>%
+    mutate(label=if_else(str_detect(label,separator),zoom_inner(label,level,separator),label)) %>%
+    activate(edges) %>%
+    mutate(old_from=from,old_to=to) %>%
+    igraph::contract(mapping = lookup,vertex.attr.comb = "first") %>% as_tbl_graph()
+
+  nodes <- gr %>% factors_table()
+  edges <- gr %>% links_table_full()
+  edges$old_from_label <- old_nodes$old_label[edges$old_from]
+  edges$old_to_label <- old_nodes$old_label[edges$old_to]
+  edges <- edges %>% select(from,to,from_label,to_label,old_from_label,old_to_label)
+
+
+  tbl_graph(nodes,edges) %>%
+    add_statements(statements)
+
 
 }
 
