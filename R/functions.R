@@ -73,7 +73,8 @@ load_graf_from_rds <- function(name){
 }
 
 
-make_search <- function(x)x %>% escapeRegex %>% str_replace_all(" OR ","|") %>% str_trim
+make_search <- function(x)x %>% escapeRegex %>% str_trim
+# make_search <- function(x)x %>% escapeRegex %>% str_replace_all(" OR ","|") %>% str_trim
 
 
 
@@ -242,14 +243,24 @@ find_fun <- function(graf,field=NULL,value,operator=NULL,what){
 
   if(field %notin% colnames(df)) {notify("No such field");return(df)}
 
-  if(operator=="contains"){df <- df %>%  mutate(found=str_detect(tolower(unwrap(UQ(sym(field)))),tolower(value)))} else
-    if(operator=="notcontains"){df <- df %>%  mutate(found=!str_detect(tolower(unwrap(UQ(sym(field)))),tolower(value)))} else
-      if(operator %in% xc("= equals equal")){df <- df %>%  mutate(found=(tolower(unwrap(UQ(sym(field))))==tolower(value)))} else
-        if(operator %in% xc("notequals notequal")){df <- df %>%  mutate(found=(tolower(unwrap(UQ(sym(field))))!=tolower(value)))} else
-          if(operator %in% xc("greater")){df <- df %>%  mutate(found=(as.numeric(UQ(sym(field)))>as.numeric(value)))} else
-            if(operator %in% xc("less")){df <- df %>%  mutate(found=(as.numeric(UQ(sym(field)))<as.numeric(value)))} else
-              if(operator %in% xc("starts start")){df <- df %>%  mutate(found=str_detect(tolower(unwrap(UQ(sym(field)))),paste0("^",tolower(value))))} else
-                if(operator %in% xc("ends end")){df <- df %>%  mutate(found=str_detect(tolower(unwrap(UQ(sym(field)))),paste0(tolower(value),"$")))}
+    value=tolower(value)
+
+  if(operator=="contains"){df <- df %>%  mutate(found=str_detect(tolower(unwrap(UQ(sym(field)))),value %>% paste0(collapse="|")))} else
+    if(operator=="notcontains"){df <- df %>%  mutate(found=!str_detect(tolower(unwrap(UQ(sym(field)))),value %>% paste0(collapse="|")))} else
+      if(operator %in% xc("= equals equal")){df <- df %>%  mutate(found=(tolower(unwrap(UQ(sym(field)))) %in% value))} else
+        if(operator %in% xc("notequals notequal")){df <- df %>%  mutate(found=(tolower(unwrap(UQ(sym(field)))) %notin% value))} else
+          if(operator %in% xc("greater")){df <- df %>%  mutate(found=(as.numeric(UQ(sym(field)))>max(as.numeric(value),na.rm=T)))} else
+            if(operator %in% xc("less")){df <- df %>%  mutate(found=(as.numeric(UQ(sym(field)))<min(as.numeric(value),na.rm=T)))} else
+              if(operator %in% xc("starts start")){df <- df %>%  mutate(found=str_detect(tolower(unwrap(UQ(sym(field)))),paste0("^",value %>% paste0(collapse="|"))))} else
+                if(operator %in% xc("ends end")){df <- df %>%  mutate(found=str_detect(tolower(unwrap(UQ(sym(field)))),paste0(value %>% paste0(collapse="|"),"$")))}
+  # if(operator=="contains"){df <- df %>%  mutate(found=str_detect(tolower(unwrap(UQ(sym(field)))),tolower(value)))} else
+  #   if(operator=="notcontains"){df <- df %>%  mutate(found=!str_detect(tolower(unwrap(UQ(sym(field)))),tolower(value)))} else
+  #     if(operator %in% xc("= equals equal")){df <- df %>%  mutate(found=(tolower(unwrap(UQ(sym(field))))==tolower(value)))} else
+  #       if(operator %in% xc("notequals notequal")){df <- df %>%  mutate(found=(tolower(unwrap(UQ(sym(field))))!=tolower(value)))} else
+  #         if(operator %in% xc("greater")){df <- df %>%  mutate(found=(as.numeric(UQ(sym(field)))>as.numeric(value)))} else
+  #           if(operator %in% xc("less")){df <- df %>%  mutate(found=(as.numeric(UQ(sym(field)))<as.numeric(value)))} else
+  #             if(operator %in% xc("starts start")){df <- df %>%  mutate(found=str_detect(tolower(unwrap(UQ(sym(field)))),paste0("^",tolower(value))))} else
+  #               if(operator %in% xc("ends end")){df <- df %>%  mutate(found=str_detect(tolower(unwrap(UQ(sym(field)))),paste0(tolower(value),"$")))}
 
 
   return(df)
@@ -562,7 +573,7 @@ pipe_find_links <- function(graf,field=NULL,value,operator=NULL){
 pipe_find_statements <- function(graf,field,value,operator="="){
   if(!has_statements(graf)) {notify("No statements");return(graf)}
 
-
+# browser()
   tmp <- graf %>%
     attr("statements") %>% find_fun(field,value,operator)  %>%
     filter(found)
