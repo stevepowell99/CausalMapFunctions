@@ -396,19 +396,20 @@ parse_line <- function(line,graf){
 
             operator=operator
           )
-        }else
-          if(fun %in% c("hide factors") ){
-            fun <- "find factors"
-
-            vals=list(
-              graf=graf,
-              field="label",
-              value=body ,
-
-              operator="notcontains"
-            )
-
-          }
+        }
+  # else
+          # if(fun %in% c("hide factors") ){
+          #   fun <- "find factors"
+          #
+          #   vals=list(
+          #     graf=graf,
+          #     field="label",
+          #     value=body ,
+          #
+          #     operator="notcontains"
+          #   )
+          #
+          # }
   else {
     # browser()
     body <-
@@ -434,6 +435,7 @@ parse_line <- function(line,graf){
     if(length(fields)!=length(vals)){notify("Wrong number of values");return(graf %>% filter(F))}
 
     names(vals) <- fields
+    vals$value <- str_split(vals$value," OR ") %>% unlist
     vals$graf=graf
 
   }
