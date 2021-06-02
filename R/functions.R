@@ -30,6 +30,9 @@ replace_zero <- function(x,replacement=0){
   if(length(x)==0) replacement else x
 }
 
+left_join_safe <- function(x,y,by,...){
+  left_join(x,y %>% select(colnames(.) %>% setdiff(colnames(x)) %>% c(by)),...)
+}
 
 xc <- function(x, sep = " ") {
   str_split(x, sep)[[1]]
@@ -313,7 +316,9 @@ links_table_full <- function(graf){
     left_join((factors_table(graf) %>% mutate(id=row_number()) %>% select(from=id,from_label=label,from_old_label_=old_label_)),by="from") %>%
     select(-any_of(c("to_old_label_","to_label"))) %>%
     left_join((factors_table(graf) %>% mutate(id=row_number()) %>% select(to=id,to_label=label,to_old_label_=old_label_)),by="to") %>%
-    select(from_label,to_label,from_old_label_,to_old_label_,everything())
+    select(from_label,to_label,from_old_label_,to_old_label_,everything()) %>%
+    pipe_merge_statements()
+
 }
 
 # Parser ------------------------------------------------------------------
@@ -499,10 +504,11 @@ parse_commands <- function(graf,tex){
 #'cashTransferMap %>% pipe_find_statements(field="text",value="women",operator="contains")
 pipe_merge_statements <- function(graf){
 
-  graf %>%
+  if(!is.null(attr(graf,"statements"))) graf %>%
     activate(edges) %>%
-    left_join(attr(graf,"statements") ,by="statement_id") %>%
+    left_join_safe(attr(graf,"statements") ,by="statement_id") %>%
     activate(nodes)
+  else graf
 }
 
 
