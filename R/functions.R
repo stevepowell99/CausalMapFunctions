@@ -103,7 +103,7 @@ flip_vector <- function(tex,flipchar="~",sepchar=";"){
     unlist(recursive=F)
 }
 
-div_pal_n <- function(vec,lo=lo,hi=hi,mid=mid){
+div_pal_n <- function(vec,lo,hi,mid){
   div_gradient_pal(low=lo,high=hi,mid=mid)(rescale(vec)) %>% alpha(.6)
 }
 viridis_pal_n <- function(vec){
@@ -114,9 +114,17 @@ brewer_pal_n <- function(vec){
   vec <- vec %>% as.factor %>% as.numeric
   scales::brewer_pal("qual")(length(unique(vec)))[vec] %>% alpha(.9)
 }
-create_colors <- function(vec,lo=lo,hi=hi,mid=mid){
-  if(class(vec)=="character") brewer_pal_n(vec) else div_pal_n(vec,lo=lo,hi=hi,mid=mid)
+create_colors <- function(vec,lo,hi,mid,type){
+  # browser()
+  if(class(vec)=="character") res <- brewer_pal_n(vec) else res <- div_pal_n(vec,lo=lo,hi=hi,mid=mid)
+  attr(res,type) <-   (tibble(vec,res) %>% unique)
+  res
 }
+# create_colors_legend <- function(vec,lo,hi,mid){
+#   # browser()
+#   if(class(vec)=="character") res <- brewer_pal_n(vec) else res <- div_pal_n(vec,lo=lo,hi=hi,mid=mid)
+#   tibble(vec,res) %>% unique
+# }
 
 
 
@@ -1148,7 +1156,7 @@ pipe_color_factors <- function(graf,field="n",lo="green",hi="blue",mid="gray",fi
   if(!is.null(fixed))return(graf %N>% mutate(color.background=fixed))
   graf <- pipe_metrics(graf)
   if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
-  graf %N>% mutate(color.background=create_colors(UQ(sym(field)),lo=lo,hi=hi,mid=mid))
+  graf %N>% mutate(color.background=create_colors(UQ(sym(field)),lo=lo,hi=hi,mid=mid,type="color_factors"))
 }
 #' Color factors (border color)
 #'
@@ -1169,7 +1177,7 @@ pipe_color_borders <- function(graf,field="n",lo="green",hi="blue",mid="gray",fi
   if(!is.null(fixed))return(graf %N>% mutate(color.border=fixed))
   graf <- pipe_metrics(graf)
   if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
-  graf %N>% mutate(color.border=create_colors(UQ(sym(field)),lo=lo,hi=hi,mid=mid))
+  graf %N>% mutate(color.border=create_colors(UQ(sym(field)),lo=lo,hi=hi,mid=mid,type="color_borders"))
 }
 
 #' Color links
@@ -1190,7 +1198,9 @@ pipe_color_borders <- function(graf,field="n",lo="green",hi="blue",mid="gray",fi
 pipe_color_links <- function(graf,field="n",lo="green",hi="blue",mid="gray",fixed=NULL){
   if(!is.null(fixed))return(graf %E>% mutate(color=fixed) %>% activate(nodes))
   if(field %notin% link_colnames(graf)){warning("No such column");return(graf)}
-  graf %E>% mutate(color=create_colors(UQ(sym(field)),lo=lo,hi=hi,mid=mid)) %>% activate(nodes)
+  # browser()
+  graf %E>% mutate(color=create_colors(UQ(sym(field)),lo=lo,hi=hi,mid=mid,type="color_links")) %>%
+    activate(nodes)
 
 
 }
