@@ -114,17 +114,12 @@ brewer_pal_n <- function(vec){
   vec <- vec %>% as.factor %>% as.numeric
   scales::brewer_pal("qual")(length(unique(vec)))[vec] %>% alpha(.9)
 }
-create_colors <- function(vec,lo,hi,mid,type){
+create_colors <- function(vec,lo,hi,mid,type,field=""){
   # browser()
   if(class(vec)=="character") res <- brewer_pal_n(vec) else res <- div_pal_n(vec,lo=lo,hi=hi,mid=mid)
-  attr(res,type) <-   (tibble(vec,res) %>% unique)
+  attr(res,type) <-   list(table=tibble(vec,res) %>% unique,field=field)
   res
 }
-# create_colors_legend <- function(vec,lo,hi,mid){
-#   # browser()
-#   if(class(vec)=="character") res <- brewer_pal_n(vec) else res <- div_pal_n(vec,lo=lo,hi=hi,mid=mid)
-#   tibble(vec,res) %>% unique
-# }
 
 
 
@@ -1156,7 +1151,7 @@ pipe_color_factors <- function(graf,field="n",lo="green",hi="blue",mid="gray",fi
   if(!is.null(fixed))return(graf %N>% mutate(color.background=fixed))
   graf <- pipe_metrics(graf)
   if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
-  graf %N>% mutate(color.background=create_colors(UQ(sym(field)),lo=lo,hi=hi,mid=mid,type="color_factors"))
+  graf %N>% mutate(color.background=create_colors(UQ(sym(field)),lo=lo,hi=hi,mid=mid,type="color_factors",field=field))
 }
 #' Color factors (border color)
 #'
@@ -1177,7 +1172,7 @@ pipe_color_borders <- function(graf,field="n",lo="green",hi="blue",mid="gray",fi
   if(!is.null(fixed))return(graf %N>% mutate(color.border=fixed))
   graf <- pipe_metrics(graf)
   if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
-  graf %N>% mutate(color.border=create_colors(UQ(sym(field)),lo=lo,hi=hi,mid=mid,type="color_borders"))
+  graf %N>% mutate(color.border=create_colors(UQ(sym(field)),lo=lo,hi=hi,mid=mid,type="color_borders",field=field))
 }
 
 #' Color links
@@ -1199,7 +1194,7 @@ pipe_color_links <- function(graf,field="n",lo="green",hi="blue",mid="gray",fixe
   if(!is.null(fixed))return(graf %E>% mutate(color=fixed) %>% activate(nodes))
   if(field %notin% link_colnames(graf)){warning("No such column");return(graf)}
   # browser()
-  graf %E>% mutate(color=create_colors(UQ(sym(field)),lo=lo,hi=hi,mid=mid,type="color_links")) %>%
+  graf %E>% mutate(color=create_colors(UQ(sym(field)),lo=lo,hi=hi,mid=mid,type="color_links",field=field)) %>%
     activate(nodes)
 
 
