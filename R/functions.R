@@ -1290,9 +1290,9 @@ pipe_label_links <- function(graf,field="n",clear=F){
 #' @examples
 pipe_remove_brackets <- function(graf,value="["){
   if(value=="[")graf %N>%
-    mutate(label=str_remove_all(label,"\\[.*\\]"))
+    mutate(label=str_remove_all(label,"\\[.*?\\]"))
   else if(value=="(")graf %N>%
-    mutate(label=str_remove_all(label,"\\(.*\\)"))
+    mutate(label=str_remove_all(label,"\\(.*?\\)"))
 }
 #' Wrap factor labels
 #'
