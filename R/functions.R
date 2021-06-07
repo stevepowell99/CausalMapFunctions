@@ -821,8 +821,8 @@ pipe_trace_paths <- function(graf,from,to,length=4){
 
   if(!any(graf %>% factors_table %>% pull(found_any))) return(graf %>% filter(F))
 
-  tracedownvec <- graf %>% distances(to=graf %>% factors_table %>% pull(found_from),mode="in") %>% apply(1,min)
-  traceupvec <- graf %>% distances(to=graf %>% factors_table %>% pull(found_to),mode="out") %>% apply(1,min)
+  tracedownvec <- graf %>% distances(to=graf %>% factors_table %>% pull(found_from),mode="in") %>% apply(1,min,na.rm=T)
+  traceupvec <- graf %>% distances(to=graf %>% factors_table %>% pull(found_to),mode="out") %>% apply(1,min,na.rm=T)
 
   # here we need to intervene to make sure that influences don't move closer to the source, as this is a kind of loop
 
