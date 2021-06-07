@@ -1070,14 +1070,15 @@ pipe_metrics <- function(graf){
 
   graf  %N>%
     mutate(
-      group=suppressMessages(group_infomap()),
+      # group=suppressMessages(group_infomap()),
       "in_degree"=centrality_degree(mode = "in"),
       "out_degree"=centrality_degree(mode = "out"),
       n=in_degree+out_degree,
       # keyplayer=node_is_keyplayer(),
-      "is_centre"=node_is_center(mode = "out"),
-      "is_cut"=node_is_cut(),
-      betweenness=centrality_betweenness(directed = T) %>% round(2)
+      # "is_centre"=node_is_center(mode = "out"),
+      # "is_cut"=node_is_cut()
+      betweenness=(graf %>% igraph::centr_betw())$res %>% round(2)
+
     )
 }
 
@@ -1124,6 +1125,7 @@ pipe_scale_factors <- function(graf,field="n"){
 #'
 #' @examples
 pipe_label_factors <- function(graf,field="n",clear=F){
+  # browser()
   clear=as.logical(clear)
   graf <- pipe_metrics(graf)
   if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
