@@ -712,13 +712,13 @@ pipe_zoom_factors <- function(graf,level=1,separator=";",hide=T){
 pipe_bundle_factors <- function(graf,value=""){
   graf <- graf %>% activate(nodes)
   statements <- graf %>% statements_table()
-  value <- value %>% make_search
-
+  value <- value %>% make_search %>% paste0(collapse="|")
+# browser()
   gr <-
     graf %>%
     pipe_fix_columns() %>%
     mutate(
-      label=if(value=="")
+      label=if(value[1]=="")
         str_match(label,"^[^ ]*") %>% `[`(,1)
       else if_else(str_detect(label,value),str_match(label,paste0(value)),label)
     ) %>%
