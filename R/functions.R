@@ -689,9 +689,9 @@ pipe_zoom_factors <- function(graf,level=1,separator=";",hide=T){
   edges <- gr %>% links_table_full()
   edges$old_from_label <- old_nodes$old_label[edges$old_from]
   edges$old_to_label <- old_nodes$old_label[edges$old_to]
-  edges <- edges %>% select(from,to,from_label,to_label,old_from_label,old_to_label)
-
 # browser()
+#   edges <- edges %>% select(from,to,from_label,to_label,old_from_label,old_to_label)
+
   tbl_graph(nodes,edges) %>%
     filter(!hide | str_detect(old_label,separator) | any(old_label %in% nodes$label)) %>%
     add_statements(statements)
