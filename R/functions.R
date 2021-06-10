@@ -232,28 +232,28 @@ unwrap <- function(str){
   str_replace_all(str,"\n"," ")
 }
 find_fun <- function(graf,field=NULL,value,operator=NULL,what){
-# browser()
   if(is.null(field) & is.null(operator)){
     field="label"
     operator="contains"
   }
+    value_original <- value
 
   if(field %in% xc("label text from_label to_label")){
 
-    value <- value %>% make_search
+    value <- value %>% make_search %>% tolower()
   }
   # if("what"=="factors") graf <- graf %>% activate(nodes) else
   # if("what"=="links") graf <- graf %>% activate(edges) else
   #   df <- graf %>% attr("statements")
     df <- graf
 
+# browser()
   if(field %notin% colnames(df)) {notify("No such field");return(df)}
 
-    value=tolower(value)
 
   if(operator=="contains"){df <- df %>%  mutate(found=str_detect(tolower(unwrap(UQ(sym(field)))),value %>% paste0(collapse="|")))} else
     if(operator=="notcontains"){df <- df %>%  mutate(found=!str_detect(tolower(unwrap(UQ(sym(field)))),value %>% paste0(collapse="|")))} else
-      if(operator %in% xc("= equals equal")){df <- df %>%  mutate(found=(tolower(unwrap(UQ(sym(field)))) %in% value))} else
+      if(operator %in% xc("= equals equal")){df <- df %>%  mutate(found=(make_search(tolower(unwrap(UQ(sym(field))))) %in% value))} else
         if(operator %in% xc("notequals notequal")){df <- df %>%  mutate(found=(tolower(unwrap(UQ(sym(field)))) %notin% value))} else
           if(operator %in% xc("greater")){df <- df %>%  mutate(found=(as.numeric(UQ(sym(field)))>max(as.numeric(value),na.rm=T)))} else
             if(operator %in% xc("less")){df <- df %>%  mutate(found=(as.numeric(UQ(sym(field)))<min(as.numeric(value),na.rm=T)))} else
@@ -269,6 +269,11 @@ find_fun <- function(graf,field=NULL,value,operator=NULL,what){
   #               if(operator %in% xc("ends end")){df <- df %>%  mutate(found=str_detect(tolower(unwrap(UQ(sym(field)))),paste0(tolower(value),"$")))}
 
 
+  if(operator %in% xc("= equals equal")){
+    vec <- df[,field] %>% unique
+    pager_current <- which(value_original==vec) %>% min
+    attr(df,"pager") <- list(pager=vec,pager_current=pager_current)
+  }
   return(df)
 
 }
@@ -495,6 +500,11 @@ parse_commands <- function(graf,tex){
 
 # main graph functions ----------------------------------------------------
 
+pipe_page_factors <- function(...)pipe_find_factors(...)
+pipe_page_statements <- function(...)pipe_find_statements(...)
+pipe_page_links <- function(...)pipe_find_links(...)
+
+
 #' Merge statements into links
 #'
 #' @inheritParams parse_commands
@@ -548,7 +558,9 @@ pipe_find_factors <- function(graf,field=NULL,value,operator=NULL,up=0,down=0){
 
   st <- attr(graf,"statements")
   df <- graf %>% factors_table %>% find_fun(field,value,operator)
-  graf <- tbl_graph(df,links_table(graf)) %>% add_statements(st)
+  pager <- df %>% attr("pager")
+
+  graf <- tbl_graph(df,links_table(graf)) %>% add_statements(st) %>% add_attribute(pager,"pager")
   downvec <- graf %>% distances(to=graf %>% factors_table %>% pull(found),mode="in") %>% apply(1,min) %>% `<=`(down)
   upvec <- graf %>% distances(to=graf %>% factors_table %>% pull(found),mode="out") %>% apply(1,min) %>% `<=`(up)
   # browser()
@@ -570,7 +582,11 @@ pipe_find_links <- function(graf,field=NULL,value,operator=NULL){
 # browser()
   st <- attr(graf,"statements")
   df <- graf %>% links_table_full %>% find_fun(field,value,operator)
-  tbl_graph(factors_table(graf),df) %E>% filter(found) %>% add_statements(st) %>% activate(nodes)
+
+  pager <- df %>% attr("pager")
+
+
+  tbl_graph(factors_table(graf),df) %E>% filter(found) %>% add_statements(st) %>% add_attribute(pager,"pager") %>% activate(nodes)
 
 }
 
@@ -588,10 +604,13 @@ pipe_find_statements <- function(graf,field,value,operator="="){
   tmp <- graf %>%
     attr("statements") %>% find_fun(field,value,operator)  %>%
     filter(found)
+
+
   return(graf %>%
            activate(edges) %>%
            filter(statement_id %in% tmp$statement_id) %>%
            add_statements(tmp) %>%
+           add_attribute(attr(tmp,"pager"),"pager") %>%
            activate(nodes)
          )
 
