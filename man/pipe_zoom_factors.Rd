@@ -4,7 +4,7 @@
 \alias{pipe_zoom_factors}
 \title{Zoom factors}
 \usage{
-pipe_zoom_factors(graf, level, separator = ";", hide = T)
+pipe_zoom_factors(graf, level = 1, separator = ";", hide = T)
 }
 \arguments{
 \item{graf}{A tidymap representing a causal map.

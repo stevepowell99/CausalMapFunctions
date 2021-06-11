@@ -4,7 +4,15 @@
 \alias{pipe_find_factors}
 \title{Find factors}
 \usage{
-pipe_find_factors(graf, field = NULL, value, operator = NULL, up = 0, down = 0)
+pipe_find_factors(
+  graf,
+  field = NULL,
+  value,
+  operator = NULL,
+  up = 0,
+  down = 0,
+  pager = F
+)
 }
 \arguments{
 \item{field}{Field (column, variable) to search}

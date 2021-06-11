@@ -27,7 +27,7 @@ score from the corresponding source factor (column) to the corresponding target 
 The scores for the "All sources" column are calculated by constructing an additional factor
 as an ultimate source which is connected to the other sources by links of infinite capacity,
 and likewise for the "All targets" row.
-If `field` is not NULL, robustness is calculated several times, once for each value of that field.
+If `field` is not NULL (or not the empty string), robustness is calculated several times, once for each value of that field.
 In this case, what is returned is a dataframe which summarises the set of dataframes so that
 the value of each cell in the returned dataframe is the number of these values for which
 the robustness value in the corresponden is not zero.

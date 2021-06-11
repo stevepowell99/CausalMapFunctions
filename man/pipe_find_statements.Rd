@@ -4,7 +4,7 @@
 \alias{pipe_find_statements}
 \title{Find statements}
 \usage{
-pipe_find_statements(graf, field, value, operator = "=")
+pipe_find_statements(graf, field, value, operator = "=", pager = F)
 }
 \arguments{
 \item{field}{Field (column, variable) to search}
