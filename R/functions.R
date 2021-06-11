@@ -231,7 +231,7 @@ graf %>% distance_table()
 unwrap <- function(str){
   str_replace_all(str,"\n"," ")
 }
-find_fun <- function(graf,field=NULL,value,operator=NULL,what){
+find_fun <- function(graf,field=NULL,value,operator=NULL,what,pager=F){
   if(is.null(field) & is.null(operator)){
     field="label"
     operator="contains"
@@ -269,7 +269,7 @@ find_fun <- function(graf,field=NULL,value,operator=NULL,what){
   #               if(operator %in% xc("ends end")){df <- df %>%  mutate(found=str_detect(tolower(unwrap(UQ(sym(field)))),paste0(tolower(value),"$")))}
 
 
-  if(operator %in% xc("= equals equal")){
+  if(pager & operator %in% xc("= equals equal")){
     vec <- df[,field] %>% unique
     pager_current <- which(value_original==vec) %>% min
     attr(df,"pager") <- list(pager=vec,pager_current=pager_current)
@@ -500,9 +500,9 @@ parse_commands <- function(graf,tex){
 
 # main graph functions ----------------------------------------------------
 
-pipe_page_factors <- function(...)pipe_find_factors(...)
-pipe_page_statements <- function(...)pipe_find_statements(...)
-pipe_page_links <- function(...)pipe_find_links(...)
+pipe_page_factors <- function(...)pipe_find_factors(pager=T,...)
+pipe_page_statements <- function(...)pipe_find_statements(pager=T,...)
+pipe_page_links <- function(...)pipe_find_links(pager=T,...)
 
 
 #' Merge statements into links
@@ -554,10 +554,10 @@ pipe_merge_statements <- function(graf){
 #' pipe_find_factors(cashTransferMap,field="label",value="Cash",operator="contains")
 #' pipe_find_factors(cashTransferMap,field="id",value=10,operator="greater")
 #' pipe_find_factors(cashTransferMap,NULL,"purchase OR buy")
-pipe_find_factors <- function(graf,field=NULL,value,operator=NULL,up=0,down=0){
+pipe_find_factors <- function(graf,field=NULL,value,operator=NULL,up=0,down=0,pager=F){
 
   st <- attr(graf,"statements")
-  df <- graf %>% factors_table %>% find_fun(field,value,operator)
+  df <- graf %>% factors_table %>% find_fun(field,value,operator,pager=pager)
   pager <- df %>% attr("pager")
 
   graf <- tbl_graph(df,links_table(graf)) %>% add_statements(st) %>% add_attribute(pager,"pager")
@@ -578,10 +578,10 @@ pipe_find_factors <- function(graf,field=NULL,value,operator=NULL,up=0,down=0){
 #' pipe_find_links(cashTransferMap,value="Cash")
 #' pipe_find_links(cashTransferMap,field="label",value="Cash",operator="contains")
 #' pipe_find_links(cashTransferMap,field="from",value="12",operator="greater")
-pipe_find_links <- function(graf,field=NULL,value,operator=NULL){
+pipe_find_links <- function(graf,field=NULL,value,operator=NULL,pager=F){
 # browser()
   st <- attr(graf,"statements")
-  df <- graf %>% links_table_full %>% find_fun(field,value,operator)
+  df <- graf %>% links_table_full %>% find_fun(field,value,operator,pager=pager)
 
   pager <- df %>% attr("pager")
 
@@ -597,12 +597,12 @@ pipe_find_links <- function(graf,field=NULL,value,operator=NULL){
 #' @export
 #'
 #' @examples
-pipe_find_statements <- function(graf,field,value,operator="="){
+pipe_find_statements <- function(graf,field,value,operator="=",pager=F){
   if(!has_statements(graf)) {notify("No statements");return(graf)}
 
 # browser()
   tmp <- graf %>%
-    attr("statements") %>% find_fun(field,value,operator)  %>%
+    attr("statements") %>% find_fun(field,value,operator,pager=pager)  %>%
     filter(found)
 
 
