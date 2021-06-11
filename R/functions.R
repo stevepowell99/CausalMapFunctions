@@ -75,7 +75,10 @@ load_graf_from_rds <- function(name){
   tbl_graph(tmp$factors,tmp$links)
 }
 
-
+#' Make search
+#'
+#' @export
+#'
 make_search <- function(x)x %>% escapeRegex %>% str_trim
 # make_search <- function(x)x %>% escapeRegex %>% str_replace_all(" OR ","|") %>% str_trim
 
