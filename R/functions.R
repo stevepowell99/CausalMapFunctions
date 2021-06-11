@@ -4,6 +4,7 @@ library(visNetwork)
 library(tidyverse)
 library(tidygraph)
 library(scales)
+library(DT) # for formatStyle only
 #library(RColorBrewer)
 
 
