@@ -6,6 +6,12 @@
 \usage{
 make_search(x)
 }
+\arguments{
+\item{x}{Some text}
+}
+\value{
+The same text but trimmed and with regex escaped
+}
 \description{
 Make search
 }

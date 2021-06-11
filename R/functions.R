@@ -75,12 +75,6 @@ load_graf_from_rds <- function(name){
   tbl_graph(tmp$factors,tmp$links)
 }
 
-#' Make search
-#'
-#' @export
-#'
-make_search <- function(x)x %>% escapeRegex %>% str_trim
-# make_search <- function(x)x %>% escapeRegex %>% str_replace_all(" OR ","|") %>% str_trim
 
 
 
@@ -331,6 +325,14 @@ links_table_full <- function(graf){
     select(from_label,to_label,from_old_label_,to_old_label_,everything())
 
 }
+#' Make search
+#'
+#' @param x Some text
+#' @return The same text but trimmed and with regex escaped
+#' @export
+#'
+make_search <- function(x)x %>% escapeRegex %>% str_trim
+# make_search <- function(x)x %>% escapeRegex %>% str_replace_all(" OR ","|") %>% str_trim
 
 # Parser ------------------------------------------------------------------
 
