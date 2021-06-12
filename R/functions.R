@@ -1759,10 +1759,7 @@ robustUI <- function(graf){
   if(!is.null(flow)){
     flow <-  flow %>% column_to_rownames(var="row_names")
     flow[is.infinite(as.matrix(flow))] <- NA # because the colorbar plugin chokes on Inf
-    brks <- c(quantile(flow, probs = seq(.05, .9899, .05), na.rm = TRUE),
-              quantile(flow, probs = seq(.99, 1, .001), na.rm = TRUE))
-    clrs <- round(seq(255, 40, length.out = length(brks) + 1), 0) %>%
-      {paste0("rgb(",.,",", ., ",", "255)")}
+
     flow <- flow %>%
       arrange(UQ(sym(colnames(flow)[1])) %>% desc)
 
@@ -1782,11 +1779,12 @@ robustUI <- function(graf){
 
         dom = 'Bfrtip',
         buttons = c('copy', 'csv', 'excel', 'pdf', 'print', I('colvis'))
-      )) %>% formatStyle(names(flow),
-                         backgroundColor = styleInterval(brks, clrs))
-                         #backgroundSize = '98% 88%',
-                         #background = styleColorBar(range(flow,na.rm=T), 'lightblue'),
-                         #backgroundRepeat = 'no-repeat',
-                         #backgroundPosition = 'center')
+      )) %>% add_heat_map(flow)
   }}
 
+heat_breaks <- function(flow)c(quantile(flow, probs = seq(.05, .9899, .05), na.rm = TRUE),
+                         quantile(flow, probs = seq(.99, 1, .001), na.rm = TRUE))
+heat_colors <- function(flow)round(seq(255, 40, length.out = length(heat_breaks(flow)) + 1), 0) %>%
+  paste0("rgb(",.,",", ., ",", "255)")
+add_heat_map <- function(dt,flow)formatStyle(dt,names(flow),
+                                          backgroundColor = styleInterval(heat_breaks(flow),heat_colors(flow)))
