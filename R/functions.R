@@ -1786,5 +1786,14 @@ heat_breaks <- function(flow)c(quantile(flow, probs = seq(.05, .9899, .05), na.r
                          quantile(flow, probs = seq(.99, 1, .001), na.rm = TRUE))
 heat_colors <- function(flow)round(seq(255, 40, length.out = length(heat_breaks(flow)) + 1), 0) %>%
   paste0("rgb(",.,",", ., ",", "255)")
+
+#' Add heat map
+#'
+#' @param dt
+#' @param flow
+#'
+#' @return
+#' @export
+#'
 add_heat_map <- function(dt,flow)formatStyle(dt,names(flow),
                                           backgroundColor = styleInterval(heat_breaks(flow),heat_colors(flow)))
