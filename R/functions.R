@@ -989,7 +989,6 @@ pipe_flip_opposites <- function(graf,flipchar="~"){
       is_flipped=str_detect(label,paste0("^ *",flipchar)),
       label=if_else(is_flipped,flip_vector(label,flipchar = flipchar),label)
     ) %>%
-    pipe_condense_factors() %>%
     activate(edges) %>%
     mutate(from_flipped=.N()$is_flipped[from]) %>%
     mutate(to_flipped=.N()$is_flipped[to]) %>%
@@ -1007,7 +1006,8 @@ pipe_flip_opposites <- function(graf,flipchar="~"){
       color=paste0(from_color,";0.5:",to_color)
 
     ) %>%
-    activate(nodes)
+    activate(nodes) %>%
+    pipe_condense_factors()
 }
 
 
