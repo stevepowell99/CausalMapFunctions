@@ -982,21 +982,12 @@ pipe_condense_factors <- function(graf){
   graf  %>%
     igraph::contract(mapping = lookup,vertex.attr.comb = "first") %>% as_tbl_graph()
 }
-
-pipe_flip_opposites <- function(graf,flipchar="~"){
-  graf <- graf %N>%
-    mutate(
-      is_flipped=str_detect(label,paste0("^ *",flipchar)),
-      label=if_else(is_flipped,flip_vector(label,flipchar = flipchar),label)
-    ) %>%
-    activate(edges) %>%
-    mutate(from_flipped=.N()$is_flipped[from]) %>%
-    mutate(to_flipped=.N()$is_flipped[to]) %>%
-    mutate(
-      from_color = case_when(
-        from_flipped  ~  "#ff8fb8",
-        T ~  "#00ffaf"
-      )) %>%
+pipe_color_flipped_links <- function(graf){
+  graf %E>% mutate(
+    from_color = case_when(
+      from_flipped  ~  "#ff8fb8",
+      T ~  "#00ffaf"
+    )) %>%
     mutate(
       to_color = case_when(
         to_flipped  ~  "#ff8fb8",
@@ -1006,7 +997,19 @@ pipe_flip_opposites <- function(graf,flipchar="~"){
       color=paste0(from_color,";0.5:",to_color)
 
     ) %>%
-    activate(nodes) %>%
+    activate(nodes)
+}
+
+pipe_flip_opposites <- function(graf,flipchar="~",add_colors=T){
+  graf <- graf %N>%
+    mutate(
+      is_flipped=str_detect(label,paste0("^ *",flipchar)),
+      label=if_else(is_flipped,flip_vector(label,flipchar = flipchar),label)
+    ) %>%
+    activate(edges) %>%
+    mutate(from_flipped=.N()$is_flipped[from]) %>%
+    mutate(to_flipped=.N()$is_flipped[to]) %>%
+    if_else(add_colors,pipe_color_flipped_links(.),.) %N>%
     pipe_condense_factors()
 }
 
