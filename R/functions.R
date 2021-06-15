@@ -83,7 +83,7 @@ zoom_inner <- function(string,n,char){
   string %>% map(~str_split(.,char) %>% `[[`(1) %>% `[`(1:n) %>% keep(!is.na(.)) %>% paste0(collapse=char)) %>% unlist
 }
 
-zoom_index <- function(vec){
+relocation_index <- function(vec){
   vec %>% map(function(y)(y==unique(vec)) %>% which %>% min) %>% unlist
 }
 flip_inner_component <- function(tex,flipchar="~"){
@@ -702,13 +702,12 @@ pipe_zoom_factors <- function(graf,level=1,separator=";",hide=T){
   old_nodes <- gr %>% factors_table()
 
 
-  lookup <- zoom_index(gr %>% pull(label))
-
   gr <- gr %>%
     mutate(label=if_else(str_detect(label,separator),zoom_inner(label,level,separator),label)) %>%
     activate(edges) %>%
     mutate(old_from=from,old_to=to) %>%
-    igraph::contract(mapping = lookup,vertex.attr.comb = "first") %>% as_tbl_graph()
+    activate(nodes) %>%
+    pipe_condense_factors()
 
   nodes <- gr %>% factors_table()
   edges <- gr %>% links_table_full()
@@ -977,17 +976,37 @@ pipe_remove_isolated <- function(graf){
     filter(!node_is_isolated())
 }
 
+pipe_condense_factors <- function(graf){
+  lookup <- relocation_index(graf %>% pull(label))
 
+  graf  %>%
+    igraph::contract(mapping = lookup,vertex.attr.comb = "first") %>% as_tbl_graph()
+}
 
 pipe_flip_opposites <- function(graf,flipchar="~"){
-  graf %N>%
+  graf <- graf %N>%
     mutate(
       is_flipped=str_detect(label,paste0("^ *",flipchar)),
       label=if_else(is_flipped,flip_vector(label,flipchar = flipchar),label)
     ) %>%
+    pipe_condense_factors() %>%
     activate(edges) %>%
     mutate(from_flipped=.N()$is_flipped[from]) %>%
     mutate(to_flipped=.N()$is_flipped[to]) %>%
+    mutate(
+      from_color = case_when(
+        from_flipped  ~  "#ff8fb8",
+        T ~  "#00ffaf"
+      )) %>%
+    mutate(
+      to_color = case_when(
+        to_flipped  ~  "#ff8fb8",
+        T ~  "#00ffaf"
+      )) %>%
+    mutate(
+      color=paste0(from_color,";0.5:",to_color)
+
+    ) %>%
     activate(nodes)
 }
 
