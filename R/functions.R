@@ -4,7 +4,7 @@ library(visNetwork)
 library(tidyverse)
 library(tidygraph)
 library(scales)
-library(DT) # for formatStyle only
+# library(DT) # for formatStyle only
 #library(RColorBrewer)
 
 
@@ -1691,7 +1691,7 @@ make_grviz <- function(
 
   if("id" %in% colnames(factors_table(graf)))graf <-  graf %>% select(-id)
   # if("n" %in% colnames(links_table(graf)))graf <-  graf %>% mutate(tooltip=as.character(n))
-
+browser()
   grv <-
     graf %>%
     activate(nodes) %>%
