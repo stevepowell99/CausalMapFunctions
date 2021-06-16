@@ -100,6 +100,14 @@ flip_vector <- function(tex,flipchar="~",sepchar=";"){
   lapply(tex,function(x)flip_inner(x,flipchar=flipchar,sepchar=sepchar)) %>%
     unlist(recursive=F)
 }
+flip_fix_vector <- function(tex,flipchar="~",sepchar=";"){  # to get always one space between sep and flip
+  tex %>%
+    str_replace_all(paste0(sepchar," *",flipchar),paste0(sepchar,flipchar)) %>%
+    str_replace_all(paste0(sepchar,flipchar," *"),paste0(sepchar,flipchar))
+}
+
+
+
 
 div_pal_n <- function(vec,lo,hi,mid){
   div_gradient_pal(low=lo,high=hi,mid=mid)(rescale(vec)) %>% alpha(.6)
@@ -976,11 +984,21 @@ pipe_remove_isolated <- function(graf){
     filter(!node_is_isolated())
 }
 
+
+# proportion_false <- function(vec)sum(vec)/length(vec)
+proportion_false <- function(lis) lis %>% map(~sum(unlist(.))/length(.)) %>% unlist
+
 pipe_condense_factors <- function(graf){
   lookup <- relocation_index(graf %>% pull(label))
-
   graf  %>%
-    igraph::contract(mapping = lookup,vertex.attr.comb = "first") %>% as_tbl_graph()
+    igraph::contract(mapping = lookup,vertex.attr.comb = list(is_flipped="concat","first")) %>% as_tbl_graph() %>% activate(nodes) %>%
+    mutate(id=row_number())
+}
+pipe_color_flipped_factors <- function(graf){
+  graf %>%
+    mutate(is_flipped=proportion_false(is_flipped)) %>%
+    mutate(color.border= div_gradient_pal("#00ffaf","white","#ff8fb8")(is_flipped))
+
 }
 pipe_color_flipped_links <- function(graf){
   graf %E>% mutate(
@@ -1000,17 +1018,20 @@ pipe_color_flipped_links <- function(graf){
     activate(nodes)
 }
 
+
 pipe_flip_opposites <- function(graf,flipchar="~",add_colors=T){
-  graf <- graf %N>%
+  graf %N>%
     mutate(
       is_flipped=str_detect(label,paste0("^ *",flipchar)),
-      label=if_else(is_flipped,flip_vector(label,flipchar = flipchar),label)
+      label=if_else(is_flipped,flip_vector(label,flipchar = flipchar),label),
+      label=flip_fix_vector(label)
     ) %>%
     activate(edges) %>%
     mutate(from_flipped=.N()$is_flipped[from]) %>%
     mutate(to_flipped=.N()$is_flipped[to]) %>%
-    if_else(add_colors,pipe_color_flipped_links(.),.) %N>%
-    pipe_condense_factors()
+    {if(add_colors)pipe_color_flipped_links(.) else .} %N>%
+    pipe_condense_factors() %N>%
+    {if(add_colors)pipe_color_flipped_factors(.) else .}
 }
 
 
