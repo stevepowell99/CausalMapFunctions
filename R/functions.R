@@ -334,6 +334,17 @@ links_table_full <- function(graf){
     select(from_label,to_label,from_old_label_,to_old_label_,everything())
 
 }
+
+
+#' Timestamp
+#'
+#' @export
+#'
+time_stamp <- function(){
+  Sys.time() %>% format("%Y %m %d %H-%M-%S") %>% str_replace_all(":","-")
+}
+
+
 #' Make search
 #'
 #' @param x Some text
