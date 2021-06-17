@@ -483,6 +483,7 @@ parse_line <- function(line,graf){
 #' Each line starts with two words corresponding to the name of the pipe function to be applied,
 #' e.g. `color links` calls the function `color_links`.
 #' The function name is followed by field=value pairs corresponding to the arguments of the function such as `top=10`.
+#' Lines beginning with a hash # are treated as comments and ignored.
 #'
 #' This parser also provides some abbreviated formats.
 #' `find links FIELD OPERATOR VALUE` is parsed as `find links field=FIELD operator=OPERATOR value=VALUE`.
@@ -496,7 +497,7 @@ parse_line <- function(line,graf){
 #' @examples
 #'cashTransferMap %>% parse_commands("select factors top=10 \n color factors field=n") %>% make_vn()
 parse_commands <- function(graf,tex){
-  tex <- tex %>% replace_null("") %>% str_split("\n") %>% `[[`(1) %>% str_trim() #%>% escapeRegex
+  tex <- tex %>% replace_null("") %>% str_split("\n") %>% `[[`(1) %>% str_trim() %>% keep(!str_detect(.,"^#"))
   if(length(tex)>1)tex <- tex %>% keep(.!="")
   if(tex[[1]]=="") graf <- graf else {
 
@@ -1020,6 +1021,7 @@ pipe_color_flipped_links <- function(graf){
 
 
 pipe_flip_opposites <- function(graf,flipchar="~",add_colors=T){
+  if(add_colors)notify("Also adding colours; you can turn this off with 'flip opposites add_colors=FALSE'")
   graf %N>%
     mutate(
       is_flipped=str_detect(label,paste0("^ *",flipchar)),
