@@ -1691,7 +1691,7 @@ make_grviz <- function(
 
   if("id" %in% colnames(factors_table(graf)))graf <-  graf %>% select(-id)
   # if("n" %in% colnames(links_table(graf)))graf <-  graf %>% mutate(tooltip=as.character(n))
-browser()
+
   grv <-
     graf %>%
     activate(nodes) %>%
@@ -1712,6 +1712,7 @@ browser()
     mutate(arrowhead="normal") %>%
     select(-any_of("id")) %>%
     activate(nodes) %>%
+    select(label,color.border,color.background,size,tooltip,fillcolor,color,fontsize,fontcolor) %>%
     DiagrammeR::from_igraph() %>%
     DiagrammeR::add_global_graph_attrs("layout", grv_layout, "graph") %>%
     DiagrammeR::add_global_graph_attrs("splines", grv_splines, "graph") %>%
