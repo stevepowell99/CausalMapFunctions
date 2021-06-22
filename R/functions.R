@@ -1483,7 +1483,6 @@ make_map_metrics <- function(graf){
 #' @examples
 make_vn <- function(graf,scale=1){
   graf <- graf %>% pipe_fix_columns()
-  # browser()
   nodes <- graf %N>% as_tibble %>% mutate(value=size*10) %>%
     select(any_of(xc("label color.background color.border title group value hidden size"))) ### restrictive in attempt to reduce random freezes
   # browser()
@@ -1496,7 +1495,8 @@ make_vn <- function(graf,scale=1){
     nodes <- data.frame(nodes, layout)
     ############## don't get tempted to use the internal visnetwork layout functions - problems with fitting to screen, and they are slower ....
   }
-  nodes <- nodes %>%   mutate(id=row_number())
+  edges <- edges %>%   mutate(id=row_number())
+  # browser()
   visNetwork(nodes,edges,background="white")   %>%
     visNodes(
       shadow = list(enabled = T, size = 10),
