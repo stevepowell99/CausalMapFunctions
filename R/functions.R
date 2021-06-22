@@ -316,7 +316,8 @@ links_table <- function(graf)graf %>%
 #' @export
 #'
 statements_table <- function(graf)graf %>%
-  attr("statements")
+  attr("statements") %>%
+  filter(statement_id %in% links_table(graf)$statement_id)
 
 #' @rdname tibbles
 #' @export
