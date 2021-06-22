@@ -1495,8 +1495,9 @@ make_vn <- function(graf,scale=1){
     nodes <- data.frame(nodes, layout)
     ############## don't get tempted to use the internal visnetwork layout functions - problems with fitting to screen, and they are slower ....
   }
-  edges <- edges %>%   mutate(id=row_number())
   # browser()
+  nodes <- nodes %>%   mutate(id=row_number())
+  edges <- edges %>%   mutate(id=NULL)
   visNetwork(nodes,edges,background="white")   %>%
     visNodes(
       shadow = list(enabled = T, size = 10),
