@@ -317,7 +317,8 @@ links_table <- function(graf)graf %>%
 #'
 statements_table <- function(graf)graf %>%
   attr("statements") %>%
-  filter(statement_id %in% links_table(graf)$statement_id)
+  {if(is.null(.)) NULL else
+  filter(.,statement_id %in% links_table(graf)$statement_id)}
 
 #' @rdname tibbles
 #' @export
