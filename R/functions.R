@@ -32,6 +32,8 @@ replace_zero <- function(x,replacement=0){
 }
 
 left_join_safe <- function(x,y,by,...){
+  browser()
+
   left_join(x,y %>% select(colnames(.) %>% setdiff(colnames(x)) %>% c(by)),...)
 }
 
@@ -237,21 +239,23 @@ graf %>% distance_table()
 unwrap <- function(str){
   str_replace_all(str,"\n"," ")
 }
-find_fun <- function(graf,field=NULL,value,operator=NULL,what,pager=F){
+find_fun <- function(df,field=NULL,value,operator=NULL,what,pager=F){
+  # browser()
   if(is.null(field) & is.null(operator)){
     field="label"
     operator="contains"
   }
     value_original <- value
 
-  if(field %in% xc("label text from_label to_label")){
+  if(is.character(df[[field]])){
+  # if(field %in% xc("label text from_label to_label")){
 
     value <- value %>% make_search %>% tolower()
   }
-  # if("what"=="factors") graf <- graf %>% activate(nodes) else
-  # if("what"=="links") graf <- graf %>% activate(edges) else
+  # if("what"=="factors") df <- df %>% activate(nodes) else
+  # if("what"=="links") df <- df %>% activate(edges) else
   #   df <- graf %>% attr("statements")
-    df <- graf
+    # df <- graf
 
 # browser()
   if(field %notin% colnames(df)) {notify("No such field");return(df)}
@@ -265,14 +269,6 @@ find_fun <- function(graf,field=NULL,value,operator=NULL,what,pager=F){
             if(operator %in% xc("less")){df <- df %>%  mutate(found=(as.numeric(UQ(sym(field)))<min(as.numeric(value),na.rm=T)))} else
               if(operator %in% xc("starts start")){df <- df %>%  mutate(found=str_detect(tolower(unwrap(UQ(sym(field)))),paste0("^",value %>% paste0(collapse="|"))))} else
                 if(operator %in% xc("ends end")){df <- df %>%  mutate(found=str_detect(tolower(unwrap(UQ(sym(field)))),paste0(value %>% paste0(collapse="|"),"$")))}
-  # if(operator=="contains"){df <- df %>%  mutate(found=str_detect(tolower(unwrap(UQ(sym(field)))),tolower(value)))} else
-  #   if(operator=="notcontains"){df <- df %>%  mutate(found=!str_detect(tolower(unwrap(UQ(sym(field)))),tolower(value)))} else
-  #     if(operator %in% xc("= equals equal")){df <- df %>%  mutate(found=(tolower(unwrap(UQ(sym(field))))==tolower(value)))} else
-  #       if(operator %in% xc("notequals notequal")){df <- df %>%  mutate(found=(tolower(unwrap(UQ(sym(field))))!=tolower(value)))} else
-  #         if(operator %in% xc("greater")){df <- df %>%  mutate(found=(as.numeric(UQ(sym(field)))>as.numeric(value)))} else
-  #           if(operator %in% xc("less")){df <- df %>%  mutate(found=(as.numeric(UQ(sym(field)))<as.numeric(value)))} else
-  #             if(operator %in% xc("starts start")){df <- df %>%  mutate(found=str_detect(tolower(unwrap(UQ(sym(field)))),paste0("^",tolower(value))))} else
-  #               if(operator %in% xc("ends end")){df <- df %>%  mutate(found=str_detect(tolower(unwrap(UQ(sym(field)))),paste0(tolower(value),"$")))}
 
 
   if(pager & operator %in% xc("= equals equal")){
@@ -366,6 +362,7 @@ make_search <- function(x)x %>% escapeRegex %>% str_trim
 #' @return A list containing the function name and a list of parameters.
 #' @export
 parse_line <- function(line,graf){
+  # browser()
   if(str_trim(line)=="")return()
   fun <- word(line, 1,2, sep=" ")
   if(is.na(fun)){notify("No such function");return(graf %>% filter(F))}
@@ -376,7 +373,6 @@ parse_line <- function(line,graf){
     str_trim
 
 
-  # browser()
   # case: just text nothing else
   if(fun %in% c("find factors") & !str_detect(body,operator_list %>% keep(.!="=") %>% paste0(collapse="|"))){
 
@@ -510,6 +506,7 @@ parse_line <- function(line,graf){
 #' @examples
 #'cashTransferMap %>% parse_commands("select factors top=10 \n color factors field=n") %>% make_vn()
 parse_commands <- function(graf,tex){
+
   tex <- tex %>% replace_null("") %>% str_split("\n") %>% `[[`(1) %>% str_trim() %>% keep(!str_detect(.,"^#"))
   if(length(tex)>1)tex <- tex %>% keep(.!="")
   if(tex[[1]]=="") graf <- graf else {
@@ -544,10 +541,10 @@ pipe_page_links <- function(...)pipe_find_links(pager=T,...)
 #'cashTransferMap %>% pipe_merge_statements() %>% pipe_find_links(field="text",value="women",operator="contains")
 #'cashTransferMap %>% pipe_find_statements(field="text",value="women",operator="contains")
 pipe_merge_statements <- function(graf){
-
   if(!is.null(attr(graf,"statements"))) graf %>%
     activate(edges) %>%
-    left_join_safe(attr(graf,"statements") ,by="statement_id") %>%
+    mutate(statement_id=as.numeric(statement_id)) %>%
+    left_join(attr(graf,"statements") ,by="statement_id") %>%
     activate(nodes)
   else graf
 }
