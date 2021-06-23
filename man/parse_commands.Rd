@@ -16,6 +16,7 @@ In this package, nodes are called `factors` and edges are called `links.`}
 Each line starts with two words corresponding to the name of the pipe function to be applied,
 e.g. `color links` calls the function `color_links`.
 The function name is followed by field=value pairs corresponding to the arguments of the function such as `top=10`.
+Lines beginning with a hash # are treated as comments and ignored.
 
 This parser also provides some abbreviated formats.
 `find links FIELD OPERATOR VALUE` is parsed as `find links field=FIELD operator=OPERATOR value=VALUE`.
