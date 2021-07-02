@@ -31,11 +31,11 @@ replace_zero <- function(x,replacement=0){
   if(length(x)==0) replacement else x
 }
 
-left_join_safe <- function(x,y,by,...){
-  browser()
-
-  left_join(x,y %>% select(colnames(.) %>% setdiff(colnames(x)) %>% c(by)),...)
-}
+# left_join_safe <- function(x,y,by,...){
+#   browser()
+#
+#   left_join(x,y %>% select(colnames(.) %>% setdiff(colnames(x)) %>% c(by)),...)
+# }
 
 xc <- function(x, sep = " ") {
   str_split(x, sep)[[1]]
@@ -63,6 +63,70 @@ add_attribute <- function(graf,value,attr="flow"){
 }
 
 
+load_graf_from_rds <- function(name){
+  tmp <- readRDS(name)
+  tbl_graph(tmp$factors,tmp$links)
+}
+
+standard_factors <- function(links=standard_links()){if(is.null(links$from) | is.null(links$to))stop("Wrong links");tibble(label=c(links$from,links$to) %>% unique %>% as.character,factor_note="")}
+standard_links <- function()tibble(
+  from=1,
+  to=1,
+  weight=1,
+  strength=1,
+  certainty=1,
+  from_flipped=F,
+  to_flipped=F,
+  label="",
+  hashtag="",
+  link_note=""
+  )
+standard_statements <- function()tibble(statement_id=1,text="blank statement",statement_note="")
+standard_sources <- function()tibble(source_id=1,text="global source",source_note="",new_column_1="")
+standard_questions <- function()tibble(question_id=1,text="global question",question_note="",new_column_1="")
+standard_settings <- function()tibble(setting_id=1,text="")
+
+#obvs this must exist already
+add_class <- function(x,cls="tidymap"){
+  class(x) <- c(cls,class(x)) %>% unique
+  x
+}
+
+
+create_map <- function(factors=NULL,links=NULL,statements=NULL,sources=NULL,questions=NULL,settings=NULL,clean=T){
+  if(is.null(factors) & is.null(links)) warning("you have to provide factors or links")
+  # browser()
+  tbl_graph(factors %>% replace_null(standard_factors(links)),links %>% replace_null(standard_links()%>% filter(F))) %>%
+    add_attribute(statements,"statements") %>%
+    add_attribute(sources,"sources") %>%
+    add_attribute(questions,"questions") %>%
+    add_attribute(settings,"settings") %>%
+    add_class %>%
+    {if(clean)clean_map(.)else .}
+
+}
+empty_tibble <- tibble(nothing=0)
+
+clean_map <- function(map){
+  # browser()
+  factors <-  map %>% factors_table   %>% select(any_of(colnames(standard_factors())))
+  links <-  map %>% links_table %>% add_column(.name_repair="minimal",!!!standard_links())   %>% select(any_of(colnames(standard_links())))
+  statements <- attr(map,"statements") %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_statements()) %>% select(any_of(colnames(standard_statements)))
+  sources <- attr(map,"sources") %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_sources()) %>% select(any_of(colnames(standard_sources())))
+  questions <- attr(map,"questions") %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_questions()) %>% select(any_of(colnames(standard_questions())))
+  settings <- attr(map,"settings") %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_settings()) %>% select(any_of(colnames(standard_settings())))
+
+  create_map(factors,links,statements,sources,questions,settings,clean=F) %>% add_class
+}
+print.tidymap <- function (graf, n=2,...)
+{
+  cat("Factors: ");graf %>% activate(nodes) %>% as_tibble %>% print(n=n)
+  cat("Links: ");graf %>% activate(edges) %>% as_tibble %>% print(n=n)
+  cat("Statements: ");graf %>% attr("statements") %>% as_tibble %>% print(n=n)
+  cat("Sources: ");graf %>% attr("sources") %>% as_tibble %>% print(n=n)
+  cat("Questions: ");graf %>% attr("questions") %>% as_tibble %>% print(n=n)
+
+}
 
 
 factor_colnames <- function(graf)graf %>% factors_table %>% colnames
@@ -71,11 +135,6 @@ link_colnames <- function(graf)graf %>% links_table %>% colnames
 print_more <- function(graf,n=99){
   graf %>% activate(nodes) %>% as_tibble %>% print(n=n)
   graf %>% activate(edges) %>% as_tibble %>% print(n=n)
-}
-
-load_graf_from_rds <- function(name){
-  tmp <- readRDS(name)
-  tbl_graph(tmp$factors,tmp$links)
 }
 
 
@@ -1481,13 +1540,14 @@ make_map_metrics <- function(graf){
 #'
 #' @examples
 make_vn <- function(graf,scale=1){
+  # browser()
   graf <- graf %>% pipe_fix_columns()
   nodes <- graf %N>% as_tibble %>% mutate(value=size*10) %>%
     select(any_of(xc("label color.background color.border title group value hidden size"))) ### restrictive in attempt to reduce random freezes
   # browser()
   edges <- graf %E>% as_tibble
   edges <-  edges %>% vn_fan_edges() %>% mutate(width=width*10) %>%
-    select(any_of(xc("from to id color width label smooth.roundness smooth.enabled smooth.type")))
+    select(any_of(xc("from to id quote color width label smooth.roundness smooth.enabled smooth.type")))
   if(nrow(nodes)>1){
     layout <- layout_with_sugiyama(tbl_graph(nodes,edges))$layout*-scale
     colnames(layout) <- c("y", "x")
@@ -1497,6 +1557,12 @@ make_vn <- function(graf,scale=1){
   # browser()
   nodes <- nodes %>%   mutate(id=row_number())
   edges <- edges %>%   mutate(id=NULL)
+  edges <- edges %>% mutate(title=paste0("<div><div style='max-width:100px;'>",quote,"</div><br/>",
+                                         as.character(shiny::actionLink(inputId = 'link_click_edit', label = "edit")),
+                                         " - ",
+                                         as.character(shiny::actionLink(inputId = 'link_click_delete', label = "delete")),
+                                         "</div>"))
+
   visNetwork(nodes,edges,background="white")   %>%
     visNodes(
       shadow = list(enabled = T, size = 10),
