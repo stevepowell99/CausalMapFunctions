@@ -662,7 +662,7 @@ pipe_find_factors <- function(graf,field=NULL,value,operator=NULL,up=0,down=0,pa
 #' pipe_find_links(cashTransferMap,value="Cash")
 #' pipe_find_links(cashTransferMap,field="label",value="Cash",operator="contains")
 #' pipe_find_links(cashTransferMap,field="from",value="12",operator="greater")
-pipe_find_links <- function(graf,field=NULL,value,operator=NULL,pager=F){
+pipe_find_links <- function(graf,field=NULL,value,operator=NULL,pager=F,remove_isolated=T){
 # browser()
   st <- attr(graf,"statements")
   df <- graf %>% links_table_full %>% find_fun(field,value,operator,pager=pager)
@@ -670,7 +670,11 @@ pipe_find_links <- function(graf,field=NULL,value,operator=NULL,pager=F){
   pager <- df %>% attr("pager")
 
 
-  tbl_graph(factors_table(graf),df) %E>% filter(found) %>% add_statements(st) %>% add_attribute(pager,"pager") %>% activate(nodes)
+  tbl_graph(factors_table(graf),df) %E>% filter(found) %>%
+    add_statements(st) %>%
+    add_attribute(pager,"pager") %>%
+    activate(nodes)  %>%
+    {if(remove_isolated) pipe_remove_isolated(.) else .}
 
 }
 
@@ -950,9 +954,6 @@ pipe_trace_paths <- function(graf,from,to,length=4){
   graf %>%
     activate(nodes) %>%
     filter(label!="_super_sink_" & label!="_super_source_")
-
-  # attr(graf,"flow")=all_flows
-  # graf
 
 
 
