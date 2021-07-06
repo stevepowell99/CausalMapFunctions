@@ -148,7 +148,7 @@ clean_map <- function(map){
   # browser()
   factors <-  map %>% factors_table   %>% select(any_of(colnames(standard_factors())))
   links <-  map %>% links_table %>% add_column(.name_repair="minimal",!!!standard_links())   %>% select(any_of(colnames(standard_links()))) %>% mutate(link_id=row_number())
-  statements <- attr(map,"statements") %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_statements()) %>% select(any_of(colnames(standard_statements())))
+  statements <- attr(map,"statements") %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_statements()) %>% select(which(!duplicated(colnames(.)))) # %>% select(any_of(colnames(standard_statements())))
 
 
   if(
@@ -438,7 +438,13 @@ statements_table <- function(graf)graf %>%
   attr("statements") %>%
   {if(is.null(.)) NULL else
   filter(.,statement_id %in% links_table(graf)$statement_id)}
-
+sources_table <- function(graf){
+  graf %>%
+  clean_map %>%
+    attr("sources") %>%
+  {if(is.null(.)) NULL else
+  filter(.,source_id %in% links_table(graf %>% clean_map)$`#SourceID`)}
+}
 #' @rdname tibbles
 #' @export
 #'
@@ -452,6 +458,7 @@ links_table_full <- function(graf){
     left_join((factors_table(graf) %>% mutate(id=row_number()) %>% select(from=id,from_label=label,from_old_label_=old_label_)),by="from") %>%
     select(-any_of(c("to_old_label_","to_label"))) %>%
     left_join((factors_table(graf) %>% mutate(id=row_number()) %>% select(to=id,to_label=label,to_old_label_=old_label_)),by="to") %>%
+    unite(bundle,from_label,to_label,remove = F,sep = " / ") %>%
     select(from_label,to_label,from_old_label_,to_old_label_,everything())
 
 }
@@ -486,6 +493,7 @@ make_search <- function(x)x %>% escapeRegex %>% str_trim
 #' @export
 parse_line <- function(line,graf){
   # browser()
+  notify(line)
   if(str_trim(line)=="")return()
   fun <- word(line, 1,2, sep=" ")
   if(is.na(fun)){notify("No such function");return(graf %>% filter(F))}
@@ -636,10 +644,10 @@ parse_commands <- function(graf,tex){
 
     for(line in tex){
       # browser()
-      tmp <- parse_line(line,graf)
+      if(!str_detect(line,"^#")){tmp <- parse_line(line,graf)
 
       graf <- possibly(~do.call(tmp$fun,tmp$vals),otherwise=graf)()
-
+}
     }
   }
   graf
@@ -787,7 +795,7 @@ pipe_select_links <- function(graf,top){
     arrange(desc(frequency)) %>%
     slice(1:top) %>%
     select(from,to,frequency,everything()) %>%
-    select(1:7) %>%
+    # select(1:7) %>%
     activate(nodes)
 }
 
@@ -806,9 +814,9 @@ pipe_select_links <- function(graf,top){
 pipe_select_factors <- function(graf,top=20,all=F){
   graf %>%
     activate(nodes) %>%
-    mutate(n = centrality_degree()) %>%
-    mutate(n=rank(n)) %>%
-    arrange(desc(n)) %>%
+    mutate(frequency = centrality_degree()) %>%
+    mutate(frequency=rank(frequency)) %>%
+    arrange(desc(frequency)) %>%
     slice(1:top)
 
 }
