@@ -4,7 +4,7 @@
 \alias{pipe_label_factors}
 \title{Label factors}
 \usage{
-pipe_label_factors(graf, field = "n", clear = F)
+pipe_label_factors(graf, field = "frequency", clear = F)
 }
 \arguments{
 \item{graf}{A tidymap representing a causal map.

@@ -4,7 +4,7 @@
 \alias{pipe_bundle_links}
 \title{Bundle links}
 \usage{
-pipe_bundle_links(graf, counter = "n", group = NULL)
+pipe_bundle_links(graf, counter = "frequency", group = NULL)
 }
 \arguments{
 \item{graf}{A tidymap representing a causal map.
@@ -26,7 +26,7 @@ Bundle links
 }
 \examples{
 # Showing separate (bundled) links for women and men:
-if(F)cashTransferMap \%>\% pipe_merge_statements() \%>\%  pipe_select_factors(10) \%>\% pipe_bundle_links(counter="n",group="1. Sex")\%>\% pipe_label_links(field = "n") \%>\% pipe_color_links(field="1. Sex") \%>\% pipe_scale_links() \%>\%  make_grviz()
+if(F)cashTransferMap \%>\% pipe_merge_statements() \%>\%  pipe_select_factors(10) \%>\% pipe_bundle_links(counter="frequency",group="1. Sex")\%>\% pipe_label_links(field = "frequency") \%>\% pipe_color_links(field="1. Sex") \%>\% pipe_scale_links() \%>\%  make_grviz()
 # or, counting sources rather than statements:
-if(F)cashTransferMap \%>\% pipe_merge_statements() \%>\%  pipe_select_factors(10) \%>\% pipe_bundle_links(group="1. Sex",counter="#SourceID")\%>\% pipe_label_links(field = "n") \%>\% pipe_color_links(field="1. Sex") \%>\% pipe_scale_links() \%>\%  make_grviz()
+if(F)cashTransferMap \%>\% pipe_merge_statements() \%>\%  pipe_select_factors(10) \%>\% pipe_bundle_links(group="1. Sex",counter="#SourceID")\%>\% pipe_label_links(field = "frequency") \%>\% pipe_color_links(field="1. Sex") \%>\% pipe_scale_links() \%>\%  make_grviz()
 }

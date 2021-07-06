@@ -6,7 +6,7 @@
 \usage{
 pipe_color_links(
   graf,
-  field = "n",
+  field = "frequency",
   lo = "green",
   hi = "blue",
   mid = "gray",

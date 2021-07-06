@@ -4,7 +4,7 @@
 \alias{pipe_fade_links}
 \title{Fade links}
 \usage{
-pipe_fade_links(graf, field = "n")
+pipe_fade_links(graf, field = "frequency")
 }
 \arguments{
 \item{graf}{A tidymap representing a causal map.

@@ -4,7 +4,7 @@
 \alias{pipe_scale_factors}
 \title{Scale factors}
 \usage{
-pipe_scale_factors(graf, field = "n")
+pipe_scale_factors(graf, field = "frequency")
 }
 \arguments{
 \item{graf}{A tidymap representing a causal map.

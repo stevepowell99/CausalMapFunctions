@@ -4,7 +4,7 @@
 \alias{pipe_fade_factors}
 \title{Fade factors}
 \usage{
-pipe_fade_factors(graf, field = "n")
+pipe_fade_factors(graf, field = "frequency")
 }
 \arguments{
 \item{graf}{A tidymap representing a causal map.
