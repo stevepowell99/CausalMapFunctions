@@ -68,10 +68,12 @@ load_graf_from_rds <- function(name){
   tbl_graph(tmp$factors,tmp$links)
 }
 
-standard_factors <- function(links=standard_links()){if(is.null(links$from) | is.null(links$to))stop("Wrong links");tibble(label=c(links$from,links$to) %>% unique %>% as.character,factor_note="")}
+standard_factors <- function(links=standard_links()){if(is.null(links$from) | is.null(links$to))stop("Wrong links");tibble(label=c(links$from,links$to) %>% unique %>% as.character,factor_memo="")}
 standard_links <- function()tibble(
+  statement_id=1,
   from=1,
   to=1,
+  quote="",
   weight=1,
   strength=1,
   certainty=1,
@@ -79,11 +81,11 @@ standard_links <- function()tibble(
   to_flipped=F,
   label="",
   hashtag="",
-  link_note=""
+  link_memo=""
   )
-standard_statements <- function()tibble(statement_id=1,text="blank statement",statement_note="")
-standard_sources <- function()tibble(source_id=1,text="global source",source_note="",new_column_1="")
-standard_questions <- function()tibble(question_id=1,text="global question",question_note="",new_column_1="")
+standard_statements <- function()tibble(statement_id=1,text="blank statement",statement_memo="",`#SourceID`="1",`#QuestionID`="1")
+standard_sources <- function()tibble(`#SourceID`=1,text="global source",source_memo="",new_column_1="")
+standard_questions <- function()tibble(`#QuestionID`=1,text="global question",question_memo="",new_column_1="")
 standard_settings <- function()tibble(setting_id=1,text="")
 
 #obvs this must exist already
@@ -93,8 +95,22 @@ add_class <- function(x,cls="tidymap"){
 }
 
 
+#' Create map
+#' @inheritParams parse_commands
+#' @param factors
+#' @param links
+#' @param statements
+#' @param sources
+#' @param questions
+#' @param settings
+#' @param clean
+#'
+#' @return A tidy map. If both factors and links are NULL, and empty map is returned.
+#' @export
+#'
+#' @examples
 create_map <- function(factors=NULL,links=NULL,statements=NULL,sources=NULL,questions=NULL,settings=NULL,clean=T){
-  if(is.null(factors) & is.null(links)) warning("you have to provide factors or links")
+  if(is.null(factors) & is.null(links)) {notify("you did not provide factors or links");links=links %>% replace_null(standard_links()%>% filter(F))}
   # browser()
   tbl_graph(factors %>% replace_null(standard_factors(links)),links %>% replace_null(standard_links()%>% filter(F))) %>%
     add_attribute(statements,"statements") %>%
@@ -107,16 +123,56 @@ create_map <- function(factors=NULL,links=NULL,statements=NULL,sources=NULL,ques
 }
 empty_tibble <- tibble(nothing=0)
 
+normalise_id <- function(main,referring,keyname){
+  if(is.null(main[,keyname])){notify("keyname not in main table")}
+  if(is.null(referring[,keyname])){notify("keyname not in referring table")}
+  # browser()
+  # if(length(unique(main[,keyname]))!=nrow(main))
+  main$.old_key <- main[,keyname] %>% unlist
+  main[,keyname] <- 1:nrow(main)
+  recodes=main[,keyname] %>% unlist %>% as.list
+  names(recodes)=main$.old_key %>% unlist
+  referring[,keyname] <- dplyr::recode(referring[,keyname] %>% unlist,!!!recodes)
+  return(list(main=main,referring=referring))
+}
+
 clean_map <- function(map){
   # browser()
   factors <-  map %>% factors_table   %>% select(any_of(colnames(standard_factors())))
-  links <-  map %>% links_table %>% add_column(.name_repair="minimal",!!!standard_links())   %>% select(any_of(colnames(standard_links())))
-  statements <- attr(map,"statements") %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_statements()) %>% select(any_of(colnames(standard_statements)))
+  links <-  map %>% links_table %>% add_column(.name_repair="minimal",!!!standard_links())   %>% select(any_of(colnames(standard_links()))) %>% mutate(link_id=row_number())
+  statements <- attr(map,"statements") %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_statements()) %>% select(any_of(colnames(standard_statements())))
+
+
+  if(
+    "statement_id" %in% colnames(statements)
+    &
+    "statement_id" %in% colnames(links)
+    &
+    !identical((statements$statement_id %>% replace_null(Inf)), 1:nrow(statements))  # normalising makes no sense if these three not fulfilled
+    ){ # we have to normalise statement_id because it has to be integers from 1 with no breaks
+      if(length(unique(statements$statement_id))!=nrow(statements)){
+        links$statement_id=1
+        statements$statement_id=1:nrow(statements)
+        notify("Your statement ids were not provided or not unique")
+      } else
+    {
+        tmp <- normalise_id(statements,links,"statement_id")
+        statements=tmp$main
+        links=tmp$referring
+        }
+  }
+
+
   sources <- attr(map,"sources") %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_sources()) %>% select(any_of(colnames(standard_sources())))
   questions <- attr(map,"questions") %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_questions()) %>% select(any_of(colnames(standard_questions())))
   settings <- attr(map,"settings") %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_settings()) %>% select(any_of(colnames(standard_settings())))
+# browser()
+  if(length(unique(sources$`#SourceID`))!=nrow(sources)) {sources <- sources %>% distinct(`#SourceID`,.keep_all=T);notify("Removing non-unique SourceIDs")}
+  if(length(unique(questions$`#QuestionID`))!=nrow(questions)) {questions <- questions %>% distinct(`#QuestionID`,.keep_all=T);notify("Removing non-unique QuestionIDs")}
 
-  create_map(factors,links,statements,sources,questions,settings,clean=F) %>% add_class
+
+  create_map(factors,links,statements,sources,questions,settings,clean=F) %>%
+    add_class
 }
 print.tidymap <- function (graf, n=2,...)
 {
@@ -1545,7 +1601,7 @@ make_vn <- function(graf,scale=1){
   graf <- graf %>% pipe_fix_columns()
   nodes <- graf %N>% as_tibble %>% mutate(value=size*10) %>%
     select(any_of(xc("label color.background color.border title group value hidden size"))) ### restrictive in attempt to reduce random freezes
-  # browser()
+  # brocwser()
   edges <- graf %E>% as_tibble
   edges <-  edges %>% vn_fan_edges() %>% mutate(width=width*10) %>%
     select(any_of(xc("from to id quote color width label smooth.roundness smooth.enabled smooth.type")))
@@ -1558,7 +1614,12 @@ make_vn <- function(graf,scale=1){
   # browser()
   nodes <- nodes %>%   mutate(id=row_number())
   edges <- edges %>%   mutate(id=NULL)
-  edges <- edges %>% mutate(title=paste0("<div><div style='max-width:100px;'>",quote,"</div><br/>",
+  nodes <- nodes %>% mutate(title=paste0("<div style='background-color:none;border:none;'><div>",label,"</div><br/>",
+                                         as.character(shiny::actionLink(inputId = 'link_click_edit', label = "edit")),
+                                         " - ",
+                                         as.character(shiny::actionLink(inputId = 'link_click_delete', label = "delete")),
+                                         "</div>"))
+  edges <- edges %>% mutate(title=paste0("<div style='background-color:none;border:none;'><div>",quote,"</div><br/>",
                                          as.character(shiny::actionLink(inputId = 'link_click_edit', label = "edit")),
                                          " - ",
                                          as.character(shiny::actionLink(inputId = 'link_click_delete', label = "delete")),
@@ -1924,4 +1985,342 @@ heat_colors <- round(seq(255, 40, length.out = length(heat_breaks) + 1), 0) %>%
 
 formatStyle(dt,names(flow),
                                           backgroundColor = styleInterval(heat_breaks,heat_colors))
+}
+
+
+
+#' Add subtotals to grouped operations from jrf1111/TCCD
+#'
+#' @description
+#' `with_subtotals()` appends a grouped data frame or data frame extension (e.g. a tibble)
+#' to allow easy calculation of group totals and grand totals with `summarise()`.
+#'
+#' @param df A grouped data frame or data frame extension (e.g. a tibble)
+#'
+#' @param method a character string indicating which method is to be used.
+#' Either "change" (the default) or "agg_level". `method` can be abbreviated.
+#'
+#' @return A grouped object of the same type as `df` but with additional rows
+#' that contain group (sub)totals and grand totals. If `method = "agg_level"`,
+#' a new variable called `.agg_level` will also be added.
+#'
+#'
+#' @details
+#' In order to create the extra subtotal and total groups, this function
+#' has two unfortunate side effects.
+#'
+#' The first side effect is that it increases the number of rows of `df`
+#' (sometimes drastically). This may result in performance issues and/or
+#' exhaust available memory. Therefore, it may be advisable to pass a reduced
+#' version of `df` containing only the variables necessary to perform the
+#' desired operation(s). For example, by calling `select()` before
+#' `group_by(...) %>% with_subtotals()`.
+#'
+#' The second side effect is that in order to create the total groups, it must
+#' actually *make* the total group for each grouping variable. When `method = "change"`
+#' (the default), this is achieved by (1) converting numeric variables to
+#' characters or adding a new level to factors then (2) adding the new `total_`
+#' group (a value that hopefully does not already exist in the grouping variable).
+#' This is the default behavior because it allows results to be easily
+#' passed to \link[tidyr]{pivot_wider} and because most use cases of `with_subtotals`
+#' will not require (much) processing after calling `summarise(...)`.
+#' If this behavior is problematic and the results need to have the same data
+#' types as `df`, the user should specify `method = "agg_level"`.
+#' Using `method = "agg_level"` will preserve the data types in `df` and it
+#' will add a new variable called `.agg_level` to indicate the level of
+#' aggregation in the result.
+#'
+#'
+#'
+#'
+#' @examples
+#'
+#' library(tidyverse)
+#' library(data.table)
+#'
+#' new = mtcars %>%
+#'  	group_by(cyl, am) %>%
+#'  	with_subtotals() %>%
+#'  	summarise(
+#'  	n = n(),
+#'  	mean_mpg = mean(mpg)
+#'  	) %>%
+#'  	ungroup()
+#'
+#'
+#' # the old, long, and error prone way
+#' old <- data.table::rbindlist(
+#'   list(
+#'     mtcars %>%
+#'       group_by(cyl, am) %>%
+#'       summarise(
+#'         n = n(),
+#'         mean_mpg = mean(mpg)
+#'       ) %>%
+#'       ungroup(),
+#'
+#'     mtcars %>%
+#'       group_by(cyl) %>%
+#'       summarise(
+#'         n = n(),
+#'         mean_mpg = mean(mpg),
+#'         am = "total_"
+#'       ) %>%
+#'       ungroup(),
+#'
+#'     mtcars %>%
+#'       group_by(am) %>%
+#'       summarise(
+#'         n = n(),
+#'         mean_mpg = mean(mpg),
+#'         cyl = "total_"
+#'       ) %>%
+#'       ungroup(),
+#'
+#'     mtcars %>%
+#'       summarise(
+#'         n = n(),
+#'         mean_mpg = mean(mpg),
+#'         am = "total_",
+#'         cyl = "total_"
+#'       ) %>%
+#'       ungroup()
+#'   ),
+#'   use.names = TRUE
+#' )
+#'
+#'
+#' new <- new %>% arrange_all()
+#' old <- old %>% arrange_all()
+#'
+#' all.equal(old, new, check.attributes = FALSE) # TRUE
+#'
+#'
+#'
+#'
+#'
+#' # comparing `method = "change"` vs. `method = "agg_level"`
+#' change <- mtcars %>%
+#'   group_by(cyl, am) %>%
+#'   with_subtotals(method = "change") %>% # the default
+#'   summarise(
+#'     n = n(),
+#'     mean_mpg = mean(mpg)
+#'   ) %>%
+#'   ungroup()
+#'
+#' agg_level <- mtcars %>%
+#'   group_by(cyl, am) %>%
+#'   with_subtotals(method = "agg_level") %>%
+#'   summarise(
+#'     n = n(),
+#'     mean_mpg = mean(mpg)
+#'   ) %>%
+#'   ungroup()
+#'
+#' # agg_level maintains the original data types and
+#' # agg_level looks better when printed as is
+#' change
+#' agg_level
+#'
+#'
+#' # but change makes it easier to pivot_wider
+#' change %>% pivot_wider(
+#'   id_cols = cyl,
+#'   names_from = am,
+#'   names_prefix = "am_",
+#'   values_from = c(n, mean_mpg)
+#' )
+#'
+#'
+#' agg_level %>% pivot_wider(
+#'   id_cols = c(.agg_level, cyl),
+#'   names_from = am,
+#'   names_prefix = "am_",
+#'   values_from = c(n, mean_mpg)
+#' )
+#'
+#'
+#'
+#'
+#' # both `method = "change"` and `method = "agg_level"`
+#' # work better than other potential solutions
+#' # if there are NAs in the grouping variables
+#' #(see https://stackoverflow.com/questions/31164350)
+#'
+#' df <- mtcars
+#' df$carb[3] <- NA # was 1
+#'
+#' # see rows 3 & 4; you can't tell what is a subtotal vs. missing data
+#' bind_rows(
+#'   df %>%
+#'     group_by(cyl, carb) %>%
+#'     summarise(Mean = mean(disp)),
+#'   df %>%
+#'     group_by(cyl) %>%
+#'     summarise(carb = NA, Mean = mean(disp)),
+#'   df %>%
+#'     group_by(carb) %>%
+#'     summarise(cyl = NA, Mean = mean(disp))
+#' ) %>% arrange(cyl, carb)
+#'
+#' # compare that to using `with_subtotals()`
+#' df %>%
+#'   group_by(cyl, carb) %>%
+#'   with_subtotals() %>%
+#'   summarise(Mean = mean(disp))
+#'
+#' df %>%
+#'   group_by(cyl, carb) %>%
+#'   with_subtotals(method = "agg_level") %>%
+#'   summarise(Mean = mean(disp))
+#' @export
+with_subtotals <- function(df, method = c("change", "agg_level")) {
+  method <- match.arg(method)
+
+
+  # get the grouping vars
+  groups <- dplyr::group_vars(df)
+
+  if (length(groups) == 0) {
+    message("No grouping variables specified in `with_subtotals()`. Returning object unchanged.")
+    return(df)
+  }
+
+  df <- dplyr::ungroup(df)
+
+
+  if (method == "change") {
+    if (length(groups) > 1) {
+
+      # a backup for getting overall totals later
+      original_df <- dplyr::ungroup(df)
+
+
+      # for each group var, make a new 'total' group
+      total <- function(df, group) {
+        var <- rlang::sym(group)
+
+        if (is.factor(dplyr::pull(df, {{ group }}))) {
+          df <- df %>% dplyr::mutate(
+            {{ group }} := forcats::fct_expand(!!var, "total_")
+          )
+        } else if (!is.character(dplyr::pull(df, {{ group }}))) {
+          df <- df %>% dplyr::mutate({{ group }} := as.character(!!var))
+        }
+
+        df %>% dplyr::mutate({{ group }} := "total_")
+      }
+
+      totals <- data.table::rbindlist(
+        lapply(groups, function(x) {
+          total(df, x)
+        }),
+        use.names = TRUE, fill = TRUE
+      )
+
+      # make a 'grand total' group
+      grand_total <- original_df %>% dplyr::mutate_at(dplyr::vars(!!!groups), ~"total_")
+
+      # add the total and grand total groups to the data
+      old_classes <- class(df)
+      df <- data.table::rbindlist(list(df, totals, grand_total))
+      class(df) <- old_classes
+      rm(original_df, totals, grand_total)
+    }
+
+
+    if (length(groups) == 1) {
+
+      # make a new 'total' group for the one group var
+      group <- groups[1]
+      var <- rlang::sym(group)
+
+      if (is.factor(dplyr::pull(df, {{ group }}))) {
+        df <- df %>% dplyr::mutate(
+          {{ group }} := forcats::fct_expand(!!var, "total_")
+        )
+      } else if (!is.character(dplyr::pull(df, {{ group }}))) {
+        df <- df %>% dplyr::mutate({{ group }} := as.character(!!var))
+      }
+
+      temp <- df %>% dplyr::mutate({{ group }} := "total_")
+
+      # add the total to the data
+      old_classes <- class(df)
+      df <- data.table::rbindlist(list(df, temp))
+      class(df) <- old_classes
+      rm(temp)
+    }
+
+    # restore grouping variables
+    df <- dplyr::group_by(df, !!!rlang::syms(groups))
+  }
+
+  if (method == "agg_level") {
+    if (length(groups) > 1) {
+
+      # a backup for getting overall totals later
+      original_df <- dplyr::ungroup(df)
+
+
+      # for each group var, make a new 'subtotal' group
+      total <- function(df, group) {
+        df %>% dplyr::mutate(
+          !!group := NA,
+          .agg_level = "2 subtotal"
+        )
+      }
+
+      totals <- data.table::rbindlist(
+        lapply(groups, function(x) {
+          total(df, group = x)
+        }),
+        use.names = TRUE, fill = TRUE
+      )
+
+
+
+
+      # make a 'grand total' group
+      grand_total <- original_df %>%
+        dplyr::mutate_at(dplyr::vars(!!!groups), ~NA) %>%
+        dplyr::mutate(.agg_level = "3 total")
+
+
+
+
+      # add the total and grand total groups to the data
+      old_classes <- class(df)
+      df <- df %>% dplyr::mutate(.agg_level = "1 detail")
+      df <- data.table::rbindlist(list(df, totals, grand_total), fill = TRUE)
+      class(df) <- old_classes
+      rm(original_df, totals, grand_total)
+    }
+
+
+    if (length(groups) == 1) {
+
+      # make a new 'total' group for the one group var
+      group <- groups[1]
+
+      grand_total <- df %>%
+        dplyr::mutate(
+          !!group := NA,
+          .agg_level = "3 total"
+        )
+
+      # add the total to the data
+      old_classes <- class(df)
+      df <- df %>% dplyr::mutate(.agg_level = "1 detail")
+      df <- data.table::rbindlist(list(df, grand_total), fill = T)
+      class(df) <- old_classes
+      rm(grand_total)
+    }
+
+    # restore grouping variables
+    df <- dplyr::group_by(df, .agg_level, !!!rlang::syms(groups))
+  }
+
+  return(df)
 }
