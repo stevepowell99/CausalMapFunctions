@@ -776,9 +776,9 @@ pipe_find_statements <- function(graf,field,value,operator="=",pager=F){
 pipe_select_links <- function(graf,top){
   graf %>%
     pipe_bundle_links() %E>%
-    arrange(desc(n)) %>%
+    arrange(desc(frequency)) %>%
     slice(1:top) %>%
-    select(from,to,n,everything()) %>%
+    select(from,to,frequency,everything()) %>%
     select(1:7) %>%
     activate(nodes)
 }
@@ -1180,10 +1180,10 @@ pipe_flip_opposites <- function(graf,flipchar="~",add_colors=T){
 #'
 #' @examples
 #' # Showing separate (bundled) links for women and men:
-#' if(F)cashTransferMap %>% pipe_merge_statements() %>%  pipe_select_factors(10) %>% pipe_bundle_links(counter="n",group="1. Sex")%>% pipe_label_links(field = "n") %>% pipe_color_links(field="1. Sex") %>% pipe_scale_links() %>%  make_grviz()
+#' if(F)cashTransferMap %>% pipe_merge_statements() %>%  pipe_select_factors(10) %>% pipe_bundle_links(counter="frequency",group="1. Sex")%>% pipe_label_links(field = "frequency") %>% pipe_color_links(field="1. Sex") %>% pipe_scale_links() %>%  make_grviz()
 #' # or, counting sources rather than statements:
-#' if(F)cashTransferMap %>% pipe_merge_statements() %>%  pipe_select_factors(10) %>% pipe_bundle_links(group="1. Sex",counter="#SourceID")%>% pipe_label_links(field = "n") %>% pipe_color_links(field="1. Sex") %>% pipe_scale_links() %>%  make_grviz()
-pipe_bundle_links <- function(graf,counter="n",group=NULL){
+#' if(F)cashTransferMap %>% pipe_merge_statements() %>%  pipe_select_factors(10) %>% pipe_bundle_links(group="1. Sex",counter="#SourceID")%>% pipe_label_links(field = "frequency") %>% pipe_color_links(field="1. Sex") %>% pipe_scale_links() %>%  make_grviz()
+pipe_bundle_links <- function(graf,counter="frequency",group=NULL){
   # browser()
   statements <- graf %>% statements_table()
   flow <- graf %>% attr("flow")
@@ -1193,22 +1193,22 @@ pipe_bundle_links <- function(graf,counter="n",group=NULL){
   coln <- link_colnames(graf)
 
 
-  if(counter %notin% link_colnames(graf) & counter!="n" ) {notify("no such counter");return(graf)}
+  if(counter %notin% link_colnames(graf) & counter!="frequency" ) {notify("no such counter");return(graf)}
   if(!is.null(group)){if(group %notin% coln) {notify("no such counter");return(graf)}}
 
   if(is.null(group)) edges <- edges %>% group_by(from,to) else edges <- edges %>% group_by(from,to,UQ(sym(group)))
 
-  if(counter=="n"){
+  if(counter=="frequency"){
 
-  if("n" %in% coln)edges <- edges %>%
+  if("frequency" %in% coln)edges <- edges %>%
     mutate(rn_=row_number()) %>%
-    mutate(n=sum(n))
+    mutate(frequency=sum(frequency))
   else edges <- edges %>%
     mutate(rn_=row_number()) %>%
-    mutate(n=n())
+    mutate(frequency=n())
 } else edges <- edges %>%
     mutate(rn_=row_number()) %>%
-    mutate(n=length(unique(UQ(sym(counter)))))
+    mutate(frequency=length(unique(UQ(sym(counter)))))
 
 
 
@@ -1238,11 +1238,11 @@ pipe_fix_columns <- function(graf){
   # if(!("color" %in% factor_colnames(graf))) graf <- graf %N>% mutate(color="#222222")
   if(!("color.background" %in% factor_colnames(graf))) graf <- graf %N>% mutate(color.background="#aaaaee77")
   if(!("color.border" %in% factor_colnames(graf))) graf <- graf %N>% mutate(color.border="#222222")
-  if(!("n" %in% factor_colnames(graf))) graf <- graf %N>% mutate(n=1L)
+  if(!("frequency" %in% factor_colnames(graf))) graf <- graf %N>% mutate(frequency=1L)
   if(!("size" %in% factor_colnames(graf))) graf <- graf %N>% mutate(size=1L)
   if(!("found" %in% factor_colnames(graf))) graf <- graf %N>% mutate(found=1L)
   if(!("color" %in% link_colnames(graf))) graf <- graf %E>% mutate(color="#22446688")
-  if(!("n" %in% link_colnames(graf))) graf <- graf %E>% mutate(n=1L)
+  if(!("frequency" %in% link_colnames(graf))) graf <- graf %E>% mutate(frequency=1L)
   if(!("capacity" %in% link_colnames(graf))) graf <- graf %E>% mutate(capacity=1L)
   if(!("label" %in% link_colnames(graf))) graf <- graf %E>% mutate(label="")
   if(!("width" %in% link_colnames(graf))) graf <- graf %E>% mutate(width=.2)
@@ -1291,7 +1291,7 @@ pipe_metrics <- function(graf){
 #'
 #'
 #' @examples
-pipe_scale_factors <- function(graf,field="n"){
+pipe_scale_factors <- function(graf,field="frequency"){
   graf <- pipe_metrics(graf)
   if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
   class <- graf %>% factors_table %>% pull(UQ(sym(field))) %>% class
@@ -1320,7 +1320,7 @@ pipe_scale_factors <- function(graf,field="n"){
 #'
 #'
 #' @examples
-pipe_label_factors <- function(graf,field="n",clear=F){
+pipe_label_factors <- function(graf,field="frequency",clear=F){
   # browser()
   clear=as.logical(clear)
   graf <- pipe_metrics(graf)
@@ -1345,7 +1345,7 @@ pipe_label_factors <- function(graf,field="n",clear=F){
 #'
 #'
 #' @examples
-pipe_color_factors <- function(graf,field="n",lo="green",hi="blue",mid="gray",fixed=NULL){
+pipe_color_factors <- function(graf,field="frequency",lo="green",hi="blue",mid="gray",fixed=NULL){
   if(!is.null(fixed))return(graf %N>% mutate(color.background=fixed))
   graf <- pipe_metrics(graf)
   if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
@@ -1366,7 +1366,7 @@ pipe_color_factors <- function(graf,field="n",lo="green",hi="blue",mid="gray",fi
 #'
 #'
 #' @examples
-pipe_color_borders <- function(graf,field="n",lo="green",hi="blue",mid="gray",fixed=NULL){
+pipe_color_borders <- function(graf,field="frequency",lo="green",hi="blue",mid="gray",fixed=NULL){
   if(!is.null(fixed))return(graf %N>% mutate(color.border=fixed))
   graf <- pipe_metrics(graf)
   if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
@@ -1388,7 +1388,7 @@ pipe_color_borders <- function(graf,field="n",lo="green",hi="blue",mid="gray",fi
 #'
 #'
 #' @examples
-pipe_color_links <- function(graf,field="n",lo="green",hi="blue",mid="gray",fixed=NULL){
+pipe_color_links <- function(graf,field="frequency",lo="green",hi="blue",mid="gray",fixed=NULL){
   if(!is.null(fixed))return(graf %E>% mutate(color=fixed) %>% activate(nodes))
   if(field %notin% link_colnames(graf)){warning("No such column");return(graf)}
   # browser()
@@ -1407,7 +1407,7 @@ pipe_color_links <- function(graf,field="n",lo="green",hi="blue",mid="gray",fixe
 #'
 #'
 #' @examples
-pipe_fade_factors <- function(graf,field="n"){
+pipe_fade_factors <- function(graf,field="frequency"){
   if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
   if("color.background" %notin% factor_colnames(graf)){warning("No such column");return(graf)}
   class <- graf %>% factors_table %>% pull(UQ(sym(field))) %>% class
@@ -1425,7 +1425,7 @@ pipe_fade_factors <- function(graf,field="n"){
 #' @export
 #'
 #' @examples
-pipe_fade_links <- function(graf,field="n"){
+pipe_fade_links <- function(graf,field="frequency"){
   if(field %notin% link_colnames(graf)){warning("No such column");return(graf)}
   if("color" %notin% link_colnames(graf)){warning("No such column");return(graf)}
   class <- graf %>% links_table %>% pull(UQ(sym(field))) %>% class
@@ -1443,7 +1443,7 @@ pipe_fade_links <- function(graf,field="n"){
 #' @export
 #'
 #' @examples
-pipe_scale_links <- function(graf,field="n",fixed=NULL){
+pipe_scale_links <- function(graf,field="frequency",fixed=NULL){
   if(!is.null(fixed))return(graf %E>% mutate(width=fixed) %>% activate(nodes))
   if(field %notin% link_colnames(graf)){warning("No such column");return(graf)}
 
@@ -1466,7 +1466,7 @@ pipe_scale_links <- function(graf,field="n",fixed=NULL){
 #'
 #'
 #' @examples
-pipe_label_links <- function(graf,field="n",clear=F){
+pipe_label_links <- function(graf,field="frequency",clear=F){
   clear=as.logical(clear)
   if(field %notin% link_colnames(graf)){warning("No such column");return(graf)}
   graf %E>%
@@ -1824,14 +1824,14 @@ make_grviz <- function(
     notify("Map larger than 'safe limit'; bundling and labelling links")
     graf <- graf %>%
       pipe_bundle_links() %>%
-      pipe_label_links("n")
+      pipe_label_links("frequency")
 
     # if(nrow(factors_table(graf))>safe_limit) graf <- graf %>% pipe_select_factors(safe_limit/10)
   }
 
 
   if("id" %in% colnames(factors_table(graf)))graf <-  graf %>% select(-id)
-  # if("n" %in% colnames(links_table(graf)))graf <-  graf %>% mutate(tooltip=as.character(n))
+  # if("frequency" %in% colnames(links_table(graf)))graf <-  graf %>% mutate(tooltip=as.character(n))
 
   grv <-
     graf %>%
