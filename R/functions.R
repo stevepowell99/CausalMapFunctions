@@ -136,6 +136,14 @@ normalise_id <- function(main,referring,keyname){
   return(list(main=main,referring=referring))
 }
 
+#' Clean map
+#'
+#' @param map
+#'
+#' @return A cleaned map
+#' @export
+#'
+#' @examples
 clean_map <- function(map){
   # browser()
   factors <-  map %>% factors_table   %>% select(any_of(colnames(standard_factors())))
