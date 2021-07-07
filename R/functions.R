@@ -266,7 +266,7 @@ calculate_robustness_inner <- function(graf){
 
   if(nrow(factors_table(graf))==0) {warning("No paths");return(NA)}
   graf <- graf %N>% pipe_bundle_links() %E>%
-    mutate(n=if_else(is.na(n),1L,as.integer(n))) %>%
+    mutate(frequency=if_else(is.na(frequency),1L,as.integer(frequency))) %>%
     activate(nodes)
 
 
@@ -300,7 +300,7 @@ calculate_robustness_inner <- function(graf){
   graf <-
     graf %>% graph_join(newgraf) %E>%
     mutate(capacity=if_else(is.na(capacity),1,capacity)) %>%
-    mutate(capacity=pmax(n,capacity,na.rm=T)) %E>%
+    mutate(capacity=pmax(frequency,capacity,na.rm=T)) %E>%
     filter(from!=to) %>%
     activate(nodes)
   source <- V(graf)[(graf %>% factors_table)$label=="_super_source_"]
@@ -1976,7 +1976,6 @@ strip_symbols <- function(vec) vec %>%
 #'
 #' @examples
 robustUI <- function(graf){
-  # browser()
   flow <- attr(graf,"flow")$summary
   if(is.null(flow)) {notify("No paths");return(NULL)}
   if(nrow(flow)==0) {notify("No paths");return(NULL)}
@@ -1986,14 +1985,15 @@ robustUI <- function(graf){
   if(!is.null(flow)){
     flow <-  flow %>% column_to_rownames(var="row_names")
     flow[is.infinite(as.matrix(flow))] <- NA # because the colorbar plugin chokes on Inf
+  # browser()
 
     flow <- flow %>%
       arrange(UQ(sym(colnames(flow)[1])) %>% desc)
 
     ## because if all targets / all sources is NA, top row will not be All targets
     if("All targets" %in% rownames(flow)){
-      flow <-
-        bind_rows(flow["All targets",],flow[rownames(flow)!="All targets",])
+      # flow <-
+      #   bind_rows(g["All targets",],flow[rownames(flow)!="All targets",])
     }
 
     flow %>%
