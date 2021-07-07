@@ -83,9 +83,9 @@ standard_links <- function()tibble(
   hashtag="",
   link_memo=""
   )
-standard_statements <- function()tibble(statement_id=1,text="blank statement",statement_memo="",`#SourceID`="1",`#QuestionID`="1")
-standard_sources <- function()tibble(`#SourceID`=1,text="global source",source_memo="",new_column_1="")
-standard_questions <- function()tibble(`#QuestionID`=1,text="global question",question_memo="",new_column_1="")
+standard_statements <- function()tibble(statement_id=1,text="blank statement",statement_memo="",source_id="1",question_id="1")
+standard_sources <- function()tibble(source_id=1,text="global source",source_memo="",new_column_1="")
+standard_questions <- function()tibble(question_id=1,question_text="global question",question_memo="",new_column_1="")
 standard_settings <- function()tibble(setting_id=1,text="")
 
 #obvs this must exist already
@@ -164,9 +164,10 @@ clean_map <- function(map){
         notify("Your statement ids were not provided or not unique")
       } else
     {
-        tmp <- normalise_id(statements,links,"statement_id")
-        statements=tmp$main
-        links=tmp$referring
+        # tmp <- normalise_id(statements,links,"statement_id")
+        # statements=tmp$main
+        # links=tmp$referring
+      notify("Not yet normalising statement IDS")#because what happens when there are some links without yet having statements??
         }
   }
 
@@ -175,8 +176,8 @@ clean_map <- function(map){
   questions <- attr(map,"questions") %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_questions()) %>% select(any_of(colnames(standard_questions())))
   settings <- attr(map,"settings") %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_settings()) %>% select(any_of(colnames(standard_settings())))
 # browser()
-  if(length(unique(sources$`#SourceID`))!=nrow(sources)) {sources <- sources %>% distinct(`#SourceID`,.keep_all=T);notify("Removing non-unique SourceIDs")}
-  if(length(unique(questions$`#QuestionID`))!=nrow(questions)) {questions <- questions %>% distinct(`#QuestionID`,.keep_all=T);notify("Removing non-unique QuestionIDs")}
+  if(length(unique(sources$source_id))!=nrow(sources)) {sources <- sources %>% distinct(source_id,.keep_all=T);notify("Removing non-unique SourceIDs")}
+  if(length(unique(questions$question_id))!=nrow(questions)) {questions <- questions %>% distinct(question_id,.keep_all=T);notify("Removing non-unique QuestionIDs")}
 
 
   create_map(factors,links,statements,sources,questions,settings,clean=F) %>%
@@ -443,7 +444,14 @@ sources_table <- function(graf){
   clean_map %>%
     attr("sources") %>%
   {if(is.null(.)) NULL else
-  filter(.,source_id %in% links_table(graf %>% clean_map)$`#SourceID`)}
+  filter(.,source_id %in% statements_table(graf %>% clean_map)$source_id)}
+}
+questions_table <- function(graf){
+  graf %>%
+  clean_map %>%
+    attr("questions") %>%
+  {if(is.null(.)) NULL else
+  filter(.,question_id %in% statements_table(graf %>% clean_map)$question_id)}
 }
 #' @rdname tibbles
 #' @export
@@ -459,7 +467,8 @@ links_table_full <- function(graf){
     select(-any_of(c("to_old_label_","to_label"))) %>%
     left_join((factors_table(graf) %>% mutate(id=row_number()) %>% select(to=id,to_label=label,to_old_label_=old_label_)),by="to") %>%
     unite(bundle,from_label,to_label,remove = F,sep = " / ") %>%
-    select(from_label,to_label,from_old_label_,to_old_label_,everything())
+    select(from_label,to_label,statement_id,quote,everything(),-c(from_old_label_,to_old_label_))# can't work out what these were for
+    # select(from_label,to_label,from_old_label_,to_old_label_,everything())
 
 }
 
@@ -1585,7 +1594,7 @@ make_map_metrics <- function(graf){
     # "The size of the largest clique.",
     # "The number of maximal cliques in the graph.",
     "The number of unconnected components in the graph.",
-    "The number of motifs in a graph.",
+    "The number of motifs in the graph.",
     "The length of the longest geodesic.",
     "The smallest eccentricity in the graph.",
     "The number of edges in the graph.",
@@ -1630,15 +1639,27 @@ make_vn <- function(graf,scale=1){
   # browser()
   nodes <- nodes %>%   mutate(id=row_number())
   edges <- edges %>%   mutate(id=NULL)
-  nodes <- nodes %>% mutate(title=paste0("<div style='background-color:none;border:none;'><div>",label,"</div><br/>",
+  # nodes <- nodes %>% mutate(title=paste0(label,"<br/>",
+  #                                        as.character(shiny::actionLink(inputId = 'link_click_edit', label = "edit")),
+  #                                        " - ",
+  #                                        as.character(shiny::actionLink(inputId = 'link_click_delete', label = "delete"))
+  #                                        ))
+  nodes <- nodes %>% mutate(title=paste0("<div style=''>",
                                          as.character(shiny::actionLink(inputId = 'link_click_edit', label = "edit")),
                                          " - ",
                                          as.character(shiny::actionLink(inputId = 'link_click_delete', label = "delete")),
-                                         "</div>"))
-  edges <- edges %>% mutate(title=paste0("<div style='background-color:none;border:none;'><div>",quote,"</div><br/>",
+                                         "</br>",
+                                         "</br>",
+                                         label %>% str_wrap() %>% str_replace_all("\n","</br>"),
+                                         "</div>"
+                                         ))
+  edges <- edges %>% mutate(title=paste0("<div style='background-color:none;border:none;'>",
                                          as.character(shiny::actionLink(inputId = 'link_click_edit', label = "edit")),
                                          " - ",
                                          as.character(shiny::actionLink(inputId = 'link_click_delete', label = "delete")),
+                                         "<br/>",
+                                         "<br/>",
+                                         quote %>% str_wrap(width = 60) %>% str_replace_all("\n","</br>"),
                                          "</div>"))
 
   visNetwork(nodes,edges,background="white")   %>%
@@ -1673,8 +1694,13 @@ make_vn <- function(graf,scale=1){
       selectable = T,
       multiselect = T,
       keyboard = F, # would be nice for navigation but interferes with text editing
-      selectConnectedEdges = F
+      selectConnectedEdges = F,
+      tooltipStay=0,
+      tooltipDelay=100
+      ,
+      tooltipStyle='color:red;position: fixed;visibility:hidden;width:400px;background-color:aliceblue'
     ) %>%
+
     visEvents(click ="function(data) {
                 Shiny.onInputChange('node_click', data.nodes);
                 Shiny.onInputChange('edge_click', data.edges);
