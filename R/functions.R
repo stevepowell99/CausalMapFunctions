@@ -1270,6 +1270,7 @@ pipe_fix_columns <- function(graf){
   if(!("frequency" %in% link_colnames(graf))) graf <- graf %E>% mutate(frequency=1L)
   if(!("capacity" %in% link_colnames(graf))) graf <- graf %E>% mutate(capacity=1L)
   if(!("label" %in% link_colnames(graf))) graf <- graf %E>% mutate(label="")
+  if(!("quote" %in% link_colnames(graf))) graf <- graf %E>% mutate(quote="")
   if(!("width" %in% link_colnames(graf))) graf <- graf %E>% mutate(width=.2)
   if(!("flow" %in% link_colnames(graf))) graf <- graf %E>% mutate(flow=1L)
   graf %>% activate(nodes)
@@ -1491,11 +1492,11 @@ pipe_scale_links <- function(graf,field="frequency",fixed=NULL){
 #'
 #'
 #' @examples
-pipe_label_links <- function(graf,field="frequency",clear=F){
+pipe_label_links <- function(graf,field="frequency",clear=F,field_label=F){
   clear=as.logical(clear)
   if(field %notin% link_colnames(graf)){warning("No such column");return(graf)}
   graf %E>%
-    mutate(label=paste0((if(clear)NULL else paste0(label,". ")) %>% keep(.!=""),field,": ",UQ(sym(field)),". ")) %>% activate(nodes)
+    mutate(label=paste0((if(clear)NULL else paste0(label,". ")) %>% keep(.!=""),if(field_label)paste0(field,": "),UQ(sym(field)),if(field_label)". ")) %>% activate(nodes)
 }
 
 #' Remove bracketed expressions
