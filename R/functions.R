@@ -738,7 +738,7 @@ pipe_merge_statements <- function(graf){
   if(!is.null(attr(graf,"statements"))) graf %>%
     activate(edges) %>%
     mutate(statement_id=as.numeric(statement_id)) %>%
-    left_join(attr(graf,"statements") ,by="statement_id") %>%
+    left_join(attr(graf,"statements") %>% mutate(statement_id=as.numeric(statement_id)) ,by="statement_id") %>%
     activate(nodes)
   else graf
 }
