@@ -9,3 +9,5 @@ tmp
 inst/doc
 
 concern
+
+config - ignored.yml
