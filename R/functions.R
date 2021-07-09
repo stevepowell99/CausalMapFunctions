@@ -1,12 +1,38 @@
+app_config <- config::get()
+
+Sys.setenv(
+  AWS_ACCESS_KEY_ID = app_config$AWS_ACCESS_KEY_ID,
+  AWS_SECRET_ACCESS_KEY = app_config$AWS_SECRET_ACCESS_KEY,
+  AWS_REGION = app_config$AWS_REGION,
+  AWS_DEFAULT_REGION = app_config$AWS_DEFAULT_REGION
+)
+
+buck <- "causalmap"
+
 library(igraph)
+library(configr)
 library(DiagrammeR)
 library(visNetwork)
 library(tidyverse)
 library(tidygraph)
 library(scales)
+library(aws.s3)
+
 # library(DT) # for formatStyle only
 #library(RColorBrewer)
 
+s3file_exists <- function(object){
+  object_exists(object,bucket=buck)
+}
+join_statements_to_meta <- function(statements,meta){
+  # browser()
+  meta %>%
+    select(statement_id,key,value) %>%
+    unique %>%
+    spread(key,value,convert=T) %>%
+    select(-contains("statement_note")) %>%
+    left_join(statements,.,by="statement_id")
+}
 
 # internal utilities-----------------------------------------------------------------------------
 
@@ -109,10 +135,31 @@ add_class <- function(x,cls="tidymap"){
 #' @export
 #'
 #' @examples
-create_map <- function(factors=NULL,links=NULL,statements=NULL,sources=NULL,questions=NULL,settings=NULL,clean=T){
+create_map <- function(s3file=NULL,s3data_root="app-sync",s3bucket=buck,factors=NULL,links=NULL,statements=NULL,sources=NULL,questions=NULL,settings=NULL,clean=T){
+
+  if(!is.null(s3file)){
+    root <- paste0(s3data_root,"/",s3file)
+# browser()
+    pathx <- paste0(root,"/factors");
+    if(s3file_exists(pathx))factors <- s3readRDS(object=pathx,bucket=s3bucket) %>% mutate_all(~str_remove_all(.,"\n"))
+    pathx <- paste0(root,"/links");
+    if(s3file_exists(pathx))links <- s3readRDS(object=pathx,bucket=s3bucket) %>% mutate_all(~str_remove_all(.,"\n"))
+    pathx <- paste0(root,"/statements");
+    if(s3file_exists(pathx))statements <- s3readRDS(object=pathx,bucket=s3bucket) %>% mutate_all(~str_remove_all(.,"\n"))
+    pathx <- paste0(root,"/statements_extra");
+    if(s3file_exists(pathx))statements_extra <- s3readRDS(object=pathx,bucket=s3bucket) %>% mutate_all(~str_remove_all(.,"\n"))
+    # browser()
+    if(!is.null(statements))statements <-  join_statements_to_meta(statements,statements_extra) %>% select(statement_id,everything())
+    # graf <- create_map(factors,links)
+    # attr(graf,"statements") <- statements_with_meta
+
+  } else {
   if(is.null(factors) & is.null(links)) {notify("you did not provide factors or links");links=links %>% replace_null(standard_links()%>% filter(F))}
+
+  }
   # browser()
-  tbl_graph(factors %>% replace_null(standard_factors(links)),links %>% replace_null(standard_links()%>% filter(F))) %>%
+
+  graf <- tbl_graph(factors %>% replace_null(standard_factors(links)),links %>% replace_null(standard_links()%>% filter(F))) %>%
     add_attribute(statements,"statements") %>%
     add_attribute(sources,"sources") %>%
     add_attribute(questions,"questions") %>%
@@ -120,7 +167,13 @@ create_map <- function(factors=NULL,links=NULL,statements=NULL,sources=NULL,ques
     add_class %>%
     {if(clean)clean_map(.)else .}
 
+
+  graf
+
 }
+
+
+
 empty_tibble <- tibble(nothing=0)
 
 normalise_id <- function(main,referring,keyname){
@@ -180,7 +233,7 @@ clean_map <- function(map){
   if(length(unique(questions$question_id))!=nrow(questions)) {questions <- questions %>% distinct(question_id,.keep_all=T);notify("Removing non-unique QuestionIDs")}
 
 
-  create_map(factors,links,statements,sources,questions,settings,clean=F) %>%
+  create_map(factors=factors,links=links,statements=statements,sources=sources,questions=questions,settings=settings,clean=F) %>%
     add_class
 }
 print.tidymap <- function (graf, n=2,...)
@@ -460,7 +513,7 @@ links_table_full <- function(graf){
   # browser()
   if("old_label_" %notin% colnames(factors_table(graf))) graf <- graf %>% mutate(old_label_=label)
   graf %>%
-    # pipe_merge_statements() %>%
+    pipe_merge_statements() %>%
     links_table %>%
     select(-any_of(c("from_old_label_","to_old_label_","from_label","to_label"))) %>%
     left_join((factors_table(graf) %>% mutate(id=row_number()) %>% select(from=id,from_label=label,from_old_label_=old_label_)),by="from") %>%
@@ -681,6 +734,7 @@ pipe_page_links <- function(...)pipe_find_links(pager=T,...)
 #'cashTransferMap %>% pipe_merge_statements() %>% pipe_find_links(field="text",value="women",operator="contains")
 #'cashTransferMap %>% pipe_find_statements(field="text",value="women",operator="contains")
 pipe_merge_statements <- function(graf){
+  # browser()
   if(!is.null(attr(graf,"statements"))) graf %>%
     activate(edges) %>%
     mutate(statement_id=as.numeric(statement_id)) %>%
@@ -1295,7 +1349,7 @@ pipe_metrics <- function(graf){
       # group=suppressMessages(group_infomap()),
       "in_degree"=centrality_degree(mode = "in"),
       "out_degree"=centrality_degree(mode = "out"),
-      n=in_degree+out_degree,
+      frequency=in_degree+out_degree,
       # keyplayer=node_is_keyplayer(),
       # "is_centre"=node_is_center(mode = "out"),
       # "is_cut"=node_is_cut()
@@ -1715,7 +1769,7 @@ make_vn <- function(graf,scale=1){
     visPhysics(stabilization = T) %>% # ,solver="hierarchicalRepulsion") %>% #,solver="hierarchicalRepulsion") %>%
     visOptions(
       collapse = F,
-      manipulation=T
+      manipulation=F
       ,
       highlightNearest = list(
         enabled = F,
