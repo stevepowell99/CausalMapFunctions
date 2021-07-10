@@ -738,7 +738,7 @@ pipe_merge_statements <- function(graf){
   if(!is.null(attr(graf,"statements"))) graf %>%
     activate(edges) %>%
     mutate(statement_id=as.numeric(statement_id)) %>%
-    left_join(attr(graf,"statements") %>% mutate(statement_id=as.numeric(statement_id)) ,by="statement_id") %>%
+    left_join(attr(graf,"statements") %>% mutate(statement_id=as.numeric(statement_id))) %>% # ,by="statement_id") %>% otherwise when this is repeated, you get loads of cols
     activate(nodes)
   else graf
 }
@@ -1263,23 +1263,23 @@ pipe_flip_opposites <- function(graf,flipchar="~",add_colors=T){
 #' # or, counting sources rather than statements:
 #' if(F)cashTransferMap %>% pipe_merge_statements() %>%  pipe_select_factors(10) %>% pipe_bundle_links(group="1. Sex",counter="#SourceID")%>% pipe_label_links(field = "frequency") %>% pipe_color_links(field="1. Sex") %>% pipe_scale_links() %>%  make_grviz()
 pipe_bundle_links <- function(graf,counter="frequency",group=NULL){
-  # browser()
   statements <- graf %>% statements_table()
   flow <- graf %>% attr("flow")
   nodes <- factors_table(graf)
-  edges <- links_table(graf)
+  edges <- links_table_full(graf)
   if(nrow(nodes)==0) return(NULL)
-  coln <- link_colnames(graf)
+  coln <- colnames(edges)
 
 
-  if(counter %notin% link_colnames(graf) & counter!="frequency" ) {notify("no such counter");return(graf)}
+  if(counter %notin% coln & counter!="frequency" ) {notify("no such counter");return(graf)}
   if(!is.null(group)){if(group %notin% coln) {notify("no such counter");return(graf)}}
 
   if(is.null(group)) edges <- edges %>% group_by(from,to) else edges <- edges %>% group_by(from,to,UQ(sym(group)))
 
+  # browser()
   if(counter=="frequency"){
 
-  if("frequency" %in% coln)edges <- edges %>%
+    if("frequency" %in% coln)edges <- edges %>%
     mutate(rn_=row_number()) %>%
     mutate(frequency=sum(frequency))
   else edges <- edges %>%
@@ -1525,11 +1525,11 @@ pipe_fade_links <- function(graf,field="frequency"){
 #' @examples
 pipe_scale_links <- function(graf,field="frequency",fixed=NULL){
   if(!is.null(fixed))return(graf %E>% mutate(width=fixed) %>% activate(nodes))
-  if(field %notin% link_colnames(graf)){warning("No such column");return(graf)}
-
-  class <- graf %>% links_table %>% pull(UQ(sym(field))) %>% class
-  if(class =="character"){warning("No such column");return(graf)}
   # browser()
+  if(field %notin% colnames(links_table(graf))){warning("No such column");return(graf)}
+
+  class <- graf %>% links_table_full %>% pull(UQ(sym(field))) %>% class
+  if(class =="character"){warning("No such column");return(graf)}
   graf %E>% mutate(width=scales::rescale(UQ(sym(field)),to=c(0.1,1))) %>% activate(nodes)
 }
 
@@ -1699,9 +1699,11 @@ make_vn <- function(graf,scale=1){
   #                                        " - ",
   #                                        as.character(shiny::actionLink(inputId = 'link_click_delete', label = "delete"))
   #                                        ))
-  nodes <- nodes %>% mutate(title=paste0("<div style=''>",
-                                         as.character(shiny::actionLink(inputId = 'link_click_edit', label = "edit")),
-                                         " - ",
+  nodes <-
+    nodes %>% mutate(title=paste0("<div style=''>",
+                                         as.character(shiny::textInput(inputId = 'link_click_rename', label = 'Label')),
+                                         as.character(shiny::actionLink(inputId = 'link_click_edit', label = "save")),
+                                         "</br>",
                                          as.character(shiny::actionLink(inputId = 'link_click_delete', label = "delete")),
                                          "</br>",
                                          "</br>",
