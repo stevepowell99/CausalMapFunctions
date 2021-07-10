@@ -1,11 +1,11 @@
-app_config <- config::get()
-
-Sys.setenv(
-  AWS_ACCESS_KEY_ID = app_config$AWS_ACCESS_KEY_ID,
-  AWS_SECRET_ACCESS_KEY = app_config$AWS_SECRET_ACCESS_KEY,
-  AWS_REGION = app_config$AWS_REGION,
-  AWS_DEFAULT_REGION = app_config$AWS_DEFAULT_REGION
-)
+# app_config <- config::get()
+#
+# Sys.setenv(
+#   AWS_ACCESS_KEY_ID = app_config$AWS_ACCESS_KEY_ID,
+#   AWS_SECRET_ACCESS_KEY = app_config$AWS_SECRET_ACCESS_KEY,
+#   AWS_REGION = app_config$AWS_REGION,
+#   AWS_DEFAULT_REGION = app_config$AWS_DEFAULT_REGION
+# )
 
 buck <- "causalmap"
 
