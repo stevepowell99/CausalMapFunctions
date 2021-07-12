@@ -1701,8 +1701,8 @@ make_vn <- function(graf,scale=1){
   #                                        ))
   nodes <-
     nodes %>% mutate(title=paste0("<div style=''>",
-                                         as.character(shiny::textInput(inputId = 'link_click_rename', label = 'Label')),
-                                         as.character(shiny::actionLink(inputId = 'link_click_edit', label = "save")),
+                                         as.character(shiny::textInput(inputId = 'link_click_new_label', label = 'Label')),
+                                         as.character(shiny::actionLink(inputId = 'link_click_edit', label = "coming soon!")) %>% HTML,
                                          "</br>",
                                          as.character(shiny::actionLink(inputId = 'link_click_delete', label = "delete")),
                                          "</br>",
