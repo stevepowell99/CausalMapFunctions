@@ -21,7 +21,7 @@ library(aws.s3)
 # library(DT) # for formatStyle only
 #library(RColorBrewer)
 
-s3file_exists <- function(object){
+s3file_exists <- function(object,buck){
   object_exists(object,bucket=buck)
 }
 join_statements_to_meta <- function(statements,meta){
@@ -135,28 +135,52 @@ add_class <- function(x,cls="tidymap"){
 #' @export
 #'
 #' @examples
-create_map <- function(s3file=NULL,s3data_root="app-sync",s3bucket=buck,factors=NULL,links=NULL,statements=NULL,sources=NULL,questions=NULL,settings=NULL,clean=T){
+load_map <- function(path=NULL,factors=NULL,links=NULL,statements=NULL,sources=NULL,questions=NULL,settings=NULL,clean=T,connection=conn){
+  graf <- NULL
+  tmp <- NULL
+  # browser()
+  if(!is.null(path)){
+    if(!(str_detect(path,"/"))){
+      type <- "s3"
 
-  if(!is.null(s3file)){
-    root <- paste0(s3data_root,"/",s3file)
-# browser()
-    pathx <- paste0(root,"/factors");
-    if(s3file_exists(pathx))factors <- s3readRDS(object=pathx,bucket=s3bucket) %>% mutate_all(~str_remove_all(.,"\n"))
-    pathx <- paste0(root,"/links");
-    if(s3file_exists(pathx))links <- s3readRDS(object=pathx,bucket=s3bucket) %>% mutate_all(~str_remove_all(.,"\n"))
-    pathx <- paste0(root,"/statements");
-    if(s3file_exists(pathx))statements <- s3readRDS(object=pathx,bucket=s3bucket) %>% mutate_all(~str_remove_all(.,"\n"))
-    pathx <- paste0(root,"/statements_extra");
-    if(s3file_exists(pathx))statements_extra <- s3readRDS(object=pathx,bucket=s3bucket) %>% mutate_all(~str_remove_all(.,"\n"))
-    # browser()
-    if(!is.null(statements))statements <-  join_statements_to_meta(statements,statements_extra) %>% select(statement_id,everything())
-    # graf <- create_map(factors,links)
-    # attr(graf,"statements") <- statements_with_meta
+    } else {
+  type <- path %>% str_match("^.*?/") %>% str_remove("/")
+  path <- path %>% str_remove("^.*?/")
+    }#
+  } else type <- "individual"
 
-  } else {
-  if(is.null(factors) & is.null(links)) {notify("you did not provide factors or links");links=links %>% replace_null(standard_links()%>% filter(F))}
+  if(type=="file") graf <- map else
+  if(type=="standard"){
+    graf <- get(path)
+  } else
+  if(type=="s32"){
+    graf <- get_map_from_s3(path %>% paste0("cm2data/",.))
+  } else
+  if(type=="s3"){
+    tmp <- get_map_from_s3_pieces(path %>% paste0("causalmap/app-sync/",.))
+
+  } else if(type=="sql"){
+    tmp <- get_map_from_sql(path,connection=connection)
 
   }
+
+  if(!is.null(tmp)){
+    # browser()
+    factors <- tmp$factors
+    links <- tmp$links
+    statements <- tmp$statements
+    sources <- tmp$sources
+    questions <- tmp$questions
+    settings <- tmp$settings
+
+  }
+
+  if(is.null(factors) & is.null(links)) {
+    notify("you did not provide factors or links");links=links %>% replace_null(standard_links()%>% filter(F))
+
+  }
+
+  if(is.null(graf)){
   # browser()
 
   graf <- tbl_graph(factors %>% replace_null(standard_factors(links)),links %>% replace_null(standard_links()%>% filter(F))) %>%
@@ -164,14 +188,110 @@ create_map <- function(s3file=NULL,s3data_root="app-sync",s3bucket=buck,factors=
     add_attribute(sources,"sources") %>%
     add_attribute(questions,"questions") %>%
     add_attribute(settings,"settings") %>%
-    add_class %>%
+    add_class
+  }
+  graf %>%
     {if(clean)clean_map(.)else .}
 
 
-  graf
 
 }
 
+get_map_from_s3 <- function(path){
+    s3readRDS(object=basename(path),bucket=dirname(path))
+}
+
+get_project_table <- function(tab="data",proj=sess$project,connection=conn){
+  tbl(conn,local(tab)) %>%
+    filter(project==local(proj)) %>%
+    collect %>%
+    mutate_all(to_logical)
+}
+to_logical <- function(vec){
+  if(vec %>% unique %>% `%in%`(0:1) %>% all) as.logical(vec) else vec
+}
+
+from_logical <- function(vec){
+  if(vec %>% unique %>% `%in%`(c(F,T)) %>% all) as.numeric(vec) else vec
+}
+
+get_whole_table <- function(tab,connection=conn){
+  tbl(connection,local(tab)) %>% collect %>% mutate_all(to_logical)
+}
+
+get_map_from_sql <- function(path,connection){
+# browser()
+  vsettings <- get_whole_table("settings",connection) %>% filter(project==path) # we need this anyway
+  vdata <- get_project_table("data",path,connection)
+  vmeta <- get_project_table("meta",path,connection)
+  vsentiment <- get_project_table("sentiment",path,connection)
+
+
+  r <- vsettings$boxes %>%
+    as.character()
+  if(r=="") recodes <- NULL else recodes <- fromJSON(r)   #TODO actual recodes
+
+  # browser()
+  links <- req(vdata) %>%
+    select(from,to,everything(),-project) %>%
+    left_join(vmeta %>% group_by(session_token) %>% summarise_all(last),by="session_token")
+
+  if(nrow(vsentiment)>0)
+    links <- links %>%   left_join(vsentiment %>% group_by(session_token) %>% select(-project) %>% summarise_all(last),by="session_token")
+  factors=tibble(label=c(links$from,links$to) %>% unique)
+
+
+  graf <- tbl_graph(factors,links) %>%
+    mutate(label=if_else(label=="zero",vsettings$base_q,label)) %>%
+    filter(label!="")
+
+  notify(paste0("Loading sql file: ",path))
+  return(list(
+    factors = graf %>% factors_table,
+    links = graf %>% links_table,
+    statements = NULL,               ########## STILL NEED TO GET SOURCES ETC
+    sources = NULL,
+    questions = NULL,
+    settings = NULL
+  ))
+
+}
+get_map_from_s3_pieces <- function(path){
+
+  s3bucket <- dirname(dirname(path))
+  root <- str_remove(path,"^" %>% paste0(s3bucket,"/"))
+
+  factors = NULL
+  links = NULL
+  statements = NULL
+  sources = NULL
+  questions = NULL
+  settings = NULL
+
+  # browser()
+  pathx <- paste0(root,"/factors");
+  if(s3file_exists(pathx,s3bucket))factors <- s3readRDS(object=pathx,bucket=s3bucket) %>% mutate_all(~str_remove_all(.,"\n"))
+  pathx <- paste0(root,"/links");
+  if(s3file_exists(pathx,s3bucket))links <- s3readRDS(object=pathx,bucket=s3bucket) %>% mutate_all(~str_remove_all(.,"\n"))
+  pathx <- paste0(root,"/statements");
+  if(s3file_exists(pathx,s3bucket))statements <- s3readRDS(object=pathx,bucket=s3bucket) %>% mutate_all(~str_remove_all(.,"\n"))
+  pathx <- paste0(root,"/statements_extra");
+  if(s3file_exists(pathx,s3bucket))statements_extra <- s3readRDS(object=pathx,bucket=s3bucket) %>% mutate_all(~str_remove_all(.,"\n"))
+  # browser()
+  if(!is.null(statements))statements <-  join_statements_to_meta(statements,statements_extra) %>% select(statement_id,everything())
+  # graf <- create_map(factors,links)
+  # attr(graf,"statements") <- statements_with_meta
+  # browser()
+  list(
+    factors = factors,
+    links = links,
+    statements = statements,               ########## STILL NEED TO GET SOURCES ETC
+    sources = sources,
+    questions = questions,
+    settings = settings
+  )
+
+}
 
 
 empty_tibble <- tibble(nothing=0)
@@ -559,7 +679,7 @@ parse_line <- function(line,graf){
   if(str_trim(line)=="")return()
   fun <- word(line, 1,2, sep=" ")
   if(is.na(fun)){notify("No such function");return(graf %>% filter(F))}
-  if(!exists(str_replace(fun," ","_") %>% paste0("pipe_",.))){notify("No such function");return(graf %>% filter(F))}
+  if(!exists(str_replace(fun," ","_") %>% paste0("pipe_",.))){message("No such function");return(graf %>% filter(F))}
 
   body <-
     str_remove(line,fun) %>%
@@ -698,10 +818,16 @@ parse_line <- function(line,graf){
 #' @export
 #' @examples
 #'cashTransferMap %>% parse_commands("select factors top=10 \n color factors field=n") %>% make_vn()
-parse_commands <- function(graf,tex){
-
+parse_commands <- function(graf=NULL,tex){
   tex <- tex %>% replace_null("") %>% str_split("\n") %>% `[[`(1) %>% str_trim() %>% keep(!str_detect(.,"^#"))
   if(length(tex)>1)tex <- tex %>% keep(.!="")
+
+  if(is.null(graf)){
+# browser()
+    graf <- tex[1] %>% str_remove("^ *load *map *") %>% load_map()
+    tex <- tex[-1]
+
+  }
   if(tex[[1]]=="") graf <- graf else {
 
     for(line in tex){
