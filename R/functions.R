@@ -38,7 +38,7 @@ join_statements_to_meta <- function(statements,meta){
 
 notify <- message # alias
 return_notify <- function(tex){
-  notify(tex,3)
+  message(tex,3)
   return()
 }
 
@@ -176,7 +176,8 @@ load_map <- function(path=NULL,factors=NULL,links=NULL,statements=NULL,sources=N
   }
 
   if(is.null(factors) & is.null(links)) {
-    notify("you did not provide factors or links");links=links %>% replace_null(standard_links()%>% filter(F))
+    return(NULL)
+    message("you did not provide factors or links");links=links %>% replace_null(standard_links()%>% filter(F))
 
   }
 
@@ -198,6 +199,8 @@ load_map <- function(path=NULL,factors=NULL,links=NULL,statements=NULL,sources=N
 }
 
 get_map_from_s3 <- function(path){
+  # browser()
+  if(!s3file_exists(object=basename(path),buck=dirname(path))) return()
     s3readRDS(object=basename(path),bucket=dirname(path))
 }
 
@@ -223,6 +226,7 @@ get_map_from_sql <- function(path,connection){
 # browser()
   vsettings <- get_whole_table("settings",connection) %>% filter(project==path) # we need this anyway
   vdata <- get_project_table("data",path,connection)
+  if(nrow(vdata)==0) return()
   vmeta <- get_project_table("meta",path,connection)
   vsentiment <- get_project_table("sentiment",path,connection)
 
@@ -245,7 +249,7 @@ get_map_from_sql <- function(path,connection){
     mutate(label=if_else(label=="zero",vsettings$base_q,label)) %>%
     filter(label!="")
 
-  notify(paste0("Loading sql file: ",path))
+  message(paste0("Loading sql file: ",path))
   return(list(
     factors = graf %>% factors_table,
     links = graf %>% links_table,
@@ -297,8 +301,8 @@ get_map_from_s3_pieces <- function(path){
 empty_tibble <- tibble(nothing=0)
 
 normalise_id <- function(main,referring,keyname){
-  if(is.null(main[,keyname])){notify("keyname not in main table")}
-  if(is.null(referring[,keyname])){notify("keyname not in referring table")}
+  if(is.null(main[,keyname])){message("keyname not in main table")}
+  if(is.null(referring[,keyname])){message("keyname not in referring table")}
   # browser()
   # if(length(unique(main[,keyname]))!=nrow(main))
   main$.old_key <- main[,keyname] %>% unlist
@@ -334,13 +338,13 @@ clean_map <- function(map){
       if(length(unique(statements$statement_id))!=nrow(statements)){
         links$statement_id=1
         statements$statement_id=1:nrow(statements)
-        notify("Your statement ids were not provided or not unique")
+        message("Your statement ids were not provided or not unique")
       } else
     {
         # tmp <- normalise_id(statements,links,"statement_id")
         # statements=tmp$main
         # links=tmp$referring
-      notify("Not yet normalising statement IDS")#because what happens when there are some links without yet having statements??
+      message("Not yet normalising statement IDS")#because what happens when there are some links without yet having statements??
         }
   }
 
@@ -349,8 +353,8 @@ clean_map <- function(map){
   questions <- attr(map,"questions") %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_questions()) %>% select(any_of(colnames(standard_questions())))
   settings <- attr(map,"settings") %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_settings()) %>% select(any_of(colnames(standard_settings())))
 # browser()
-  if(length(unique(sources$source_id))!=nrow(sources)) {sources <- sources %>% distinct(source_id,.keep_all=T);notify("Removing non-unique SourceIDs")}
-  if(length(unique(questions$question_id))!=nrow(questions)) {questions <- questions %>% distinct(question_id,.keep_all=T);notify("Removing non-unique QuestionIDs")}
+  if(length(unique(sources$source_id))!=nrow(sources)) {sources <- sources %>% distinct(source_id,.keep_all=T);message("Removing non-unique SourceIDs")}
+  if(length(unique(questions$question_id))!=nrow(questions)) {questions <- questions %>% distinct(question_id,.keep_all=T);message("Removing non-unique QuestionIDs")}
 
 
   create_map(factors=factors,links=links,statements=statements,sources=sources,questions=questions,settings=settings,clean=F) %>%
@@ -555,7 +559,7 @@ find_fun <- function(df,field=NULL,value,operator=NULL,what,pager=F){
     # df <- graf
 
 # browser()
-  if(field %notin% colnames(df)) {notify("No such field");return(df)}
+  if(field %notin% colnames(df)) {message("No such field");return(df)}
 
 
   if(operator=="contains"){df <- df %>%  mutate(found=str_detect(tolower(unwrap(UQ(sym(field)))),value %>% paste0(collapse="|")))} else
@@ -675,10 +679,10 @@ make_search <- function(x)x %>% escapeRegex %>% str_trim
 #' @export
 parse_line <- function(line,graf){
   # browser()
-  notify(line)
+  message(line)
   if(str_trim(line)=="")return()
   fun <- word(line, 1,2, sep=" ")
-  if(is.na(fun)){notify("No such function");return(graf %>% filter(F))}
+  if(is.na(fun)){message("No such function");return(graf %>% filter(F))}
   if(!exists(str_replace(fun," ","_") %>% paste0("pipe_",.))){message("No such function");return(graf %>% filter(F))}
 
   body <-
@@ -781,7 +785,7 @@ parse_line <- function(line,graf){
       str_trim %>%
       str_remove_all("=$")
 
-    if(length(fields)!=length(vals)){notify("Wrong number of values");return(graf %>% filter(F))}
+    if(length(fields)!=length(vals)){message("Wrong number of values");return(graf %>% filter(F))}
 
     names(vals) <- fields
     vals$value <- str_split(vals$value," OR ") %>% unlist
@@ -825,7 +829,7 @@ parse_commands <- function(graf=NULL,tex){
   if(is.null(graf)){
 # browser()
     graf <- tex[1] %>% str_remove("^ *load *map *") %>% load_map()
-    tex <- tex[-1]
+    if(length(tex)>1)tex <- tex[-1] else tex <- ""
 
   }
   if(tex[[1]]=="") graf <- graf else {
@@ -947,7 +951,7 @@ pipe_find_links <- function(graf,field=NULL,value,operator=NULL,pager=F,remove_i
 #'
 #' @examples
 pipe_find_statements <- function(graf,field,value,operator="=",pager=F){
-  if(!has_statements(graf)) {notify("No statements");return(graf)}
+  if(!has_statements(graf)) {message("No statements");return(graf)}
 
 # browser()
   tmp <- graf %>%
@@ -971,6 +975,7 @@ pipe_find_statements <- function(graf,field,value,operator="=",pager=F){
 #'
 #' @inheritParams parse_commands
 #' @param top Bundle the links and select only the `top` links in terms of their frequency
+#' @param bottom Bundle the links and select only the `bottom` links in terms of their frequency
 #' @param all
 #' @param is_proportion
 #'
@@ -978,16 +983,19 @@ pipe_find_statements <- function(graf,field,value,operator="=",pager=F){
 #' @export
 #'
 #' @examples
-pipe_select_links <- function(graf,top){
+pipe_select_links <- function(graf,top=NULL,bottom=NULL){
   graf %>%
     pipe_bundle_links() %E>%
     arrange(desc(frequency)) %>%
-    slice(1:top) %>%
+    {if(!is.null(top))slice(.,1:top) else slice(.,(nrow_links_table(graf)+1-bottom):nrow_links_table(graf))} %>%
     select(from,to,frequency,everything()) %>%
     # select(1:7) %>%
     activate(nodes)
 }
-
+nrow_factors_table <- function(graf)
+  graf %>% factors_table %>% nrow
+nrow_links_table <- function(graf)
+  graf %>% links_table %>% nrow
 
 #' Select factors
 #'
@@ -1000,13 +1008,14 @@ pipe_select_links <- function(graf,top){
 #' @export
 #'
 #' @examples
-pipe_select_factors <- function(graf,top=20,all=F){
+pipe_select_factors <- function(graf,top=NULL,bottom=NULL,all=F){
+  # browser()
   graf %>%
     activate(nodes) %>%
     mutate(frequency = centrality_degree()) %>%
     mutate(frequency=rank(frequency)) %>%
     arrange(desc(frequency)) %>%
-    slice(1:top)
+    {if(!is.null(top))slice(.,1:top) else slice(.,(nrow_factors_table(graf)+1-bottom):nrow_factors_table(graf))}
 
 }
 
@@ -1170,9 +1179,9 @@ pipe_trace_robustness <- function(graf,from,to,length=4,field=NULL){
 #'
 #' @examples
 pipe_trace_paths <- function(graf,from,to,length=4){
-  if(is.na(length)) {notify("You have to specify length");return(graf)}
-  if(from=="") {notify("You have to specify source factors");return(graf)}
-  if(to=="") {notify("You have to specify target factors");return(graf)}
+  if(is.na(length)) {message("You have to specify length");return(graf)}
+  if(from=="") {message("You have to specify source factors");return(graf)}
+  if(to=="") {message("You have to specify target factors");return(graf)}
   # browser()
   graf <- graf %>% activate(nodes)
   from <- from %>% make_search
@@ -1204,14 +1213,14 @@ pipe_trace_paths <- function(graf,from,to,length=4){
   sums <- graf %>% factors_table %>% select(found_from,found_to) %>% colSums(na.rm=T)
   if((sums[1]*sums[2])>10000){
     # if(sum(found_from,na.rm=T)*sum(found_to,na.rm=T)>10){
-    notify("too much to trace")
+    message("too much to trace")
     return(graf)
   }
 
 
 # all_flows <- calculate_robustness(graf)
 
-# notify(glue("Number of cuts is {res$cut %>% length}"))
+# message(glue("Number of cuts is {res$cut %>% length}"))
   graf %>%
     activate(nodes) %>%
     filter(label!="_super_sink_" & label!="_super_source_")
@@ -1352,7 +1361,7 @@ pipe_color_flipped_links <- function(graf){
 
 
 pipe_flip_opposites <- function(graf,flipchar="~",add_colors=T){
-  if(add_colors)notify("Also adding colours; you can turn this off with 'flip opposites add_colors=FALSE'")
+  if(add_colors)message("Also adding colours; you can turn this off with 'flip opposites add_colors=FALSE'")
   graf %N>%
     mutate(
       is_flipped=str_detect(label,paste0("^ *",flipchar)),
@@ -1397,8 +1406,8 @@ pipe_bundle_links <- function(graf,counter="frequency",group=NULL){
   coln <- colnames(edges)
 
 
-  if(counter %notin% coln & counter!="frequency" ) {notify("no such counter");return(graf)}
-  if(!is.null(group)){if(group %notin% coln) {notify("no such counter");return(graf)}}
+  if(counter %notin% coln & counter!="frequency" ) {message("no such counter");return(graf)}
+  if(!is.null(group)){if(group %notin% coln) {message("no such counter");return(graf)}}
 
   if(is.null(group)) edges <- edges %>% group_by(from,to) else edges <- edges %>% group_by(from,to,UQ(sym(group)))
 
@@ -1468,7 +1477,7 @@ pipe_fix_columns <- function(graf){
 
 pipe_metrics <- function(graf){
   # browser()
-  if(is.null(graf)){notify("No graph for metrics");return(graf)}
+  if(is.null(graf)){message("No graph for metrics");return(graf)}
 
   graf  %N>%
     mutate(
@@ -2026,8 +2035,8 @@ make_grviz <- function(
   safe_limit <- replace_null(safe_limit,graf %>% attr("set_print") %>% .$safe_limit %>% replace_null(200))
 
 
-  # if((nrow(graf %>% factors_table)>safe_limit/3))notify("Map larger than 'safe limit'; setting print layout to twopi")
-  # if((nrow(graf %>% links_table)>safe_limit))notify("Map larger than 'safe limit'; setting print layout to use straight edges")
+  # if((nrow(graf %>% factors_table)>safe_limit/3))message("Map larger than 'safe limit'; setting print layout to twopi")
+  # if((nrow(graf %>% links_table)>safe_limit))message("Map larger than 'safe limit'; setting print layout to use straight edges")
 
   maxwidth <- replace_null(maxwidth,graf %>% attr("set_print") %>% .$maxwidth %>% replace_null("dot"))
 
@@ -2046,7 +2055,7 @@ make_grviz <- function(
   graf <- graf %>% pipe_fix_columns()
 
   if(!is.null(safe_limit) & nrow(links_table(graf))>replace_null(safe_limit,200)){
-    notify("Map larger than 'safe limit'; bundling and labelling links")
+    message("Map larger than 'safe limit'; bundling and labelling links")
     graf <- graf %>%
       pipe_bundle_links() %>%
       pipe_label_links("frequency")
@@ -2160,8 +2169,8 @@ strip_symbols <- function(vec) vec %>%
 #' @examples
 robustUI <- function(graf){
   flow <- attr(graf,"flow")$summary
-  if(is.null(flow)) {notify("No paths");return(NULL)}
-  if(nrow(flow)==0) {notify("No paths");return(NULL)}
+  if(is.null(flow)) {message("No paths");return(NULL)}
+  if(nrow(flow)==0) {message("No paths");return(NULL)}
 
 
 
