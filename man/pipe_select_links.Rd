@@ -4,7 +4,7 @@
 \alias{pipe_select_links}
 \title{Select links}
 \usage{
-pipe_select_links(graf, top)
+pipe_select_links(graf, top = NULL, bottom = NULL)
 }
 \arguments{
 \item{graf}{A tidymap representing a causal map.
@@ -13,6 +13,8 @@ with an optional additional table of statements.
 In this package, nodes are called `factors` and edges are called `links.`}
 
 \item{top}{Bundle the links and select only the `top` links in terms of their frequency}
+
+\item{bottom}{Bundle the links and select only the `bottom` links in terms of their frequency}
 
 \item{is_proportion}{}
 }

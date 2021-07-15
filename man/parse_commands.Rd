@@ -4,7 +4,7 @@
 \alias{parse_commands}
 \title{Parse commands}
 \usage{
-parse_commands(graf, tex)
+parse_commands(graf = NULL, tex)
 }
 \arguments{
 \item{graf}{A tidymap representing a causal map.

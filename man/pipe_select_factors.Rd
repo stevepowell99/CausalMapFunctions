@@ -4,7 +4,7 @@
 \alias{pipe_select_factors}
 \title{Select factors}
 \usage{
-pipe_select_factors(graf, top = 20, all = F)
+pipe_select_factors(graf, top = NULL, bottom = NULL, all = F)
 }
 \arguments{
 \item{graf}{A tidymap representing a causal map.
