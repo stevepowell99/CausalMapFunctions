@@ -121,7 +121,7 @@ add_class <- function(x,cls="tidymap"){
 }
 
 
-#' Create map
+#' Load map
 #' @inheritParams parse_commands
 #' @param factors
 #' @param links
@@ -357,7 +357,7 @@ clean_map <- function(map){
   if(length(unique(questions$question_id))!=nrow(questions)) {questions <- questions %>% distinct(question_id,.keep_all=T);message("Removing non-unique QuestionIDs")}
 
 
-  create_map(factors=factors,links=links,statements=statements,sources=sources,questions=questions,settings=settings,clean=F) %>%
+  load_map(factors=factors,links=links,statements=statements,sources=sources,questions=questions,settings=settings,clean=F) %>%
     add_class
 }
 print.tidymap <- function (graf, n=2,...)
