@@ -94,8 +94,10 @@ load_graf_from_rds <- function(name){
   tbl_graph(tmp$factors,tmp$links)
 }
 
-standard_factors <- function(links=standard_links()){if(is.null(links$from) | is.null(links$to))stop("Wrong links");tibble(label=c(links$from,links$to) %>% unique %>% as.character,factor_memo="")}
-standard_links <- function()tibble(
+standard_factors <- function(links=standard_links()){if(is.null(links$from) | is.null(links$to))stop("Wrong links")
+  tibble(label=c(links$from,links$to) %>% unique %>% as.character,factor_memo="")}
+standard_links <- function(){tibble(
+  link_id=1,
   statement_id=1,
   from=1,
   to=1,
@@ -108,17 +110,127 @@ standard_links <- function()tibble(
   label="",
   hashtag="",
   link_memo=""
-  )
+  )}
 standard_statements <- function()tibble(statement_id=1,text="blank statement",statement_memo="",source_id="1",question_id="1")
 standard_sources <- function()tibble(source_id=1,text="global source",source_memo="",new_column_1="")
 standard_questions <- function()tibble(question_id=1,question_text="global question",question_memo="",new_column_1="")
-standard_settings <- function()tibble(setting_id=1,text="")
+standard_settings <- function()tibble(setting_id="background_colour",value="")
 
 #obvs this must exist already
 add_class <- function(x,cls="tidymap"){
   class(x) <- c(cls,class(x)) %>% unique
   x
 }
+
+row_index <- function(df)1:nrow(df)
+row_row <- function(df)row_index(df) %>% map(~df[.,])
+
+
+#' Clean map
+#'
+#' @param map
+#'
+#' @return A cleaned map
+#' @export
+#'
+#' @examples
+clean_map <- function(map){
+  # browser()
+  factors <-  map %>% factors_table %>% add_column(.name_repair="minimal",!!!standard_factors())  %>% select(any_of(colnames(standard_factors())))
+  links <-  map %>% links_table %>% add_column(.name_repair="minimal",!!!standard_links())   %>% select(any_of(colnames(standard_links()))) %>% mutate(link_id=row_number()) %>% filter(from %in% (factors %>% row_index)) %>% filter(to %in% (factors %>% row_index))
+  statements <- attr(map,"statements") %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_statements()) %>% select(which(!duplicated(colnames(.)))) # %>% select(any_of(colnames(standard_statements())))
+
+
+  if(
+    "statement_id" %in% colnames(statements)
+    &
+    "statement_id" %in% colnames(links)
+    &
+    !identical((statements$statement_id %>% replace_null(Inf)), 1:nrow(statements))  # normalising makes no sense if these three not fulfilled
+  ){ # we have to normalise statement_id because it has to be integers from 1 with no breaks
+    if(length(unique(statements$statement_id))!=nrow(statements)){
+      links$statement_id=1
+      statements$statement_id=1:nrow(statements)
+      message("Your statement ids were not provided or not unique")
+    } else
+    {
+      # tmp <- normalise_id(statements,links,"statement_id")
+      # statements=tmp$main
+      # links=tmp$referring
+      message("Not yet normalising statement IDS")#because what happens when there are some links without yet having statements??
+    }
+  }
+
+
+  sources <- attr(map,"sources") %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_sources()) %>% select(any_of(colnames(standard_sources())))
+  questions <- attr(map,"questions") %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_questions()) %>% select(any_of(colnames(standard_questions())))
+  settings <- attr(map,"settings") %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_settings()) %>% select(any_of(colnames(standard_settings())))
+  # browser()
+  if(length(unique(sources$source_id))!=nrow(sources)) {sources <- sources %>% distinct(source_id,.keep_all=T);message("Removing non-unique SourceIDs")}
+  if(length(unique(questions$question_id))!=nrow(questions)) {questions <- questions %>% distinct(question_id,.keep_all=T);message("Removing non-unique QuestionIDs")}
+
+
+  load_map(factors=factors,links=links,statements=statements,sources=sources,questions=questions,settings=settings,clean=F) %>%
+    add_class
+}
+
+update_join <- function(old,new){
+  old %>%
+    mutate(.rn=row_number()) %>%
+    anti_join(new) %>%
+    bind_rows(new) %>%
+    arrange(.rn) %>%
+    select(-.rn)
+}
+
+
+#' Update map
+#' @inheritParams parse_commands
+#' @param factors
+#' @param links
+#' @param statements
+#' @param sources
+#' @param questions
+#' @param settings
+#' @param clean
+#'
+#' @return A tidy map. If both factors and links are NULL, and empty map is returned.
+#' @export
+#'
+#' @examples
+update_map <- function(map,
+                       factors=NULL,
+                       links=NULL,
+                       statements=NULL,
+                       sources=NULL,
+                       questions=NULL,
+                       settings=NULL,
+                       clean=T,
+                       all=T){
+  if(is.null(factors))factors <- factors_table(map)
+  if(!all) {
+# browser()
+    if(".rn" %notin% colnames(factors)) return(map)
+    factors <-
+      factors_table(map) %>%
+      update_join(factors)
+  }
+  if(is.null(links))links <- links_table(map)
+  if(is.null(statements))statements <- statements_table(map)
+  if(is.null(sources))sources <- sources_table(map)
+  if(is.null(questions))questions <- questions_table(map)
+  if(is.null(settings))settings <- settings_table(map)
+# browser()
+load_map(factors=factors,
+         links=links %>%  filter(from %in% (factors %>% row_index)) %>% filter(to %in% (factors %>% row_index)),
+         statements=statements,
+         sources=sources,
+         questions=questions,
+         settings=settings
+)
+
+}
+
 
 
 #' Load map
@@ -313,53 +425,6 @@ normalise_id <- function(main,referring,keyname){
   return(list(main=main,referring=referring))
 }
 
-#' Clean map
-#'
-#' @param map
-#'
-#' @return A cleaned map
-#' @export
-#'
-#' @examples
-clean_map <- function(map){
-  # browser()
-  factors <-  map %>% factors_table   %>% select(any_of(colnames(standard_factors())))
-  links <-  map %>% links_table %>% add_column(.name_repair="minimal",!!!standard_links())   %>% select(any_of(colnames(standard_links()))) %>% mutate(link_id=row_number())
-  statements <- attr(map,"statements") %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_statements()) %>% select(which(!duplicated(colnames(.)))) # %>% select(any_of(colnames(standard_statements())))
-
-
-  if(
-    "statement_id" %in% colnames(statements)
-    &
-    "statement_id" %in% colnames(links)
-    &
-    !identical((statements$statement_id %>% replace_null(Inf)), 1:nrow(statements))  # normalising makes no sense if these three not fulfilled
-    ){ # we have to normalise statement_id because it has to be integers from 1 with no breaks
-      if(length(unique(statements$statement_id))!=nrow(statements)){
-        links$statement_id=1
-        statements$statement_id=1:nrow(statements)
-        message("Your statement ids were not provided or not unique")
-      } else
-    {
-        # tmp <- normalise_id(statements,links,"statement_id")
-        # statements=tmp$main
-        # links=tmp$referring
-      message("Not yet normalising statement IDS")#because what happens when there are some links without yet having statements??
-        }
-  }
-
-
-  sources <- attr(map,"sources") %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_sources()) %>% select(any_of(colnames(standard_sources())))
-  questions <- attr(map,"questions") %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_questions()) %>% select(any_of(colnames(standard_questions())))
-  settings <- attr(map,"settings") %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_settings()) %>% select(any_of(colnames(standard_settings())))
-# browser()
-  if(length(unique(sources$source_id))!=nrow(sources)) {sources <- sources %>% distinct(source_id,.keep_all=T);message("Removing non-unique SourceIDs")}
-  if(length(unique(questions$question_id))!=nrow(questions)) {questions <- questions %>% distinct(question_id,.keep_all=T);message("Removing non-unique QuestionIDs")}
-
-
-  load_map(factors=factors,links=links,statements=statements,sources=sources,questions=questions,settings=settings,clean=F) %>%
-    add_class
-}
 print.tidymap <- function (graf, n=2,...)
 {
   cat("Factors: ");graf %>% activate(nodes) %>% as_tibble %>% print(n=n)
@@ -629,6 +694,11 @@ questions_table <- function(graf){
     attr("questions") %>%
   {if(is.null(.)) NULL else
   filter(.,question_id %in% statements_table(graf %>% clean_map)$question_id)}
+}
+settings_table <- function(graf){
+  graf %>%
+  clean_map %>%
+    attr("settings")
 }
 #' @rdname tibbles
 #' @export
