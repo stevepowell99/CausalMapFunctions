@@ -8,6 +8,7 @@
 # )
 
 buck <- "causalmap"
+table_list <- c("factors","links","statements","sources","questions","settings")
 
 library(igraph)
 library(configr)
@@ -95,7 +96,9 @@ load_graf_from_rds <- function(name){
 }
 
 standard_factors <- function(links=standard_links()){if(is.null(links$from) | is.null(links$to))stop("Wrong links")
-  tibble(label=c(links$from,links$to) %>% unique %>% as.character,factor_memo="")}
+  tibble(label=c(links$from,links$to) %>% unique %>% as.character,factor_memo="") %>%
+    mutate(factor_id=row_number())
+  }
 standard_links <- function(){tibble(
   link_id=1,
   statement_id=1,
@@ -170,7 +173,7 @@ clean_map <- function(map){
   if(length(unique(questions$question_id))!=nrow(questions)) {questions <- questions %>% distinct(question_id,.keep_all=T);message("Removing non-unique QuestionIDs")}
 
 
-  load_map(factors=factors,links=links,statements=statements,sources=sources,questions=questions,settings=settings,clean=F) %>%
+  load_map(table_list=list(factors=factors,links=links,statements=statements,sources=sources,questions=questions,settings=settings),clean=F) %>%
     add_class
 }
 
@@ -247,10 +250,17 @@ load_map(factors=factors,
 #' @export
 #'
 #' @examples
-load_map <- function(path=NULL,factors=NULL,links=NULL,statements=NULL,sources=NULL,questions=NULL,settings=NULL,clean=T,connection=conn){
+load_map <- function(path=NULL,table_list=NULL,clean=T,connection=conn){
   graf <- NULL
   tmp <- NULL
   # browser()
+  factors=table_list$factors
+  links=table_list$links
+  statements=table_list$statements
+  sources=table_list$sources
+  questions=table_list$questions
+  settings=table_list$settings
+
   if(!is.null(path)){
     if(!(str_detect(path,"/"))){
       type <- "s3"
@@ -286,6 +296,7 @@ load_map <- function(path=NULL,factors=NULL,links=NULL,statements=NULL,sources=N
     settings <- tmp$settings
 
   }
+
 
   if(is.null(factors) & is.null(links)) {
     return(NULL)
@@ -425,6 +436,11 @@ normalise_id <- function(main,referring,keyname){
   return(list(main=main,referring=referring))
 }
 
+as.list.tidymap <- function (graf){
+  table_list %>%
+    set_names %>%
+    map(~get_table(graf,.))
+}
 print.tidymap <- function (graf, n=2,...)
 {
   cat("Factors: ");graf %>% activate(nodes) %>% as_tibble %>% print(n=n)
@@ -700,6 +716,11 @@ settings_table <- function(graf){
   clean_map %>%
     attr("settings")
 }
+
+get_table <- function(graf,table_name){
+  do.call(paste0(table_name,"_table"),list(graf))
+}
+
 #' @rdname tibbles
 #' @export
 #'
