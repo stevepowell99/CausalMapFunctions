@@ -19,7 +19,9 @@ cashTransferMap %>% make_vn
 These functions are used in the [Causal Map Viewer](https://causalmap.shinyapps.io/CausalMapViewer/) and are similar to those used in the [Causal Map app](http://causalmap.app). In our roadmap, these functions will eventually replace their counterparts in the Causal Map app. 
 
 The main functions input and output augmented [tidygraph](https://github.com/thomasp85/tidygraph) graphs. 
-The package defines a kind of object called a tidymap which is just a tidygraph but with an additional statements table stored as an attribute. Statement tables are used in Causal Map as the underlying data which is to be coded into causal links. So each link refers to a quote from a particular statement. Statements are optional and this package can be used without them.
+The package defines a kind of object called a tidymap which is just a tidygraph but with additional statements, sources and questions tables stored as attributes. This means that a tidymap has class = "tidymap"   "tbl_graph" "igraph", so igraph functions can be applied to it.
+
+Statement tables are used in Causal Map as the underlying data which is to be coded into causal links. So each link refers to a quote from a particular statement. Statements are optional and this package can be used without them.
 (If you know Tidygraph, You might expect an `activate(statements)` command but this is not implemented yet.)
 
 The package also contains some UI functions used in the Causal Map Viewer which provide plot and table outputs.

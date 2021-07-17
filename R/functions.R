@@ -173,7 +173,7 @@ clean_map <- function(map){
   if(length(unique(questions$question_id))!=nrow(questions)) {questions <- questions %>% distinct(question_id,.keep_all=T);message("Removing non-unique QuestionIDs")}
 
 
-  load_map(table_list=list(factors=factors,links=links,statements=statements,sources=sources,questions=questions,settings=settings),clean=F) %>%
+  load_map(tables=list(factors=factors,links=links,statements=statements,sources=sources,questions=questions,settings=settings),clean=F) %>%
     add_class
 }
 
@@ -208,28 +208,47 @@ update_map <- function(map,
                        sources=NULL,
                        questions=NULL,
                        settings=NULL,
+                       tables=list(
+                       factors=NULL,
+                       links=NULL,
+                       statements=NULL,
+                       sources=NULL,
+                       questions=NULL,
+                       settings=NULL
+                       ),
                        clean=T,
                        all=T){
-  if(is.null(factors))factors <- factors_table(map)
-  if(!all) {
 # browser()
+  if(!is.null(tables)){
+  if(is.null(factors))       factors <- tables$factors
+  if(is.null(links))       links <- tables$links
+  if(is.null(statements))  statements <- tables$statements
+  if(is.null(sources))     sources <- tables$sources
+  if(is.null(questions))   questions <- tables$questions
+  if(is.null(settings))    settings <- tables$settings
+}
+  if(is.null(factors) & !is.null(map))factors <- factors_table(map)
+  if(!all) {
     if(".rn" %notin% colnames(factors)) return(map)
     factors <-
       factors_table(map) %>%
       update_join(factors)
   }
-  if(is.null(links))links <- links_table(map)
-  if(is.null(statements))statements <- statements_table(map)
-  if(is.null(sources))sources <- sources_table(map)
-  if(is.null(questions))questions <- questions_table(map)
-  if(is.null(settings))settings <- settings_table(map)
-# browser()
-load_map(factors=factors,
-         links=links %>%  filter(from %in% (factors %>% row_index)) %>% filter(to %in% (factors %>% row_index)),
-         statements=statements,
-         sources=sources,
-         questions=questions,
-         settings=settings
+  if(is.null(links))       links <- get_table(map,"links")
+  if(is.null(statements))  statements <- get_table(map,"statements")
+  if(is.null(sources))     sources <- get_table(map,"sources")
+  if(is.null(questions))   questions <- get_table(map,"questions")
+  if(is.null(settings))    settings <- get_table(map,"settings")
+
+  # browser()
+load_map(tables = list(
+  factors=factors,
+  links=links %>%  filter(from %in% (factors %>% row_index)) %>% filter(to %in% (factors %>% row_index)),
+  statements=statements,
+  sources=sources,
+  questions=questions,
+  settings=settings
+)
 )
 
 }
@@ -250,16 +269,16 @@ load_map(factors=factors,
 #' @export
 #'
 #' @examples
-load_map <- function(path=NULL,table_list=NULL,clean=T,connection=conn){
+load_map <- function(path=NULL,tables=NULL,clean=T,connection=conn){
   graf <- NULL
   tmp <- NULL
   # browser()
-  factors=table_list$factors
-  links=table_list$links
-  statements=table_list$statements
-  sources=table_list$sources
-  questions=table_list$questions
-  settings=table_list$settings
+  factors=tables$factors
+  links=tables$links
+  statements=tables$statements
+  sources=tables$sources
+  questions=tables$questions
+  settings=tables$settings
 
   if(!is.null(path)){
     if(!(str_detect(path,"/"))){
@@ -273,19 +292,23 @@ load_map <- function(path=NULL,table_list=NULL,clean=T,connection=conn){
 
   if(type=="file") graf <- map else
   if(type=="standard"){
-    graf <- get(path)
+    tmp <- safely(get)(path)
+    if(tmp$result %>% is.null) return(NULL) else graf <- tmp$result
   } else
   if(type=="s32"){
     graf <- get_map_from_s3(path %>% paste0("cm2data/",.))
+    if(is.null(graf))return(NULL)
   } else
   if(type=="s3"){
+    # browser()
     tmp <- get_map_from_s3_pieces(path %>% paste0("causalmap/app-sync/",.))
+    if(is.null(tmp))return(NULL)
 
   } else if(type=="sql"){
     tmp <- get_map_from_sql(path,connection=connection)
+    if(is.null(tmp))return(NULL)
 
   }
-
   if(!is.null(tmp)){
     # browser()
     factors <- tmp$factors
@@ -297,9 +320,11 @@ load_map <- function(path=NULL,table_list=NULL,clean=T,connection=conn){
 
   }
 
+# browser()
 
-  if(is.null(factors) & is.null(links)) {
-    return(NULL)
+  if(is.null(factors) & is.null(links) & !is.null(path)) {
+    links <- standard_links()
+    factors <- standard_factors()
     message("you did not provide factors or links");links=links %>% replace_null(standard_links()%>% filter(F))
 
   }
@@ -397,7 +422,7 @@ get_map_from_s3_pieces <- function(path){
 
   # browser()
   pathx <- paste0(root,"/factors");
-  if(s3file_exists(pathx,s3bucket))factors <- s3readRDS(object=pathx,bucket=s3bucket) %>% mutate_all(~str_remove_all(.,"\n"))
+  if(s3file_exists(pathx,s3bucket))factors <- s3readRDS(object=pathx,bucket=s3bucket) %>% mutate_all(~str_remove_all(.,"\n")) else return()
   pathx <- paste0(root,"/links");
   if(s3file_exists(pathx,s3bucket))links <- s3readRDS(object=pathx,bucket=s3bucket) %>% mutate_all(~str_remove_all(.,"\n"))
   pathx <- paste0(root,"/statements");
@@ -453,7 +478,7 @@ print.tidymap <- function (graf, n=2,...)
 
 
 factor_colnames <- function(graf)graf %>% factors_table %>% colnames
-link_colnames <- function(graf)graf %>% links_table %>% colnames
+link_colnames <- function(graf)graf %>%  colnames
 
 print_more <- function(graf,n=99){
   graf %>% activate(nodes) %>% as_tibble %>% print(n=n)
@@ -1927,12 +1952,12 @@ make_vn <- function(graf,scale=1){
   #                                        ))
   nodes <-
     nodes %>% mutate(title=paste0("<div style=''>",
-                                         as.character(shiny::textInput(inputId = 'link_click_new_label', label = 'Label')),
-                                         as.character(shiny::actionLink(inputId = 'link_click_edit', label = "coming soon!")) %>% HTML,
-                                         "</br>",
-                                         as.character(shiny::actionLink(inputId = 'link_click_delete', label = "delete")),
-                                         "</br>",
-                                         "</br>",
+                                         # as.character(shiny::textInput(inputId = 'link_click_new_label', label = 'Label')),
+                                         # as.character(shiny::actionLink(inputId = 'link_click_edit', label = "coming soon!")) %>% HTML,
+                                         # "</br>",
+                                         # as.character(shiny::actionLink(inputId = 'link_click_delete', label = "delete")),
+                                         # "</br>",
+                                         # "</br>",
                                          label %>% str_wrap() %>% str_replace_all("\n","</br>"),
                                          "</div>"
                                          ))
