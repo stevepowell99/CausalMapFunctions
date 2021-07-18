@@ -282,7 +282,7 @@ load_map <- function(path=NULL,tables=NULL,clean=T,connection=conn){
 
   if(!is.null(path)){
     if(!(str_detect(path,"/"))){
-      type <- "s3"
+      type <- "s32"
 
     } else {
   type <- path %>% str_match("^.*?/") %>% str_remove("/")
@@ -322,7 +322,8 @@ load_map <- function(path=NULL,tables=NULL,clean=T,connection=conn){
 
 # browser()
 
-  if(is.null(factors) & is.null(links) & !is.null(path)) {
+  if(is.null(factors) & is.null(links)) {
+  # if(is.null(factors) & is.null(links) & !is.null(path)) {
     links <- standard_links()
     factors <- standard_factors()
     message("you did not provide factors or links");links=links %>% replace_null(standard_links()%>% filter(F))
@@ -744,6 +745,9 @@ settings_table <- function(graf){
 
 get_table <- function(graf,table_name){
   do.call(paste0(table_name,"_table"),list(graf))
+}
+get_standard_table <- function(table_name){
+  do.call(paste0("standard_",table_name),list())
 }
 
 #' @rdname tibbles
