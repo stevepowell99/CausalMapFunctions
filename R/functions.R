@@ -804,6 +804,9 @@ statements_table <- function(graf)graf %>%
   attr("statements") %>%
   {if(is.null(.)) NULL else
   filter(.,statement_id %in% links_table(graf)$statement_id)}
+#' @rdname tibbles
+#' @export
+#'
 sources_table <- function(graf){
   graf %>%
   clean_map %>%
@@ -811,6 +814,9 @@ sources_table <- function(graf){
   {if(is.null(.)) NULL else
   filter(.,source_id %in% statements_table(graf %>% clean_map)$source_id)}
 }
+#' @rdname tibbles
+#' @export
+#'
 questions_table <- function(graf){
   graf %>%
   clean_map %>%
@@ -818,15 +824,26 @@ questions_table <- function(graf){
   {if(is.null(.)) NULL else
   filter(.,question_id %in% statements_table(graf %>% clean_map)$question_id)}
 }
+#' @rdname tibbles
+#' @export
+#'
 settings_table <- function(graf){
   graf %>%
   clean_map %>%
     attr("settings")
 }
 
+#' Get table
+#'
+#' @export
+#'
 get_table <- function(graf,table_name){
   do.call(paste0(table_name,"_table"),list(graf))
 }
+#' Get standard table
+#'
+#' @export
+#'
 get_standard_table <- function(table_name){
   do.call(paste0("standard_",table_name),list())
 }
