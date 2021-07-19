@@ -84,6 +84,17 @@ add_statements <- function(graf,statements){
   attr(graf,"statements") <- statements
   graf
 }
+
+#' Add attribute
+#'
+#' @param graf
+#' @param value
+#' @param attr
+#'
+#' @return
+#' @export
+#'
+#' @examples
 add_attribute <- function(graf,value,attr="flow"){
   attr(graf,attr) <- value
   graf
@@ -96,7 +107,7 @@ load_graf_from_rds <- function(name){
 }
 
 standard_factors <- function(links=standard_links()){if(is.null(links$from) | is.null(links$to))stop("Wrong links")
-  tibble(label=c(links$from,links$to) %>% unique %>% as.character,factor_memo="") %>%
+  tibble(label=c(links$from,links$to) %>% unique %>% as.character,factor_memo="",factor_map_id=1) %>%
     mutate(factor_id=row_number())
   }
 standard_links <- function(){tibble(
@@ -110,14 +121,15 @@ standard_links <- function(){tibble(
   certainty=1,
   from_flipped=F,
   to_flipped=F,
-  label="",
+  link_label="",
   hashtag="",
-  link_memo=""
+  link_memo="",
+  link_map_id=1
   )}
-standard_statements <- function()tibble(statement_id=1,text="blank statement",statement_memo="",source_id="1",question_id="1")
-standard_sources <- function()tibble(source_id=1,text="global source",source_memo="",new_column_1="")
-standard_questions <- function()tibble(question_id=1,question_text="global question",question_memo="",new_column_1="")
-standard_settings <- function()tibble(setting_id="background_colour",value="")
+standard_statements <- function()tibble(statement_id=1,text="blank statement",statement_memo="",source_id="1",question_id="1",statement_map_id=1)
+standard_sources <- function()tibble(source_id=1,text="global source",source_memo="",new_column_1="",source_map_id=1)
+standard_questions <- function()tibble(question_id=1,question_text="global question",question_memo="",new_column_1="",question_map_id=1)
+standard_settings <- function()tibble(setting_id="background_colour",value="",setting_map_id=1)
 
 #obvs this must exist already
 add_class <- function(x,cls="tidymap"){
@@ -154,13 +166,17 @@ clean_map <- function(map){
     {if("factor_id" %notin% colnames(.)) mutate(.,factor_id=row_number()) else .} %>%
     add_column(.name_repair="minimal",!!!standard_factors())  %>%
     select(any_of(colnames(standard_factors())))
+
+
   links <-  map %>%
     links_table %>%
     add_column(.name_repair="minimal",!!!standard_links())   %>%
     select(any_of(colnames(standard_links()))) %>%
-    mutate(link_id=row_number()) %>%
-    filter(from %in% (factors %>% row_index)) %>%
-    filter(to %in% (factors %>% row_index))
+    mutate(link_id=row_number())
+    # filter(from %in% (factors %>% row_index)) %>%
+    # filter(to %in% (factors %>% row_index))
+
+
   statements <- attr(map,"statements") %>%
     replace_null(empty_tibble) %>%
     add_column(.name_repair="minimal",!!!standard_statements()) %>%
@@ -196,13 +212,6 @@ clean_map <- function(map){
   if(length(unique(questions$question_id))!=nrow(questions)) {questions <- questions %>% distinct(question_id,.keep_all=T);message("Removing non-unique QuestionIDs")}
 
 
-
-
-
-
-
-
-
   dsources <- sources %>% distinct(source_id,.keep_all = T)
   dquestions <- questions %>% distinct(question_id,.keep_all = T)
   dsettings <- settings %>% distinct(setting_id,.keep_all = T)
@@ -215,6 +224,8 @@ clean_map <- function(map){
   sources <- dsources
   questions <- dquestions
   settings <- dsettings
+
+  settings <- settings %>% mutate_all(as.character)
 
 
   load_map(tables=list(factors=factors,links=links,statements=statements,sources=sources,questions=questions,settings=settings),clean=F) %>%
@@ -308,7 +319,7 @@ load_map(tables = list(
 #' @param settings
 #' @param clean
 #'
-#' @return A tidy map. If both factors and links are NULL, and empty map is returned.
+#' @return A tidy map. The column *_map_id is set to reflect the id of the map.
 #' @export
 #'
 #' @examples
@@ -322,12 +333,12 @@ pipe_merge_map <- function(graf,path){
   maxid <- max(graf$factors$factor_id)
 
   load_map(tables=list(
-    factors=graf$factors %>% mutate(factors_map_id=1)%>% bind_rows(map2$factors %>% mutate(factors_map_id=2) %>% mutate(factor_id=factor_id+maxid)),
-    links=graf$links  %>% mutate(links_map_id=1)%>% bind_rows(map2$links %>% mutate(links_map_id=2) %>% mutate(from=from+maxid,to=to+maxid)),
-    statements=graf$statements  %>% mutate(statements_map_id=1)%>% bind_rows(map2$statements %>% mutate(statements_map_id=2)),
-    sources=graf$sources %>% mutate(sources_map_id=1)%>% bind_rows(map2$sources %>% mutate(sources_map_id=2)),
-    questions=graf$questions %>% mutate(questions_map_id=1)%>% bind_rows(map2$questions %>% mutate(questions_map_id=2)),
-    settings=graf$settings %>% mutate(settings_map_id=1)%>% bind_rows(map2$settings %>% mutate(settings_map_id=2))
+    factors=graf$factors %>% mutate(factor_map_id=1)%>% bind_rows(map2$factors %>% mutate(factor_map_id=2) %>% mutate(factor_id=factor_id+maxid)),
+    links=graf$links  %>% mutate(link_map_id=1)%>% bind_rows(map2$links %>% mutate(link_map_id=2) %>% mutate(from=from+maxid,to=to+maxid)),
+    statements=graf$statements  %>% mutate(statement_map_id=1)%>% bind_rows(map2$statements %>% mutate(statement_map_id=2)),
+    sources=graf$sources %>% mutate(source_map_id=1)%>% bind_rows(map2$sources %>% mutate(source_map_id=2)),
+    questions=graf$questions %>% mutate(question_map_id=1)%>% bind_rows(map2$questions %>% mutate(question_map_id=2)),
+    settings=graf$settings %>% mutate(setting_map_id=1)%>% bind_rows(map2$settings %>% mutate(setting_map_id=2))
   ),clean=T
   )
 }
@@ -356,6 +367,30 @@ load_map <- function(path=NULL,tables=NULL,clean=T,connection=conn){
   sources=tables$sources
   questions=tables$questions
   settings=tables$settings
+# browser()
+  missing_links <-
+    c(links$from,links$to) %>%
+    unique %>%
+    keep(. %notin% factors$factor_id)
+
+  if(length(missing_links)>0){
+    factors <- factors %>%
+      bind_rows(tibble(factor_id=missing_links,factor_label=missing_links))
+  }
+
+  if(!identical(factors$factor_id,row_index(factors))){
+    res <- normalise_id(factors,links,"factor_id","from","to")
+    factors <- res$main
+    links <- res$referring
+    notify("Normalising factor ids")
+  }
+  if(!identical(statements$statement_id,row_index(statements))){
+    res <- normalise_id(statements,links,"statement_id")
+    statements <- res$main
+    links <- res$referring
+    notify("Normalising statement ids")
+  }
+
 
   if(!is.null(path)){
     if(!(str_detect(path,"/"))){
@@ -399,6 +434,8 @@ load_map <- function(path=NULL,tables=NULL,clean=T,connection=conn){
     questions <- newtables$questions
     settings <- newtables$settings
 
+
+
   }
 
 
@@ -412,6 +449,7 @@ load_map <- function(path=NULL,tables=NULL,clean=T,connection=conn){
 
   if(is.null(graf)){
     # browser()
+
 
     graf <- tbl_graph(factors %>% replace_null(standard_factors(links)),links %>% replace_null(standard_links()%>% filter(F))) %>%
       add_attribute(statements,"statements") %>%
@@ -530,16 +568,28 @@ get_map_tables_from_s3_pieces <- function(path){
 
 empty_tibble <- tibble(nothing=0)
 
-normalise_id <- function(main,referring,keyname){
+normalise_id <- function(main,referring,keyname,referring_keyname1=keyname,referring_keyname2=NULL){
   if(is.null(main[,keyname])){message("keyname not in main table")}
-  if(is.null(referring[,keyname])){message("keyname not in referring table")}
+  if(is.null(referring[,referring_keyname1])){message("keyname not in referring table")}
   # browser()
   # if(length(unique(main[,keyname]))!=nrow(main))
   main$.old_key <- main[,keyname] %>% unlist
   main[,keyname] <- 1:nrow(main)
   recodes=main[,keyname] %>% unlist %>% as.list
   names(recodes)=main$.old_key %>% unlist
+
+  referring[,keyname] <- referring[,referring_keyname1]
   referring[,keyname] <- dplyr::recode(referring[,keyname] %>% unlist,!!!recodes)
+  referring[,referring_keyname1] <- referring[,keyname]
+
+  if(!is.null(referring_keyname2)){
+  referring[,keyname] <- referring[,referring_keyname2]
+  referring[,keyname] <- dplyr::recode(referring[,keyname] %>% unlist,!!!recodes)
+  referring[,referring_keyname2] <- referring[,keyname]
+}
+  referring[,keyname] <- NULL
+
+
   return(list(main=main,referring=referring))
 }
 
@@ -555,6 +605,7 @@ print.tidymap <- function (graf, n=2,...)
   cat("Statements: ");graf %>% attr("statements") %>% as_tibble %>% print(n=n)
   cat("Sources: ");graf %>% attr("sources") %>% as_tibble %>% print(n=n)
   cat("Questions: ");graf %>% attr("questions") %>% as_tibble %>% print(n=n)
+  cat("Settings: ");graf %>% attr("settings") %>% as_tibble %>% print(n=n)
 
 }
 
