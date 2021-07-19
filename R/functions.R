@@ -125,7 +125,17 @@ add_class <- function(x,cls="tidymap"){
   x
 }
 
+#' Row index
+#'
+#' @export
+#'
+#' @examples
 row_index <- function(df)1:nrow(df)
+#' Row row
+#'
+#' @export
+#'
+#' @examples
 row_row <- function(df)row_index(df) %>% map(~df[.,])
 
 
@@ -139,9 +149,22 @@ row_row <- function(df)row_index(df) %>% map(~df[.,])
 #' @examples
 clean_map <- function(map){
   # browser()
-  factors <-  map %>% factors_table %>% add_column(.name_repair="minimal",!!!standard_factors())  %>% select(any_of(colnames(standard_factors())))
-  links <-  map %>% links_table %>% add_column(.name_repair="minimal",!!!standard_links())   %>% select(any_of(colnames(standard_links()))) %>% mutate(link_id=row_number()) %>% filter(from %in% (factors %>% row_index)) %>% filter(to %in% (factors %>% row_index))
-  statements <- attr(map,"statements") %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_statements()) %>% select(which(!duplicated(colnames(.)))) # %>% select(any_of(colnames(standard_statements())))
+  factors <-  map %>%
+    factors_table %>%
+    {if("factor_id" %notin% colnames(.)) mutate(.,factor_id=row_number()) else .} %>%
+    add_column(.name_repair="minimal",!!!standard_factors())  %>%
+    select(any_of(colnames(standard_factors())))
+  links <-  map %>%
+    links_table %>%
+    add_column(.name_repair="minimal",!!!standard_links())   %>%
+    select(any_of(colnames(standard_links()))) %>%
+    mutate(link_id=row_number()) %>%
+    filter(from %in% (factors %>% row_index)) %>%
+    filter(to %in% (factors %>% row_index))
+  statements <- attr(map,"statements") %>%
+    replace_null(empty_tibble) %>%
+    add_column(.name_repair="minimal",!!!standard_statements()) %>%
+    select(which(!duplicated(colnames(.)))) # %>% select(any_of(colnames(standard_statements())))
 
 
   if(
@@ -160,7 +183,7 @@ clean_map <- function(map){
       # tmp <- normalise_id(statements,links,"statement_id")
       # statements=tmp$main
       # links=tmp$referring
-      message("Not yet normalising statement IDS")#because what happens when there are some links without yet having statements??
+     # message("Not yet normalising statement IDS")#because what happens when there are some links without yet having statements??
     }
   }
 
@@ -171,6 +194,27 @@ clean_map <- function(map){
   # browser()
   if(length(unique(sources$source_id))!=nrow(sources)) {sources <- sources %>% distinct(source_id,.keep_all=T);message("Removing non-unique SourceIDs")}
   if(length(unique(questions$question_id))!=nrow(questions)) {questions <- questions %>% distinct(question_id,.keep_all=T);message("Removing non-unique QuestionIDs")}
+
+
+
+
+
+
+
+
+
+  dsources <- sources %>% distinct(source_id,.keep_all = T)
+  dquestions <- questions %>% distinct(question_id,.keep_all = T)
+  dsettings <- settings %>% distinct(setting_id,.keep_all = T)
+
+  #TODO: might be better to produce id.1 and id.2 in case of duplication
+  if(nrow(dsources)<nrow(sources)) notify("sources ids were not unique, keeping only the first.")
+  if(nrow(dquestions)<nrow(questions)) notify("questions ids were not unique, keeping only the first.")
+  if(nrow(dsettings)<nrow(settings)) notify("settings ids were not unique, keeping only the first.")
+
+  sources <- dsources
+  questions <- dquestions
+  settings <- dsettings
 
 
   load_map(tables=list(factors=factors,links=links,statements=statements,sources=sources,questions=questions,settings=settings),clean=F) %>%
@@ -209,12 +253,12 @@ update_map <- function(map,
                        questions=NULL,
                        settings=NULL,
                        tables=list(
-                       factors=NULL,
-                       links=NULL,
-                       statements=NULL,
-                       sources=NULL,
-                       questions=NULL,
-                       settings=NULL
+                         factors=NULL,
+                         links=NULL,
+                         statements=NULL,
+                         sources=NULL,
+                         questions=NULL,
+                         settings=NULL
                        ),
                        clean=T,
                        all=T){
@@ -254,6 +298,39 @@ load_map(tables = list(
 }
 
 
+#' Merge map
+#' @inheritParams parse_commands
+#' @param factors
+#' @param links
+#' @param statements
+#' @param sources
+#' @param questions
+#' @param settings
+#' @param clean
+#'
+#' @return A tidy map. If both factors and links are NULL, and empty map is returned.
+#' @export
+#'
+#' @examples
+pipe_merge_map <- function(graf,path){
+  # browser()
+  map2 <- load_map(path=path) %>%
+    as.list
+  graf <- graf %>%
+    as.list
+
+  maxid <- max(graf$factors$factor_id)
+
+  load_map(tables=list(
+    factors=graf$factors %>% mutate(factors_map_id=1)%>% bind_rows(map2$factors %>% mutate(factors_map_id=2) %>% mutate(factor_id=factor_id+maxid)),
+    links=graf$links  %>% mutate(links_map_id=1)%>% bind_rows(map2$links %>% mutate(links_map_id=2) %>% mutate(from=from+maxid,to=to+maxid)),
+    statements=graf$statements  %>% mutate(statements_map_id=1)%>% bind_rows(map2$statements %>% mutate(statements_map_id=2)),
+    sources=graf$sources %>% mutate(sources_map_id=1)%>% bind_rows(map2$sources %>% mutate(sources_map_id=2)),
+    questions=graf$questions %>% mutate(questions_map_id=1)%>% bind_rows(map2$questions %>% mutate(questions_map_id=2)),
+    settings=graf$settings %>% mutate(settings_map_id=1)%>% bind_rows(map2$settings %>% mutate(settings_map_id=2))
+  ),clean=T
+  )
+}
 
 #' Load map
 #' @inheritParams parse_commands
@@ -271,7 +348,7 @@ load_map(tables = list(
 #' @examples
 load_map <- function(path=NULL,tables=NULL,clean=T,connection=conn){
   graf <- NULL
-  tmp <- NULL
+  newtables <- NULL
   # browser()
   factors=tables$factors
   links=tables$links
@@ -282,48 +359,51 @@ load_map <- function(path=NULL,tables=NULL,clean=T,connection=conn){
 
   if(!is.null(path)){
     if(!(str_detect(path,"/"))){
-      type <- "s32"
+      type <- "unknown"
 
     } else {
-  type <- path %>% str_match("^.*?/") %>% str_remove("/")
-  path <- path %>% str_remove("^.*?/")
+      type <- path %>% str_match("^.*?/") %>% str_remove("/")
+      path <- path %>% str_remove("^.*?/")
     }#
   } else type <- "individual"
 
-  if(type=="file") graf <- map else
-  if(type=="standard"){
-    tmp <- safely(get)(path)
-    if(tmp$result %>% is.null) return(NULL) else graf <- tmp$result
-  } else
-  if(type=="s32"){
-    graf <- get_map_from_s3(path %>% paste0("cm2data/",.))
-    if(is.null(graf))return(NULL)
-  } else
-  if(type=="s3"){
-    # browser()
-    tmp <- get_map_from_s3_pieces(path %>% paste0("causalmap/app-sync/",.))
-    if(is.null(tmp))return(NULL)
+  if(type=="file") graf <- readRDS(path) else
+    if(type=="standard"){
+      tmp <- safely(get)(path)
+      if(tmp$result %>% is.null) return(NULL) else graf <- tmp$result
 
-  } else if(type=="sql"){
-    tmp <- get_map_from_sql(path,connection=connection)
-    if(is.null(tmp))return(NULL)
+    } else if(type=="sql"){
+      newtables <- get_map_tables_from_sql(path,connection=connection)
+      if(is.null(newtables)) return(NULL)
+    } else  if(type=="s32"){
+      graf <- get_map_from_s3(path %>% paste0("cm2data/",.))
+      if(is.null(graf)) return(NULL)
+    } else if(type=="s3"){
+      newtables <- get_map_tables_from_s3_pieces(path %>% paste0("causalmap/app-sync/",.))
+      if(is.null(newtables))return(NULL)
+
+    } else if(type=="unknown"){
+
+      graf <- get_map_from_s3(path %>% paste0("cm2data/",.))
+      if(is.null(graf)) {
+        newtables <- get_map_tables_from_s3_pieces(path %>% paste0("causalmap/app-sync/",.))
+
+      }
+    }
+    # browser()
+  if(!is.null(newtables)){
+    factors <- newtables$factors
+    links <- newtables$links
+    statements <- newtables$statements
+    sources <- newtables$sources
+    questions <- newtables$questions
+    settings <- newtables$settings
 
   }
-  if(!is.null(tmp)){
-    # browser()
-    factors <- tmp$factors
-    links <- tmp$links
-    statements <- tmp$statements
-    sources <- tmp$sources
-    questions <- tmp$questions
-    settings <- tmp$settings
 
-  }
 
-# browser()
-
-  if(is.null(factors) & is.null(links)) {
-  # if(is.null(factors) & is.null(links) & !is.null(path)) {
+  if(is.null(graf) & is.null(factors) & is.null(links)) {
+    # if(is.null(factors) & is.null(links) & !is.null(path)) {
     links <- standard_links()
     factors <- standard_factors()
     message("you did not provide factors or links");links=links %>% replace_null(standard_links()%>% filter(F))
@@ -331,22 +411,23 @@ load_map <- function(path=NULL,tables=NULL,clean=T,connection=conn){
   }
 
   if(is.null(graf)){
-  # browser()
+    # browser()
 
-  graf <- tbl_graph(factors %>% replace_null(standard_factors(links)),links %>% replace_null(standard_links()%>% filter(F))) %>%
-    add_attribute(statements,"statements") %>%
-    add_attribute(sources,"sources") %>%
-    add_attribute(questions,"questions") %>%
-    add_attribute(settings,"settings") %>%
-    add_class
+    graf <- tbl_graph(factors %>% replace_null(standard_factors(links)),links %>% replace_null(standard_links()%>% filter(F))) %>%
+      add_attribute(statements,"statements") %>%
+      add_attribute(sources,"sources") %>%
+      add_attribute(questions,"questions") %>%
+      add_attribute(settings,"settings") %>%
+      add_class
   }
+
+  notify("Loading map")
   graf %>%
     {if(clean)clean_map(.)else .}
 
 
 
 }
-
 get_map_from_s3 <- function(path){
   # browser()
   if(!s3file_exists(object=basename(path),buck=dirname(path))) return()
@@ -371,7 +452,7 @@ get_whole_table <- function(tab,connection=conn){
   tbl(connection,local(tab)) %>% collect %>% mutate_all(to_logical)
 }
 
-get_map_from_sql <- function(path,connection){
+get_map_tables_from_sql <- function(path,connection){
 # browser()
   vsettings <- get_whole_table("settings",connection) %>% filter(project==path) # we need this anyway
   vdata <- get_project_table("data",path,connection)
@@ -409,7 +490,7 @@ get_map_from_sql <- function(path,connection){
   ))
 
 }
-get_map_from_s3_pieces <- function(path){
+get_map_tables_from_s3_pieces <- function(path){
 
   s3bucket <- dirname(dirname(path))
   root <- str_remove(path,"^" %>% paste0(s3bucket,"/"))
@@ -947,7 +1028,6 @@ parse_commands <- function(graf=NULL,tex){
   if(length(tex)>1)tex <- tex %>% keep(.!="")
 
   if(is.null(graf)){
-# browser()
     graf <- tex[1] %>% str_remove("^ *load *map *") %>% load_map()
     if(length(tex)>1)tex <- tex[-1] else tex <- ""
 
@@ -958,6 +1038,7 @@ parse_commands <- function(graf=NULL,tex){
       # browser()
       if(!str_detect(line,"^#")){tmp <- parse_line(line,graf)
 
+# browser()
       graf <- possibly(~do.call(tmp$fun,tmp$vals),otherwise=graf)()
 }
     }
