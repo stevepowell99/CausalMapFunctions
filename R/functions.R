@@ -257,30 +257,11 @@ assemble_map(
 }
 
 
-#' Pipe merge map
-#' @inheritParams parse_commands
-#' @param graf
-#' @param path
-#' @description A wrapper around merge_map to make it work in the app.
-#' @return A tidy map. The column *_map_id is set to reflect the id of the map.
-#' @export
-#'
-#' @examples
-pipe_merge_map <- function(graf,path){
-  # browser()
-  map2 <- load_map(path=path) %>%
-    as.list
-  graf <- graf %>%
-    as.list
-  merge_map(graf,map2)
-
-
-}
 #' Merge map
 #' @inheritParams parse_commands
 #' @param graf
 #' @param path
-#'
+#' @description This also has a wrapper, pipe_merge_map
 #' @return A tidy map. The column *_map_id is set to reflect the id of the map.
 #' @export
 #'
@@ -497,13 +478,6 @@ assemble_map <- function(factors=NULL,links=NULL,statements=NULL,sources=NULL,qu
 
   }
 
-  if(!is.null(statements)){if(!identical(statements$statement_id,row_index(statements))){
-    res <- normalise_id(statements,links,"statement_id")
-    statements <- res$main
-    links <- res$referring
-    notify("Normalising statement ids")
-  }}
-
 
   sources <- sources %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_sources()) %>% select(which(!duplicated(colnames(.)))) #%>% select(any_of(colnames(standard_sources())))
   questions <- questions %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_questions()) %>% select(which(!duplicated(colnames(.))))#%>% select(any_of(colnames(standard_questions())))
@@ -511,13 +485,29 @@ assemble_map <- function(factors=NULL,links=NULL,statements=NULL,sources=NULL,qu
   settings <- settings %>% mutate_all(as.character)
 
   if(max(table(sources$source_id))>1){
-    browser()
+    warning("multiple IDs")
+    notify("multiple IDs")
   }
 
 
   if(max(table(questions$question_id))>1){
-    browser()
+    warning("multiple IDs")
+    notify("multiple IDs")
   }
+# browser()
+if(!is.null(statements)){if(!identical(statements$statement_id,row_index(statements))){
+  res <- normalise_id(statements,links,"statement_id")
+  statements <- res$main
+  links <- res$referring
+  notify("Normalising statement ids")
+}}
+
+statements <- statements %>%
+    safely(~left_join(sources %>% rename_with(~paste0("r.",.),!matches("source_id"))),otherwise=.)() %>% pluck("result") %>%
+    safely(~left_join(questions %>% rename_with(~paste0("q.",.),!matches("question_id"))),otherwise=.)() %>% pluck("result")
+
+  links <- links %>%
+    safely(~left_join(statements %>% rename_with(~paste0("s.",.),!matches("statement_id"))),otherwise=.)() %>% pluck("result")  # ,by="statement_id") %>% otherwise when this is repeated, you get loads of cols
 
   tbl_graph(factors %>% replace_null(standard_factors(links)),
             links %>% replace_null(standard_links()%>% filter(F))) %>%
@@ -1208,6 +1198,25 @@ pipe_merge_statements <- function(graf){
 
 }
 
+#' Pipe merge map
+#' @inheritParams parse_commands
+#' @param graf
+#' @param path
+#' @description A wrapper around merge_map to make it work in the app.
+#' @return A tidy map. The column *_map_id is set to reflect the id of the map.
+#' @export
+#'
+#' @examples
+pipe_merge_map <- function(graf,path){
+  # browser()
+  map2 <- load_map(path=path) %>%
+    as.list
+  graf <- graf %>%
+    as.list
+  merge_map(graf,map2)
+
+
+}
 
 #' Find factors
 #'
