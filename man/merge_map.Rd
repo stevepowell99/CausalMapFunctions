@@ -11,12 +11,10 @@ merge_map(graf, graf2)
 A tidymap is a tidygraph, which consists of a table of edges linked to a table of nodes,
 with an optional additional table of statements.
 In this package, nodes are called `factors` and edges are called `links.`}
-
-\item{path}{}
 }
 \value{
 A tidy map. The column *_map_id is set to reflect the id of the map.
 }
 \description{
-Merge map
+This also has a wrapper, pipe_merge_map
 }

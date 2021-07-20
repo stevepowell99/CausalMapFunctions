@@ -985,26 +985,6 @@ links_table_full <- links_table
 
 
 
-#' #' @rdname tibbles
-#' #' @export
-#' #'
-#' links_table_full <- function(graf){
-#'   # browser()
-#'   if("old_label_" %notin% colnames(factors_table(graf))) graf <- graf %>% mutate(old_label_=label)
-#'   graf %>%
-#'     pipe_merge_statements() %>%
-#'     links_table %>%
-#'     select(-any_of(c("from_old_label_","to_old_label_","from_label","to_label"))) %>%
-#'     left_join((factors_table(graf) %>% mutate(id=row_number()) %>% select(from=id,from_label=label,from_old_label_=old_label_)),by="from") %>%
-#'     select(-any_of(c("to_old_label_","to_label"))) %>%
-#'     left_join((factors_table(graf) %>% mutate(id=row_number()) %>% select(to=id,to_label=label,to_old_label_=old_label_)),by="to") %>%
-#'     unite(bundle,from_label,to_label,remove = F,sep = " / ") %>%
-#'     select(from_label,to_label,statement_id,quote,everything(),-c(from_old_label_,to_old_label_))# can't work out what these were for
-#'     # select(from_label,to_label,from_old_label_,to_old_label_,everything())
-#'
-#' }
-
-
 #' Timestamp
 #'
 #' @export
