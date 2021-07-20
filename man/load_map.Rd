@@ -4,7 +4,7 @@
 \alias{load_map}
 \title{Load map}
 \usage{
-load_map(path = NULL, tables = NULL, clean = T, connection = conn)
+load_map(path = NULL, connection = conn)
 }
 \arguments{
 \item{clean}{}

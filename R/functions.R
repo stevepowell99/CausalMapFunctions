@@ -7,6 +7,9 @@
 #   AWS_DEFAULT_REGION = app_config$AWS_DEFAULT_REGION
 # )
 
+# constants ---------------------------------------------------------
+
+operator_list=c("=", "less", "greater", "notcontains", "notequals", "notequal", "equals", "equal", "contains", "starts", "ends", "start", "end")
 buck <- "causalmap"
 table_list <- c("factors","links","statements","sources","questions","settings")
 
@@ -152,15 +155,20 @@ row_row <- function(df)row_index(df) %>% map(~df[.,])
 
 #' Clean map
 #'
-#' @param map
+#' @param graf
 #'
 #' @return A cleaned map done by taking it apart and putting it back together
 #' @export
 #'
 #' @examples
-clean_map <- function(map){
+pipe_clean_map <- function(graf){
 # browser()
-map <- as.list(map)
+map <- as.list(graf)
+if(is.null(map$factors)) map$factors <- map$nodes   #also dealing with tidygraph
+if(is.null(map$links)) map$links <- map$edges
+if(is.null(map$statements)) map$statements <- statements_table(graf)
+if(is.null(map$sources)) map$sources <- sources_table(graf)
+if(is.null(map$questions)) map$questions <- questions_table(graf)
   assemble_map(
     factors=map$factors,
     links=map$links,
@@ -293,7 +301,7 @@ merge_map <- function(graf,graf2){
     questions=graf$questions %>% mutate(question_map_id=1)%>% bind_rows(map2$questions %>% mutate(question_map_id=2)),
     settings=graf$settings %>% mutate(setting_map_id=1)%>% bind_rows(map2$settings %>% mutate(setting_map_id=2))
   ) %>%
-    clean_map
+    pipe_clean_map
 
 }
 
@@ -426,7 +434,8 @@ assemble_map <- function(factors=NULL,links=NULL,statements=NULL,sources=NULL,qu
   if(!is.null(links)){
     links <-  links %>%
       add_column(.name_repair="minimal",!!!standard_links())   %>%
-      select(any_of(colnames(standard_links()))) %>%
+      select(which(!duplicated(colnames(.)))) %>%
+      # select(any_of(colnames(standard_links()))) %>%
       mutate(link_id=row_number())%>%
       filter(!is.na(from) & !is.na(to)) #TODO warning
 
@@ -435,7 +444,8 @@ assemble_map <- function(factors=NULL,links=NULL,statements=NULL,sources=NULL,qu
   factors <-  factors %>%
     {if("factor_id" %notin% colnames(.)) mutate(.,factor_id=row_number()) else .} %>%
     add_column(.name_repair="minimal",!!!standard_factors())  %>%
-    select(any_of(colnames(standard_factors()))) %>%
+      select(which(!duplicated(colnames(.)))) %>%
+    # select(any_of(colnames(standard_factors()))) %>%
     mutate(label=as.character(label)) %>%
     filter(!is.na(factor_id)) #TODO warning
 
@@ -495,11 +505,19 @@ assemble_map <- function(factors=NULL,links=NULL,statements=NULL,sources=NULL,qu
   }}
 
 
-  sources <- sources %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_sources()) %>% select(any_of(colnames(standard_sources())))
-  questions <- questions %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_questions()) %>% select(any_of(colnames(standard_questions())))
+  sources <- sources %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_sources()) %>% select(which(!duplicated(colnames(.)))) #%>% select(any_of(colnames(standard_sources())))
+  questions <- questions %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_questions()) %>% select(which(!duplicated(colnames(.))))#%>% select(any_of(colnames(standard_questions())))
   settings <- settings %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_settings()) %>% select(any_of(colnames(standard_settings())))
   settings <- settings %>% mutate_all(as.character)
 
+  if(max(table(sources$source_id))>1){
+    browser()
+  }
+
+
+  if(max(table(questions$question_id))>1){
+    browser()
+  }
 
   tbl_graph(factors %>% replace_null(standard_factors(links)),
             links %>% replace_null(standard_links()%>% filter(F))) %>%
@@ -868,9 +886,6 @@ find_fun <- function(df,field=NULL,value,operator=NULL,what,pager=F){
   return(df)
 
 }
-# constants ---------------------------------------------------------
-
-operator_list=xc("= less greater notcontains notequals notequal equals equal contains starts ends start end")
 
 # exported tidymap utilities ---------------------------------------------------------
 
@@ -1181,13 +1196,16 @@ pipe_page_links <- function(...)pipe_find_links(pager=T,...)
 #'cashTransferMap %>% pipe_merge_statements() %>% pipe_find_links(field="text",value="women",operator="contains")
 #'cashTransferMap %>% pipe_find_statements(field="text",value="women",operator="contains")
 pipe_merge_statements <- function(graf){
+  statements <- statements_table(graf) %>%
+    left_join(sources_table(graf)) %>%
+    left_join(questions_table(graf))
+
+  links <- links_table(graf) %>%
+    left_join(statements)  # ,by="statement_id") %>% otherwise when this is repeated, you get loads of cols
+
   # browser()
-  if(!is.null(attr(graf,"statements"))) graf %>%
-    activate(edges) %>%
-    mutate(statement_id=as.numeric(statement_id)) %>%
-    left_join(attr(graf,"statements") %>% mutate(statement_id=as.numeric(statement_id))) %>% # ,by="statement_id") %>% otherwise when this is repeated, you get loads of cols
-    activate(nodes)
-  else graf
+  update_map(graf,links=links,statements=statements )
+
 }
 
 
@@ -1376,7 +1394,7 @@ pipe_zoom_factors <- function(graf,level=1,separator=";",hide=T){
     activate(edges) %>%
     mutate(old_from=from,old_to=to) %>%
     activate(nodes) %>%
-    pipe_condense_factors()
+    pipe_clean_map()             ######????????????????
 
   nodes <- gr %>% factors_table()
   edges <- gr %>% links_table_full()
@@ -1635,12 +1653,12 @@ pipe_remove_isolated <- function(graf){
 # proportion_false <- function(vec)sum(vec)/length(vec)
 proportion_false <- function(lis) lis %>% map(~sum(unlist(.))/length(.)) %>% unlist
 
-pipe_condense_factors <- function(graf){
-  lookup <- relocation_index(graf %>% pull(label))
-  graf  %>%
-    igraph::contract(mapping = lookup,vertex.attr.comb = list(is_flipped="concat","first")) %>% as_tbl_graph() %>% activate(nodes) %>%
-    mutate(id=row_number())
-}
+# pipe_condense_factors <- function(graf){
+#   lookup <- relocation_index(graf %>% pull(label))
+#   graf  %>%
+#     igraph::contract(mapping = lookup,vertex.attr.comb = list(is_flipped="concat","first")) %>% as_tbl_graph() %>% activate(nodes) %>%
+#     mutate(id=row_number())
+# }
 pipe_color_flipped_factors <- function(graf){
   graf %>%
     mutate(is_flipped=proportion_false(is_flipped)) %>%
