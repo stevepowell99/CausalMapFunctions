@@ -133,7 +133,11 @@ standard_sources <- function()tibble(source_id=1,source_memo="global source",new
 standard_questions <- function()tibble(question_id=1,question_text="global question",question_memo="",new_column_1="",question_map_id=1)
 standard_settings <- function()tibble(setting_id="background_colour",value="",setting_map_id=1)
 
-#obvs this must exist already
+#' Add class
+#'
+#' @export
+#'
+#' @examples
 add_class <- function(x,cls="tidymap"){
   class(x) <- c(cls,class(x)) %>% unique
   x
