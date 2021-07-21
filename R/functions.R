@@ -660,7 +660,7 @@ normalise_id <- function(main,referring,keyname,referring_keyname1=keyname,refer
   if(nrow(main)==0)return(list(main=main,referring=referring))
   if(is.null(main[,keyname])){message("keyname not in main table")}
   if(is.null(referring[,referring_keyname1])){message("keyname not in referring table")}
-  browser()
+  # browser()
   # if(length(unique(main[,keyname]))!=nrow(main))
   main$.old_key <- main[,keyname] %>% unlist
   main[,keyname] <- 1:nrow(main)
