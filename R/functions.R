@@ -166,6 +166,7 @@ row_row <- function(df)row_index(df) %>% map(~df[.,])
 #'
 #' @examples
 pipe_clean_map <- function(graf){
+# browser()
 map <- as.list(graf)
 if(is.null(map$factors)) map$factors <- map$nodes   #also dealing with tidygraph
 if(is.null(map$links)) map$links <- map$edges
@@ -411,6 +412,8 @@ assemble_map <- function(factors=NULL,links=NULL,statements=NULL,sources=NULL,qu
     questions <- tables$questions
     settings <- tables$settings
   }
+
+  # browser()
   if(is.null(factors) & is.null(links)){
     factors=standard_factors()
     links=standard_links()
@@ -436,7 +439,6 @@ assemble_map <- function(factors=NULL,links=NULL,statements=NULL,sources=NULL,qu
 
 }
 
-  # browser()
     # browser()
   if(!is.null(factors) & is.null(links)){
     links <- standard_links()
@@ -655,9 +657,10 @@ get_map_tables_from_s3_pieces <- function(path){
 empty_tibble <- tibble(nothing=0)
 
 normalise_id <- function(main,referring,keyname,referring_keyname1=keyname,referring_keyname2=NULL){
+  if(nrow(main)==0)return(list(main=main,referring=referring))
   if(is.null(main[,keyname])){message("keyname not in main table")}
   if(is.null(referring[,referring_keyname1])){message("keyname not in referring table")}
-  # browser()
+  browser()
   # if(length(unique(main[,keyname]))!=nrow(main))
   main$.old_key <- main[,keyname] %>% unlist
   main[,keyname] <- 1:nrow(main)
@@ -1376,7 +1379,8 @@ pipe_select_factors <- function(graf,top=NULL,bottom=NULL,all=F){
     # mutate(frequency = centrality_degree()) %>%
     # mutate(frequency=rank(frequency)) %>%
     arrange(desc(frequency)) %>%
-    {if(!is.null(top))slice(.,1:top) else slice(.,(nrow_factors_table(graf)+1-bottom):nrow_factors_table(graf))}
+    {if(!is.null(top))slice(.,1:top) else slice(.,(nrow_factors_table(graf)+1-bottom):nrow_factors_table(graf))} %>%
+    arrange(factor_id)
 
 }
 
