@@ -29,6 +29,14 @@ s3readRDS <- function(object,bucket,version=NULL,s3confun=s3){
   s3confun$get_object(bucket,Key=object, VersionId = version)$Body %>% rawConnection() %>% gzcon %>% readRDS
 }
 
+#' Title
+#'
+#' @param path
+#'
+#' @return
+#' @export
+#'
+#' @examples
 get_map_from_excel <- function(path){
   readxl::excel_sheets(path) %>% keep(. %in% table_list) %>% set_names %>% map(~readxl::read_excel(path,sheet = .)) %>%
     assemble_map(tables=.)
@@ -235,10 +243,6 @@ add_attribute <- function(graf,value,attr="flow"){
 }
 
 
-# load_graf_from_rds <- function(name){
-#   tmp <- readRDS(name)
-#   tbl_graph(tmp$factors,tmp$links)
-# }
 
 standard_factors <- function(links=standard_links()){if(is.null(links$from) | is.null(links$to))stop("Wrong links")
   tibble(label=c(links$from,links$to) %>% unique %>% as.character,factor_memo="",factor_map_id=1,factor_id=as.numeric(label))
@@ -546,8 +550,7 @@ assemble_map <- function(factors=NULL,links=NULL,statements=NULL,sources=NULL,qu
     questions <- tables$questions
     settings <- tables$settings
   }
-
-  # browser()
+# browser()
   if(is.null(factors) & is.null(links)){
     factors=standard_factors()
     links=standard_links()
@@ -573,7 +576,6 @@ assemble_map <- function(factors=NULL,links=NULL,statements=NULL,sources=NULL,qu
 
 }
 
-    # browser()
   if(!is.null(factors) & is.null(links)){
     links <- standard_links()
 }
@@ -586,6 +588,9 @@ assemble_map <- function(factors=NULL,links=NULL,statements=NULL,sources=NULL,qu
   if(length(missing_links)>0){
     notify("missing factor ids")
     warning("missing factor ids")
+    # browser()
+    links <- links %>%
+      filter(from %notin% missing_links & to %notin% missing_links)
     # factors <- factors %>%
     #   bind_rows(tibble(factor_id=missing_links,label=as.character(missing_links)))
   }
@@ -596,6 +601,7 @@ assemble_map <- function(factors=NULL,links=NULL,statements=NULL,sources=NULL,qu
     notify("Normalising factor ids")
   }
 
+    # browser()
   statements <- statements %>%
     replace_null(empty_tibble) %>%
     add_column(.name_repair="minimal",!!!standard_statements()) %>%
@@ -673,7 +679,6 @@ statements <- statements %>%
       "out_degree"=centrality_degree(mode = "out"),
       frequency=in_degree+out_degree)
 # browser()
-
   graf %>% mutate(betweenness=(graf %>% igraph::centr_betw())$res %>% round(2)) %>%
     add_attribute(statements,"statements") %>%
     add_attribute(sources,"sources") %>%
@@ -1413,13 +1418,22 @@ nrow_links_table <- function(graf)
 #' @examples
 pipe_select_factors <- function(graf,top=NULL,bottom=NULL,all=F){
   # browser()
-  graf %>%
-    activate(nodes) %>%
-    # mutate(frequency = centrality_degree()) %>%
-    # mutate(frequency=rank(frequency)) %>%
+  # graf %>%
+  #   activate(nodes) %>%
+  #   # mutate(frequency = centrality_degree()) %>%
+  #   # mutate(frequency=rank(frequency)) %>%
+  #   arrange(desc(frequency)) %>%
+  #   {if(!is.null(top))slice(.,1:top) else slice(.,(nrow_factors_table(graf)+1-bottom):nrow_factors_table(graf))} %>%
+  #   arrange(factor_id)
+  #
+  update_map(graf,factors=factors_table(graf) %>%
     arrange(desc(frequency)) %>%
     {if(!is.null(top))slice(.,1:top) else slice(.,(nrow_factors_table(graf)+1-bottom):nrow_factors_table(graf))} %>%
     arrange(factor_id)
+  )
+
+
+
 
 }
 
