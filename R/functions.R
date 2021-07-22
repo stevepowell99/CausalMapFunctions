@@ -13,7 +13,7 @@ library(tidyverse)
 library(tidygraph)
 library(scales)
 library(paws)
-library(DT)
+# library(DT)
 
 s3 <- paws::s3()
 
@@ -143,6 +143,36 @@ return_notify <- function(tex){
   return()
 }
 
+## from DT package
+coerceValue <- function (val, old)
+{
+  if (is.integer(old))
+    return(as.integer(val))
+  if (is.numeric(old))
+    return(as.numeric(val))
+  if (is.character(old))
+    return(as.character(val))
+  if (inherits(old, "Date"))
+    return(as.Date(val))
+  if (inherits(old, c("POSIXlt", "POSIXct"))) {
+    val = strptime(val, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+    if (inherits(old, "POSIXlt"))
+      return(val)
+    return(as.POSIXct(val))
+  }
+  if (is.factor(old)) {
+    i = val %in% levels(old)
+    if (all(i))
+      return(val)
+    warning("New value(s) \"", paste(val[!i], collapse = ", "),
+            "\" not in the original factor levels: \"",
+            paste(levels(old), collapse = ", "), "\"; will be coerced to NA.")
+    val[!i] = NA
+    return(val)
+  }
+  warning("The data type is not supported: ", classes(old))
+  val
+}
 replace_null <- function(x,replacement=0){
   if(is.null(x)) replacement else x
 }
