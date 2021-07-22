@@ -35,7 +35,9 @@ get_map_from_excel <- function(path){
 }
 get_map_from_s3 <- function(path){
   # browser()
+  notify("Trying s32 file")
   if(!s3file_exists(object=basename(path),buck=dirname(path))) return()
+  notify("Loaded s32 file")
   s3readRDS(object=basename(path),bucket=dirname(path))
 }
 
@@ -99,6 +101,7 @@ get_map_tables_from_s3_pieces <- function(path){
   questions = NULL
   settings = NULL
 
+  notify("Trying s3 file")
   # browser()
   pathx <- paste0(root,"/factors");
   if(s3file_exists(pathx,s3bucket))factors <- s3readRDS(object=pathx,bucket=s3bucket) %>% mutate_all(~str_remove_all(.,"\n")) else return()
@@ -113,6 +116,7 @@ get_map_tables_from_s3_pieces <- function(path){
   # graf <- create_map(factors,links)
   # attr(graf,"statements") <- statements_with_meta
   # browser()
+  notify("Loaded s3 file")
   list(
     factors = factors,
     links = links,
@@ -231,10 +235,10 @@ add_attribute <- function(graf,value,attr="flow"){
 }
 
 
-load_graf_from_rds <- function(name){
-  tmp <- readRDS(name)
-  tbl_graph(tmp$factors,tmp$links)
-}
+# load_graf_from_rds <- function(name){
+#   tmp <- readRDS(name)
+#   tbl_graph(tmp$factors,tmp$links)
+# }
 
 standard_factors <- function(links=standard_links()){if(is.null(links$from) | is.null(links$to))stop("Wrong links")
   tibble(label=c(links$from,links$to) %>% unique %>% as.character,factor_memo="",factor_map_id=1,factor_id=as.numeric(label))
@@ -453,10 +457,12 @@ load_map <- function(path=NULL,connection=conn){
     if(type=="standard"){
       tmp <- safely(get)(path)
       if(tmp$result %>% is.null) return(NULL) else graf <- tmp$result
+      notify("Loaded standard file")
 
     } else if(type=="sql"){
       newtables <- get_map_tables_from_sql(path,connection=connection)
       if(is.null(newtables)) return(NULL)
+      notify("Loaded sql file")
     } else  if(type=="s32"){
       graf <- get_map_from_s3(path %>% paste0("cm2data/",.))
       if(is.null(graf)) return(NULL)
@@ -469,6 +475,7 @@ load_map <- function(path=NULL,connection=conn){
         newtables <- get_map_tables_from_s3_pieces(path %>% paste0("causalmap/app-sync/",.))
       if(is.null(newtables)) {
       graf <- get_map_from_s3(path %>% paste0("cm2data/",.))
+      notify("Loaded file, guessing origin")
 
       }
 
