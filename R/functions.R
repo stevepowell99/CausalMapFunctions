@@ -1318,16 +1318,13 @@ pipe_find_factors <- function(graf,field=NULL,value,operator=NULL,up=0,down=0,pa
   # graf <- tbl_graph(df,links_table(graf)) %>% add_statements(st) %>% add_attribute(pager,"pager")
   downvec <- graf %>% distances(to=graf %>% factors_table %>% pull(found),mode="in") %>% apply(1,min) %>% `<=`(down)
   upvec <- graf %>% distances(to=graf %>% factors_table %>% pull(found),mode="out") %>% apply(1,min) %>% `<=`(up)
-  # browser()
-# browser()
+
   if(any(upvec)|any(downvec))
     graf %>% update_map(factors=factors_table(graf) %>% filter(found|upvec|downvec)) %>%
     pipe_clean_map else
       graf %>% filter(F)
   # if we don't clean the map here, the factor and link ids get out of sync
 
-    # graf %>% mutate(upvec=upvec,downvec=downvec) %>% filter(found|upvec|downvec) else
-    #   graf %>% filter(F)
 }
 
 #' Find links
@@ -1643,6 +1640,10 @@ pipe_trace_paths <- function(graf,from,to,length=4){
   graf %>%
     activate(nodes) %>%
     filter(label!="_super_sink_" & label!="_super_source_")
+
+  # browser()
+  # update_map(graf,factors=factors_table(graf %>% filter(label!="_super_sink_" & label!="_super_source_")))  %>%
+  #   pipe_clean_map
 
 
 
