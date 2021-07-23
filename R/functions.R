@@ -632,17 +632,17 @@ assemble_map <- function(factors=NULL,links=NULL,statements=NULL,sources=NULL,qu
   settings <- settings %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_settings()) %>% select(any_of(colnames(standard_settings())))
   settings <- settings %>% mutate_all(as.character)
 
-  if(max(table(sources$source_id))>1){
+  if(sources$source_id  %>% replace_zero(F) %>% duplicated() %>% any){
     warning("multiple IDs")
     notify("multiple IDs")
   }
 
 
-  if(max(table(questions$question_id))>1){
+  if(questions$question_id   %>% replace_zero(F) %>% duplicated() %>% any){
+
     warning("multiple IDs")
     notify("multiple IDs")
   }
-# browser()
 if(!is.null(statements)){if(!identical(statements$statement_id,row_index(statements))){
   res <- normalise_id(statements,links,"statement_id")
   statements <- res$main
@@ -950,7 +950,7 @@ find_fun <- function(df,field=NULL,value,operator=NULL,what,pager=F){
     pager_current <- which(value_original==vec) %>% min
     attr(df,"pager") <- list(pager=vec,pager_current=pager_current)
   }
-  return(df)
+  df
 
 }
 
@@ -991,20 +991,18 @@ statements_table <- function(graf)graf %>%
 #'
 sources_table <- function(graf){
   graf %>%
-    attr("sources")
-  # %>%
-  # {if(is.null(.)) NULL else
-  # filter(.,source_id %in% statements_table(graf)$source_id)}
+    attr("sources")  %>%
+  {if(is.null(.)) NULL else
+  filter(.,source_id %in% statements_table(graf)$source_id)}
 }
 #' @rdname tibbles
 #' @export
 #'
 questions_table <- function(graf){
   graf %>%
-    attr("questions")
-  # %>%
-  # {if(is.null(.)) NULL else
-  # filter(.,question_id %in% statements_table(graf)$question_id)}
+    attr("questions") %>%
+  {if(is.null(.)) NULL else
+  filter(.,question_id %in% statements_table(graf)$question_id)}
 }
 #' @rdname tibbles
 #' @export
@@ -1316,12 +1314,20 @@ pipe_find_factors <- function(graf,field=NULL,value,operator=NULL,up=0,down=0,pa
   st <- attr(graf,"statements")
   df <- graf %>% factors_table %>% find_fun(field,value,operator,pager=pager)
   pager <- df %>% attr("pager")
-
-  graf <- tbl_graph(df,links_table(graf)) %>% add_statements(st) %>% add_attribute(pager,"pager")
+  graf <- update_map(graf,factors=df) %>% add_attribute(pager,"pager")
+  # graf <- tbl_graph(df,links_table(graf)) %>% add_statements(st) %>% add_attribute(pager,"pager")
   downvec <- graf %>% distances(to=graf %>% factors_table %>% pull(found),mode="in") %>% apply(1,min) %>% `<=`(down)
   upvec <- graf %>% distances(to=graf %>% factors_table %>% pull(found),mode="out") %>% apply(1,min) %>% `<=`(up)
   # browser()
-  if(any(upvec)|any(downvec))graf %>% mutate(upvec=upvec,downvec=downvec) %>% filter(found|upvec|downvec) else graf %>% filter(F)
+# browser()
+  if(any(upvec)|any(downvec))
+    graf %>% update_map(factors=factors_table(graf) %>% filter(found|upvec|downvec)) %>%
+    pipe_clean_map else
+      graf %>% filter(F)
+  # if we don't clean the map here, the factor and link ids get out of sync
+
+    # graf %>% mutate(upvec=upvec,downvec=downvec) %>% filter(found|upvec|downvec) else
+    #   graf %>% filter(F)
 }
 
 #' Find links
@@ -1739,15 +1745,10 @@ pipe_remove_isolated <- function(graf){
 }
 
 
-# proportion_false <- function(vec)sum(vec)/length(vec)
+
 proportion_false <- function(lis) lis %>% map(~sum(unlist(.))/length(.)) %>% unlist
 
-# pipe_condense_factors <- function(graf){
-#   lookup <- relocation_index(graf %>% pull(label))
-#   graf  %>%
-#     igraph::contract(mapping = lookup,vertex.attr.comb = list(is_flipped="concat","first")) %>% as_tbl_graph() %>% activate(nodes) %>%
-#     mutate(id=row_number())
-# }
+
 pipe_color_flipped_factors <- function(graf){
   graf %>%
     mutate(is_flipped=proportion_false(is_flipped)) %>%
@@ -1848,11 +1849,6 @@ pipe_bundle_links <- function(graf,counter="frequency",group=NULL){
 
 update_map(graf,links=edges) %>%
     add_attribute(flow)
-
-
-  # tbl_graph(nodes,edges %>% filter(rn_==1) %>% ungroup %>% select(-rn_)) %>%
-  #   activate(nodes) %>%
-  #   add_statements(statements) %>%
 
 
 }
