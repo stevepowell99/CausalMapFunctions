@@ -675,7 +675,7 @@ statements <- statements %>%
       "out_degree"=centrality_degree(mode = "out"),
       frequency=in_degree+out_degree)
 # browser()
-  graf %>% mutate(betweenness=(graf %>% igraph::centr_betw())$res %>% round(2)) %>%
+  graf %>% mutate(betweenness=(graf %>% igraph::centr_betw())$res %>% round(2) %>% rank) %>%
     add_attribute(statements,"statements") %>%
     add_attribute(sources,"sources") %>%
     add_attribute(questions,"questions") %>%
