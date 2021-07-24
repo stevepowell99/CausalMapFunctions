@@ -702,8 +702,8 @@ consolidate_map <- function(factors,links){
       mutate(factor_id=new_id) %>%
       select(-new_id)
 
-  return(list(factors=factors,links=links))
   }
+  return(list(factors=factors,links=links))
 
 }
 
