@@ -301,13 +301,13 @@ row_row <- function(df)row_index(df) %>% map(~df[.,])
 #'
 #' @examples
 pipe_clean_map <- function(graf){
-# browser()
 map <- as.list(graf)
 if(is.null(map$factors)) map$factors <- map$nodes   #also dealing with tidygraph
 if(is.null(map$links)) map$links <- map$edges
 if(is.null(map$statements)) map$statements <- statements_table(graf)
 if(is.null(map$sources)) map$sources <- sources_table(graf)
 if(is.null(map$questions)) map$questions <- questions_table(graf)
+
   assemble_map(
     factors=map$factors,
     links=map$links,
@@ -371,6 +371,7 @@ update_map <- function(map,
   if(is.null(factors) & !is.null(map))factors <- factors_table(map)
   if(!all) {
     if(".rn" %notin% colnames(factors)) return(map)
+
     factors <-
       factors_table(map) %>%
       update_join(factors)
@@ -542,6 +543,7 @@ load_map <- function(path=NULL,connection=conn){
 #'
 #' @examples
 assemble_map <- function(factors=NULL,links=NULL,statements=NULL,sources=NULL,questions=NULL,settings=NULL,tables=NULL){
+
   if(!is.null(tables)){
     factors <- tables$factors
     links <- tables$links
@@ -550,7 +552,6 @@ assemble_map <- function(factors=NULL,links=NULL,statements=NULL,sources=NULL,qu
     questions <- tables$questions
     settings <- tables$settings
   }
-# browser()
   if(is.null(factors) & is.null(links)){
     factors=standard_factors()
     links=standard_links()
@@ -575,7 +576,7 @@ assemble_map <- function(factors=NULL,links=NULL,statements=NULL,sources=NULL,qu
 
 
 }
-
+# browser()
   if(!is.null(factors) & is.null(links)){
     links <- standard_links()
 }
@@ -614,15 +615,30 @@ assemble_map <- function(factors=NULL,links=NULL,statements=NULL,sources=NULL,qu
     factors <-
       factors %>%
       group_by(label) %>%
-      mutate(new_id=cur_group_id()) %>%
-      ungroup
+      mutate(new_id=cur_group_id())
 
-    new_id <- factors %>% pull(new_id) %>% unlist
-    tmp <- contract(tbl_graph(factors,links),mapping=new_id,vertex.attr.comb = list(label="first",n="sum","ignore")) %>% ##TODO
-      as_tbl_graph() %>%
-      as.list
-    factors <- tmp$nodes
-    links <- tmp$edges
+
+    # browser()
+    new_id <- factors$new_id
+
+    links$from <-
+      links$from %>% recode(!!!new_id %>% set_names(factors$factor_id))
+    links$to <-
+      links$to %>% recode(!!!new_id %>% set_names(factors$factor_id))
+
+    factors <-
+      factors %>%
+      summarise_all(first) %>%
+      mutate(factor_id=new_id) %>%
+      select(-new_id)
+
+
+    # tmp <- contract(tbl_graph(factors,links),mapping=new_id,vertex.attr.comb = list(label="first",n="sum","ignore")) %>% ##TODO
+    # tmp <- contract(tbl_graph(factors,links),mapping=new_id,vertex.attr.comb = list("first")) %>% ##TODO
+    #   as_tbl_graph() %>%
+    #   as.list
+    # factors <- tmp$nodes
+    # links <- tmp$edges
 
   }
 
@@ -643,6 +659,7 @@ assemble_map <- function(factors=NULL,links=NULL,statements=NULL,sources=NULL,qu
     warning("multiple IDs")
     notify("multiple IDs")
   }
+  # browser()
 if(!is.null(statements)){if(!identical(statements$statement_id,row_index(statements))){
   res <- normalise_id(statements,links,"statement_id")
   statements <- res$main
@@ -650,7 +667,6 @@ if(!is.null(statements)){if(!identical(statements$statement_id,row_index(stateme
   notify("Normalising statement ids")
 }}
 
-  # browser()
 sources$source_id <- coerceValue(sources$source_id,statements$source_id)
 questions$question_id <- coerceValue(questions$question_id,statements$question_id)
 links$statement_id <- coerceValue(links$statement_id,statements$statement_id)
@@ -728,6 +744,7 @@ normalise_id <- function(main,referring,keyname,referring_keyname1=keyname,refer
 }
 
 as.list.tidymap <- function (graf){
+  # browser()
   table_list %>%
     set_names %>%
     map(~get_table(graf,.))
@@ -982,10 +999,12 @@ links_table <- function(graf)graf %>%
 #' @rdname tibbles
 #' @export
 #'
-statements_table <- function(graf)graf %>%
+statements_table <- function(graf){
+  # browser()
+  graf %>%
   attr("statements") %>%
   {if(is.null(.)) NULL else
-  filter(.,statement_id %in% links_table(graf)$statement_id)}
+  filter(.,statement_id %in% links_table(graf)$statement_id)}}
 #' @rdname tibbles
 #' @export
 #'
