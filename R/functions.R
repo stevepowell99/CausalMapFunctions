@@ -20,6 +20,13 @@ s3 <- paws::s3()
 # library(DT) # for formatStyle only
 #library(RColorBrewer)
 
+notify <- function(text){
+  # browser()
+  safely(~showNotification(ui=text))()$result
+
+}
+
+
 s3file_exists <- function(object,buck){
   !is.null(safely(~s3$head_object(Key=object,Bucket=buck))()$result)
 }
@@ -46,9 +53,9 @@ get_map_from_excel <- function(path){
 }
 get_map_from_s3 <- function(path){
   # browser()
-  notify("Trying s32 file")
+  notify("Trying cm2 file")
   if(!s3file_exists(object=basename(path),buck=dirname(path))) return()
-  notify("Loaded s32 file")
+  notify("Loaded cm2 file")
   s3readRDS(object=basename(path),bucket=dirname(path))
 }
 
@@ -89,7 +96,7 @@ get_map_tables_from_sql <- function(path,connection=conn){
     mutate(label=if_else(label=="zero",vsettings$base_q,label)) %>%
     filter(label!="")
 
-  message(paste0("Loading sql file: ",path))
+  notify(paste0("Loading sql file: ",path))
   return(list(
     factors = graf %>% factors_table,
     links = graf %>% links_table,
@@ -112,7 +119,7 @@ get_map_tables_from_s3_pieces <- function(path){
   questions = NULL
   settings = NULL
 
-  notify("Trying s3 file")
+  notify("Trying cm1 file")
   # browser()
   pathx <- paste0(root,"/factors");
   if(s3file_exists(pathx,s3bucket))factors <- s3readRDS(object=pathx,bucket=s3bucket) %>% mutate_all(~str_remove_all(.,"\n")) else return()
@@ -127,7 +134,7 @@ get_map_tables_from_s3_pieces <- function(path){
   # graf <- create_map(factors,links)
   # attr(graf,"statements") <- statements_with_meta
   # browser()
-  notify("Loaded s3 file")
+  notify("Loaded cm1 file")
   list(
     factors = factors,
     links = links,
@@ -152,11 +159,11 @@ join_statements_to_meta <- function(statements,meta){
 
 # internal utilities-----------------------------------------------------------------------------
 
-notify <- message # alias
-return_notify <- function(tex){
-  message(tex,3)
-  return()
-}
+notify <- notify # alias
+# return_notify <- function(tex){
+#   notify(tex,3)
+#   return()
+# }
 
 ## from DT package
 coerceValue <- function (val, old)
@@ -471,10 +478,10 @@ load_map <- function(path=NULL,connection=conn){
       newtables <- get_map_tables_from_sql(path,connection=connection)
       if(is.null(newtables)) return(NULL)
       notify("Loaded sql file")
-    } else  if(type=="s32"){
+    } else  if(type=="cm2"){
       graf <- get_map_from_s3(path %>% paste0("cm2data/",.))
       if(is.null(graf)) return(NULL)
-    } else if(type=="s3"){
+    } else if(type=="cm1"){
       newtables <- get_map_tables_from_s3_pieces(path %>% paste0("causalmap/app-sync/",.))
       if(is.null(newtables))return(NULL)
 
@@ -507,7 +514,7 @@ load_map <- function(path=NULL,connection=conn){
     # if(is.null(factors) & is.null(links) & !is.null(path)) {
     links <- standard_links()
     factors <- standard_factors()
-    message("you did not provide factors or links");links=links %>% replace_null(standard_links()%>% filter(F))
+    notify("you did not provide factors or links");links=links %>% replace_null(standard_links()%>% filter(F))
 
   } else if(is.null(graf)){
 
@@ -721,8 +728,8 @@ empty_tibble <- tibble(nothing=0)
 
 normalise_id <- function(main,referring,keyname,referring_keyname1=keyname,referring_keyname2=NULL){
   if(nrow(main)==0)return(list(main=main,referring=referring))
-  if(is.null(main[,keyname])){message("keyname not in main table")}
-  if(is.null(referring[,referring_keyname1])){message("keyname not in referring table")}
+  if(is.null(main[,keyname])){notify("keyname not in main table")}
+  if(is.null(referring[,referring_keyname1])){notify("keyname not in referring table")}
   # browser()
   # if(length(unique(main[,keyname]))!=nrow(main))
   main$.old_key <- main[,keyname] %>% unlist
@@ -952,7 +959,7 @@ find_fun <- function(df,field=NULL,value,operator=NULL,what,pager=F){
     # df <- graf
 
 # browser()
-  if(field %notin% colnames(df)) {message("No such field");return(df)}
+  if(field %notin% colnames(df)) {notify("No such field");return(df)}
 
 
   if(operator=="contains"){df <- df %>%  mutate(found=str_detect(tolower(unwrap(UQ(sym(field)))),value %>% paste0(collapse="|")))} else
@@ -1085,11 +1092,11 @@ make_search <- function(x)x %>% escapeRegex %>% str_trim
 #' @export
 parse_line <- function(line,graf){
   # browser()
-  message(line)
+  notify(line)
   if(str_trim(line)=="")return()
   fun <- word(line, 1,2, sep=" ")
-  if(is.na(fun)){message("No such function");return(graf %>% filter(F))}
-  if(!exists(str_replace(fun," ","_") %>% paste0("pipe_",.))){message("No such function");return(graf %>% filter(F))}
+  if(is.na(fun)){notify("No such function");return(graf %>% filter(F))}
+  if(!exists(str_replace(fun," ","_") %>% paste0("pipe_",.))){notify("No such function");return(graf %>% filter(F))}
 
   body <-
     str_remove(line,fun) %>%
@@ -1191,7 +1198,7 @@ parse_line <- function(line,graf){
       str_trim %>%
       str_remove_all("=$")
 
-    if(length(fields)!=length(vals)){message("Wrong number of values");return(graf %>% filter(F))}
+    if(length(fields)!=length(vals)){notify("Wrong number of values");return(graf %>% filter(F))}
 
     names(vals) <- fields
     vals$value <- str_split(vals$value," OR ") %>% unlist
@@ -1384,7 +1391,7 @@ pipe_find_links <- function(graf,field=NULL,value,operator=NULL,pager=F,remove_i
 #'
 #' @examples
 pipe_find_statements <- function(graf,field,value,operator="=",pager=F){
-  if(!has_statements(graf)) {message("No statements");return(graf)}
+  if(!has_statements(graf)) {notify("No statements");return(graf)}
 
 # browser()
   tmp <- graf %>%
@@ -1617,9 +1624,9 @@ pipe_trace_robustness <- function(graf,from,to,length=4,field=NULL){
 #'
 #' @examples
 pipe_trace_paths <- function(graf,from,to,length=4){
-  if(is.na(length)) {message("You have to specify length");return(graf)}
-  if(from=="") {message("You have to specify source factors");return(graf)}
-  if(to=="") {message("You have to specify target factors");return(graf)}
+  if(is.na(length)) {notify("You have to specify length");return(graf)}
+  if(from=="") {notify("You have to specify source factors");return(graf)}
+  if(to=="") {notify("You have to specify target factors");return(graf)}
   # browser()
   graf <- graf %>% activate(nodes)
   from <- from %>% make_search
@@ -1651,14 +1658,14 @@ pipe_trace_paths <- function(graf,from,to,length=4){
   sums <- graf %>% factors_table %>% select(found_from,found_to) %>% colSums(na.rm=T)
   if((sums[1]*sums[2])>10000){
     # if(sum(found_from,na.rm=T)*sum(found_to,na.rm=T)>10){
-    message("too much to trace")
+    notify("too much to trace")
     return(graf)
   }
 
 
 # all_flows <- calculate_robustness(graf)
 
-# message(glue("Number of cuts is {res$cut %>% length}"))
+# notify(glue("Number of cuts is {res$cut %>% length}"))
   graf %>%
     activate(nodes) %>%
     filter(label!="_super_sink_" & label!="_super_source_")
@@ -1798,7 +1805,7 @@ pipe_color_flipped_links <- function(graf){
 
 
 pipe_flip_opposites <- function(graf,flipchar="~",add_colors=T){
-  if(add_colors)message("Also adding colours; you can turn this off with 'flip opposites add_colors=FALSE'")
+  if(add_colors)notify("Also adding colours; you can turn this off with 'flip opposites add_colors=FALSE'")
   graf %N>%
     mutate(
       is_flipped=str_detect(label,paste0("^ *",flipchar)),
@@ -1843,8 +1850,8 @@ pipe_bundle_links <- function(graf,counter="frequency",group=NULL){
   coln <- colnames(edges)
 
 
-  if(counter %notin% coln & counter!="frequency" ) {message("no such counter");return(graf)}
-  if(!is.null(group)){if(group %notin% coln) {message("no such group");return(graf)}}
+  if(counter %notin% coln & counter!="frequency" ) {notify("no such counter");return(graf)}
+  if(!is.null(group)){if(group %notin% coln) {notify("no such group");return(graf)}}
 
   if(is.null(group)) edges <- edges %>% group_by(from,to) else
     edges <- edges %>% group_by(from,to,UQ(sym(group)))
@@ -1918,7 +1925,7 @@ pipe_fix_columns <- function(graf){
 #
 # pipe_metrics <- function(graf){
 #   # browser()
-#   if(is.null(graf)){message("No graph for metrics");return(graf)}
+#   if(is.null(graf)){notify("No graph for metrics");return(graf)}
 #
 # }
 
@@ -2624,8 +2631,8 @@ strip_symbols <- function(vec) vec %>%
 #' @examples
 robustUI <- function(graf){
   flow <- attr(graf,"flow")$summary
-  if(is.null(flow)) {message("No paths");return(NULL)}
-  if(nrow(flow)==0) {message("No paths");return(NULL)}
+  if(is.null(flow)) {notify("No paths");return(NULL)}
+  if(nrow(flow)==0) {notify("No paths");return(NULL)}
 
 
 
@@ -2872,7 +2879,7 @@ with_subtotals <- function(df, method = c("change", "agg_level")) {
   groups <- dplyr::group_vars(df)
 
   if (length(groups) == 0) {
-    message("No grouping variables specified in `with_subtotals()`. Returning object unchanged.")
+    notify("No grouping variables specified in `with_subtotals()`. Returning object unchanged.")
     return(df)
   }
 
