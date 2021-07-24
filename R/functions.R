@@ -486,11 +486,11 @@ load_map <- function(path=NULL,connection=conn){
       if(is.null(newtables))return(NULL)
 
     } else if(type=="unknown"){
+      notify("Trying to load file, guessing origin")
 
         newtables <- get_map_tables_from_s3_pieces(path %>% paste0("causalmap/app-sync/",.))
       if(is.null(newtables)) {
       graf <- get_map_from_s3(path %>% paste0("cm2data/",.))
-      notify("Loaded file, guessing origin")
 
       }
 
@@ -519,6 +519,7 @@ load_map <- function(path=NULL,connection=conn){
   } else if(is.null(graf)){
 
 
+
     graf <- assemble_map(
       factors = factors,
       links = links,
@@ -528,7 +529,6 @@ load_map <- function(path=NULL,connection=conn){
       settings = settings
     )
   } else graf <- pipe_clean_map(graf)
-# browser()
   notify("Loading map")
 
   return(graf)
@@ -662,7 +662,7 @@ statements <- statements %>%
     left_join(statements %>% rename_with(~paste0("s.",.),!matches("statement_id")))
   # links <- links %>%
   #   safely(~left_join(statements %>% rename_with(~paste0("s.",.),!matches("statement_id"))),otherwise=.)() %>% pluck("result")  # ,by="statement_id") %>% otherwise when this is repeated, you get loads of cols
-
+# browser()
 
   links <-
     links %>% mutate(from_label= recode(from,!!!factors$label %>% set_names(factors$factor_id))) %>%
@@ -674,7 +674,6 @@ statements <- statements %>%
       "in_degree"=centrality_degree(mode = "in"),
       "out_degree"=centrality_degree(mode = "out"),
       frequency=in_degree+out_degree)
-# browser()
   graf %>% mutate(betweenness=(graf %>% igraph::centr_betw())$res %>% round(2) %>% rank) %>%
     add_attribute(statements,"statements") %>%
     add_attribute(sources,"sources") %>%
