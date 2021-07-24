@@ -612,39 +612,9 @@ assemble_map <- function(factors=NULL,links=NULL,statements=NULL,sources=NULL,qu
     select(which(!duplicated(colnames(.)))) # %>% select(any_of(colnames(standard_statements())))
 
 
-  if(factors$label %>% table %>% max %>% `>`(1)){
-    notify("Some factor labels are duplicates; consolidating")
-    # browser()
-    factors <-
-      factors %>%
-      group_by(label) %>%
-      mutate(new_id=cur_group_id())
-
-
-    # browser()
-    new_id <- factors$new_id
-
-    links$from <-
-      links$from %>% recode(!!!new_id %>% set_names(factors$factor_id))
-    links$to <-
-      links$to %>% recode(!!!new_id %>% set_names(factors$factor_id))
-
-    factors <-
-      factors %>%
-      summarise_all(first) %>%
-      mutate(factor_id=new_id) %>%
-      select(-new_id)
-
-
-    # tmp <- contract(tbl_graph(factors,links),mapping=new_id,vertex.attr.comb = list(label="first",n="sum","ignore")) %>% ##TODO
-    # tmp <- contract(tbl_graph(factors,links),mapping=new_id,vertex.attr.comb = list("first")) %>% ##TODO
-    #   as_tbl_graph() %>%
-    #   as.list
-    # factors <- tmp$nodes
-    # links <- tmp$edges
-
-  }
-
+  tmp <- consolidate_map(factors,links)
+  factors <- tmp$factors
+  links <- tmp$links
 
   sources <- sources %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_sources()) %>% select(which(!duplicated(colnames(.)))) #%>% select(any_of(colnames(standard_sources())))
   questions <- questions %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_questions()) %>% select(which(!duplicated(colnames(.))))#%>% select(any_of(colnames(standard_questions())))
@@ -707,6 +677,36 @@ statements <- statements %>%
     pipe_fix_columns
 
 }
+
+consolidate_map <- function(factors,links){
+  if(factors$label %>% table %>% max %>% `>`(1)){
+    notify("Some factor labels are duplicates; consolidating")
+    # browser()
+    factors <-
+      factors %>%
+      group_by(label) %>%
+      mutate(new_id=cur_group_id())
+
+
+    # browser()
+    new_id <- factors$new_id
+
+    links$from <-
+      links$from %>% recode(!!!new_id %>% set_names(factors$factor_id))
+    links$to <-
+      links$to %>% recode(!!!new_id %>% set_names(factors$factor_id))
+
+    factors <-
+      factors %>%
+      summarise_all(first) %>%
+      mutate(factor_id=new_id) %>%
+      select(-new_id)
+
+  return(list(factors=factors,links=links))
+  }
+
+}
+
 
 to_logical <- function(vec){
   if(vec %>% unique %>% `%in%`(0:1) %>% all) as.logical(vec) else vec
