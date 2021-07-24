@@ -26,7 +26,10 @@ s3file_exists <- function(object,buck){
 
 # note this is our own function , not from aws.s3 package
 s3readRDS <- function(object,bucket,version=NULL,s3confun=s3){
-  s3confun$get_object(bucket,Key=object, VersionId = version)$Body %>% rawConnection() %>% gzcon %>% readRDS
+  # s3confun$get_object(bucket,Key=object, VersionId = version)$Body %>% rawConnection() %>% gzcon %>% readRDS
+  s3confun$get_object(bucket,Key=object, VersionId = version)$Body %>% rawConnection() %>%
+    gzcon %>%
+    (function(con) {on.exit(close(con)); readRDS(con)})
 }
 
 #' Title
@@ -2248,9 +2251,22 @@ make_map_metrics <- function(graf){
 #'
 #'
 #' @examples
-make_vn <- function(graf,scale=1){
+make_vn <- function(graf,scale=1,safe_limit=200){
   # browser()
   # graf <- graf %>% pipe_fix_columns()
+
+
+
+  if(nrow(links_table(graf))>replace_null(safe_limit,200)){
+    notify("Map larger than 'safe limit'; bundling and labelling links")
+    graf <- graf %>%
+      pipe_bundle_links() %>%
+      pipe_label_links("frequency") %>%
+      pipe_scale_links("frequency")
+
+
+      }
+
   nodes <- graf %N>% as_tibble %>% mutate(value=size*10) %>%
     select(any_of(xc("label color.background color.border title group value hidden size"))) ### restrictive in attempt to reduce random freezes
   # browser()
@@ -2472,8 +2488,8 @@ make_grviz <- function(
   safe_limit <- replace_null(safe_limit,graf %>% attr("set_print") %>% .$safe_limit %>% replace_null(200))
 
 
-  # if((nrow(graf %>% factors_table)>safe_limit/3))message("Map larger than 'safe limit'; setting print layout to twopi")
-  # if((nrow(graf %>% links_table)>safe_limit))message("Map larger than 'safe limit'; setting print layout to use straight edges")
+  # if((nrow(graf %>% factors_table)>safe_limit/3))notify("Map larger than 'safe limit'; setting print layout to twopi")
+  # if((nrow(graf %>% links_table)>safe_limit))notify("Map larger than 'safe limit'; setting print layout to use straight edges")
 
   maxwidth <- replace_null(maxwidth,graf %>% attr("set_print") %>% .$maxwidth %>% replace_null("dot"))
 
@@ -2492,7 +2508,7 @@ make_grviz <- function(
   # graf <- graf %>% pipe_fix_columns()
 
   if(!is.null(safe_limit) & nrow(links_table(graf))>replace_null(safe_limit,200)){
-    message("Map larger than 'safe limit'; bundling and labelling links")
+    notify("Map larger than 'safe limit'; bundling and labelling links")
     graf <- graf %>%
       pipe_bundle_links() %>%
       pipe_label_links("frequency")
