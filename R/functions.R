@@ -1378,6 +1378,7 @@ pipe_find_links <- function(graf,field=NULL,value,operator=NULL,pager=F,remove_i
     add_statements(st) %>%
     add_attribute(pager,"pager") %>%
     activate(nodes)  %>%
+    mutate(factor_id=row_number())
     {if(remove_isolated) pipe_remove_isolated(.) else .}
 
 }
@@ -1403,7 +1404,8 @@ pipe_find_statements <- function(graf,field,value,operator="=",pager=F){
            filter(statement_id %in% tmp$statement_id) %>%
            add_statements(tmp) %>%
            add_attribute(attr(tmp,"pager"),"pager") %>%
-           activate(nodes)
+           activate(nodes) %>%
+           mutate(factor_id=row_number())
          )
 
 
@@ -1654,6 +1656,8 @@ pipe_trace_paths <- function(graf,from,to,length=4){
                                                   bothvec,
                                                   found=found_from|found_to
   ) %>% filter(bothvec) else graf %>% filter(F)
+  graf <- graf %>%
+    mutate(factor_id=row_number())
 
   sums <- graf %>% factors_table %>% select(found_from,found_to) %>% colSums(na.rm=T)
   if((sums[1]*sums[2])>10000){
@@ -1850,14 +1854,22 @@ pipe_bundle_links <- function(graf,counter="frequency",group=NULL){
   if(nrow(nodes)==0) return(NULL)
   coln <- colnames(edges)
 
+  # browser()
 
-  if(counter %notin% coln & counter!="frequency" ) {notify("no such counter");return(graf)}
+  if(counter %notin% coln & counter!="frequency" ) {
+    notify("counter not found, trying with s.") #legacy
+    if(paste0("s.",counter) %in% coln  & counter!="frequency") counter <-  paste0("s.",counter) else
+    {
+    notify("counter not found")
+    return(graf)
+
+      }
+    }
   if(!is.null(group)){if(group %notin% coln) {notify("no such group");return(graf)}}
 
   if(is.null(group)) edges <- edges %>% group_by(from,to) else
     edges <- edges %>% group_by(from,to,UQ(sym(group)))
 
-  # browser()
   if (counter == "frequency") {
     if ("frequency" %in% coln)
       edges <- edges %>%
@@ -2492,7 +2504,6 @@ make_grviz <- function(
 ){
   # graf b
   # if(is.null(grv_layout))
-# browser()
   safe_limit <- replace_null(safe_limit,graf %>% attr("set_print") %>% .$safe_limit %>% replace_null(200))
 
 
@@ -2528,10 +2539,12 @@ make_grviz <- function(
   if("id" %in% colnames(factors_table(graf)))graf <-  graf %>% select(-id)
   # if("frequency" %in% colnames(links_table(graf)))graf <-  graf %>% mutate(tooltip=as.character(n))
 # browser()
+# browser()
   grv <-
     graf %>%
     activate(nodes) %>%
     mutate(label=clean_grv(label) )%>%
+    # mutate(cluster=if_else(is.na(cluster),"",cluster) )%>%
     mutate(tooltip=label)%>%
     mutate(fillcolor=color.background) %>%
     mutate(color=color.border) %>%
@@ -2550,7 +2563,7 @@ make_grviz <- function(
     mutate(arrowhead="normal") %>%
     select(-any_of("id")) %>%
     activate(nodes) %>%
-    select(label,color.border,color.background,size,tooltip,fillcolor,color,fontsize,fontcolor) %>%
+    select(any_of(xc("label color.border color.background size tooltip fillcolor color fontsize fontcolor cluster"))) %>%
     DiagrammeR::from_igraph() %>%
     DiagrammeR::add_global_graph_attrs("layout", grv_layout, "graph") %>%
     DiagrammeR::add_global_graph_attrs("splines", grv_splines, "graph") %>%
