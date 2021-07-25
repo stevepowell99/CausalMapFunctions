@@ -1429,7 +1429,8 @@ pipe_select_links <- function(graf,top=NULL,bottom=NULL){
     {if(!is.null(top))slice(.,1:top) else slice(.,(nrow_links_table(graf)+1-bottom):nrow_links_table(graf))} %>%
     select(from,to,frequency,everything()) %>%
     # select(1:7) %>%
-    activate(nodes)
+    activate(nodes) %>%
+    mutate(factor_id=row_number())
 }
 nrow_factors_table <- function(graf)
   graf %>% factors_table %>% nrow
@@ -1770,7 +1771,8 @@ pipe_calculate_robustness <- function(graf,field=NULL){
 pipe_remove_isolated <- function(graf){
   graf %>%
     activate(nodes) %>%
-    filter(!node_is_isolated())
+    filter(!node_is_isolated()) %>%
+    mutate(factor_id=row_number())
 }
 
 
