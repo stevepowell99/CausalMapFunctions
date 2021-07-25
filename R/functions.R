@@ -2517,6 +2517,7 @@ make_grviz <- function(
                                if_else(nrow(graf %>% factors_table)>safe_limit/3,"twopi","dot")))
 
 
+
   grv_splines <- replace_null(grv_splines,graf %>% attr("set_print") %>% .$grv_splines %>% replace_null(if_else(nrow(graf %>% factors_table)>safe_limit/3,"lines","splines")))
   grv_overlap <- replace_null(grv_overlap,graf %>% attr("set_print") %>% .$grv_overlap %>% replace_null(F))
   color <- replace_null(color,graf %>% attr("set_print") %>% .$color %>% replace_null("grey"))
