@@ -275,7 +275,7 @@ pipe_fix_columns <- function(graf){
   if(!("capacity" %in% link_colnames(graf))) graf <- graf %>% update_map(links=graf$links %>% mutate(capacity=1L))
   if(!("label" %in% link_colnames(graf))) graf <- graf %>% update_map(links=graf$links %>% mutate(label=""))
   if(!("width" %in% link_colnames(graf))) graf <- graf %>% update_map(links=graf$links %>% mutate(width=.2))
-  if(!("flow" %in% link_colnames(graf))) graf <- graf %>% update_map(links=graf$links %>% mutate(flow=1L))
+  # if(!("flow" %in% link_colnames(graf))) graf <- graf %>% update_map(links=graf$links %>% mutate(flow=1L))
   graf
 }
 pipe_normalise_factors_links <- function(graf){
@@ -568,7 +568,6 @@ assemble_map <- function(factors=NULL,links=NULL,statements=NULL,sources=NULL,qu
 #' @examples
 pipe_clean_map <- function(tables=NULL){
   # browser()
-
   if(!is.null(tables)){
     factors <- tables$factors
     links <- tables$links
@@ -577,6 +576,7 @@ pipe_clean_map <- function(tables=NULL){
     questions <- tables$questions
     settings <- tables$settings
   }
+flow <- attr(links,"flow")
   if(is.null(factors) & is.null(links)){
     factors=standard_factors()
     links=standard_links()
@@ -687,12 +687,16 @@ pipe_clean_map <- function(tables=NULL){
     unite(bundle,from_label,to_label,remove = F,sep = " / ") %>%
     select(from_label,to_label,statement_id,quote,everything())
 
-  ig <- make_igraph_from_links(links)
+  ig <- make_igraph(factors,links)
+  # ig <- make_igraph_from_links(links)
+
   factors$betweenness <- igraph::centr_betw(ig)$res %>% round(2)
   factors$betweenness_rank <- factors$betweenness %>% rank
   factors$in_degree=ig %>% igraph::degree(mode = "in")
   factors$out_degree=ig %>% igraph::degree(mode = "out")
   factors$frequency <- factors$in_degree+factors$out_degree
+
+  attr(links,"flow") <- flow
 
 
   assemble_map(factors,links,statements,sources,questions,settings) %>%
@@ -1647,9 +1651,9 @@ pipe_bundle_factors <- function(graf,value=""){
 #' if(F)cashTransferMap %>% pipe_merge_statements() %>%  pipe_select_factors(10) %>% pipe_bundle_links(group="1. Sex",counter="#SourceID")%>% pipe_label_links(field = "frequency") %>% pipe_color_links(field="1. Sex") %>% pipe_scale_links() %>%  make_grviz()
 pipe_bundle_links <- function(graf,counter="frequency",group=NULL){
   # statements <- graf %>% statements_table()
-  flow <- graf %>% attr("flow")
+  # flow <- graf %>% attr("flow")
   # factors <- factors_table(graf)
-  links <- links_table_full(graf)
+  links <- graf$links
   # if(nrow(factors)==0) return(NULL)
   coln <- colnames(links)
 
@@ -1690,9 +1694,7 @@ pipe_bundle_links <- function(graf,counter="frequency",group=NULL){
     links %>%
     filter(rn_ == 1) %>% ungroup %>% select(-rn_)
 
-  update_map(graf,links=links) %>%
-    add_attribute(flow)
-
+  update_map(graf,links=links)
 
 }
 
@@ -1868,6 +1870,7 @@ pipe_calculate_robustness <- function(graf,field=NULL){
   if("found_from" %notin% factor_colnames(graf)) {warning("No found_from column");return(graf)}  # if("found_from" %notin% factor_colnames(graf)) {warning("No found_from column");return(graf)}
   if("found_to" %notin% factor_colnames(graf)) {warning("No found_to column");return(graf)}
   if(field %>% replace_null("")=="")field <- NULL
+# browser()
 
   if(is.null(field)) res$summary <- (calculate_robustness_inner(graf)) else
 
@@ -1883,13 +1886,11 @@ pipe_calculate_robustness <- function(graf,field=NULL){
 
   if("" %in% vec){warning("Vector contains an empty string");vec <- vec %>% keep(.!="")}
 
-  # browser()
   res <- vec %>% set_names(vec) %>% map(
     function(x) graf %>%
       pipe_find_links(field=field,value=x,operator="=") %>%
       calculate_robustness_inner()
   )
-
 
   summary <- res %>% map(~(select(.,-1))%>% mutate_all(~if_else(.>0 ,1,0))) %>%
     Reduce(`+`,.)
@@ -1901,7 +1902,7 @@ pipe_calculate_robustness <- function(graf,field=NULL){
 
    }
   # browser()
-  graf %>% add_attribute(res,"flow")
+  graf %>% update_map(.,links=add_attribute(graf$links,res,"flow"))
 
 }
 
@@ -2597,7 +2598,7 @@ make_grviz <- function(
     mutate(factor_id=row_number())
 
   links <- graf$links %>%
-    select(any_of(xc("from to color width link_label width"))) %>%
+    select(any_of(xc("from to color width link_label width from_label to_label"))) %>%
     rename(label=link_label) %>%
     mutate(label=if_else(label=="",".",label))%>%
     mutate(label=clean_grv(label) )%>%
@@ -2608,8 +2609,11 @@ make_grviz <- function(
 
 # browser()
 
-  grv <-   make_igraph(factors,links) %>%
-    DiagrammeR::from_igraph() %>%
+  grv <-
+    DiagrammeR::create_graph() %>%
+    add_nodes_from_table(factors  %>% mutate(id=factor_id),label_col="label") %>%
+    add_edges_from_table(links,from_col="from",to_col="to",from_to_map = id_external) %>%
+
     add_global_graph_attrs("layout", grv_layout, "graph") %>%
     add_global_graph_attrs("splines", grv_splines, "graph") %>%
     add_global_graph_attrs("overlap", grv_overlap, "graph") %>%
@@ -2691,7 +2695,8 @@ strip_symbols <- function(vec) vec %>%
 #'
 #' @examples
 robustUI <- function(graf){
-  flow <- attr(graf,"flow")$summary
+  # browser()
+  flow <- attr(graf$links,"flow")$summary
   if(is.null(flow)) {notify("No paths");return(NULL)}
   if(nrow(flow)==0) {notify("No paths");return(NULL)}
 
