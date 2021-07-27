@@ -4,13 +4,13 @@
 \alias{pipe_clean_map}
 \title{Clean map}
 \usage{
-pipe_clean_map(graf)
+pipe_clean_map(tables = NULL)
 }
 \arguments{
-\item{graf}{}
+\item{settings}{}
 }
 \value{
-A cleaned map done by taking it apart and putting it back together
+A clean map in which all issues have been resolved.
 }
 \description{
 Clean map

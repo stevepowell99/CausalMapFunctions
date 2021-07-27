@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{pipe_scale_factors}
 \alias{pipe_scale_factors}
-\title{Create factor metrics}
+\title{Scale factors}
 \usage{
 pipe_scale_factors(graf, field = "frequency")
 }
@@ -15,14 +15,8 @@ In this package, nodes are called `factors` and edges are called `links.`}
 \item{field}{A numerical field in the factor table which will control the scale.}
 }
 \value{
-A tidymap with new or overwritten columns for factor metrics.
-
 A tidymap with a new or overwritten column `size`in the factor table varying between .2 and 1.
 }
 \description{
-Create factor metrics
-}
-\examples{
 Scale factors
-
 }

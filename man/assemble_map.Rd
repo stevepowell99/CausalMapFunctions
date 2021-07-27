@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{assemble_map}
 \alias{assemble_map}
-\title{Title}
+\title{Assemble map}
 \usage{
 assemble_map(
   factors = NULL,
@@ -10,16 +10,15 @@ assemble_map(
   statements = NULL,
   sources = NULL,
   questions = NULL,
-  settings = NULL,
-  tables = NULL
+  settings = NULL
 )
 }
 \arguments{
 \item{settings}{}
 }
 \value{
-A clean map in which all issues have been resolved.
+
 }
 \description{
-Title
+Assemble map
 }

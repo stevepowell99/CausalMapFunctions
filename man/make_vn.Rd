@@ -4,7 +4,7 @@
 \alias{make_vn}
 \title{Make a visNetwork}
 \usage{
-make_vn(graf, scale = 1)
+make_vn(graf, scale = 1, safe_limit = 200)
 }
 \arguments{
 \item{graf}{A tidymap. The factors table and links table may contain additional formatting information like color.background.}

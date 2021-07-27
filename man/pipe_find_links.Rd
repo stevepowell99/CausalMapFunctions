@@ -4,14 +4,7 @@
 \alias{pipe_find_links}
 \title{Find links}
 \usage{
-pipe_find_links(
-  graf,
-  field = NULL,
-  value,
-  operator = NULL,
-  pager = F,
-  remove_isolated = T
-)
+pipe_find_links(graf, field = NULL, value, operator = NULL, pager = F)
 }
 \description{
 Find links

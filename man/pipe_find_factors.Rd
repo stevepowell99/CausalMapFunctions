@@ -6,11 +6,11 @@
 \usage{
 pipe_find_factors(
   graf,
-  field = NULL,
+  field = "label",
   value,
-  operator = NULL,
-  up = 0,
-  down = 0,
+  operator = "contains",
+  up = 1,
+  down = 1,
   pager = F
 )
 }
