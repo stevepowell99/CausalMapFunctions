@@ -406,10 +406,10 @@ update_map <- function(map,
 #'
 #' @examples
 merge_map <- function(graf,graf2){
-  # browser()
   map2 <- graf2
   graf <- graf
 
+  # browser()
   maxid <- max(graf$factors$factor_id)
 
   assemble_map(
@@ -541,7 +541,13 @@ load_map <- function(path=NULL,connection=conn){
 #' @examples
 assemble_map <- function(factors=NULL,links=NULL,statements=NULL,sources=NULL,questions=NULL,settings=NULL){
 
-  list(factors,links,statements,sources,questions,settings) %>%
+  list(factors,
+       links,
+       statements %>% replace_null(standard_statements()),
+       sources %>% replace_null(standard_sources()),
+       questions %>% replace_null(standard_questions()),
+       settings %>% replace_null(standard_settings())
+       ) %>%
     set_names(xc("factors links statements sources questions settings")) %>%
     add_class
 }
@@ -581,7 +587,10 @@ pipe_clean_map <- function(tables=NULL){
       select(which(!duplicated(colnames(.)))) %>%
       # select(any_of(colnames(standard_links()))) %>%
       mutate(link_id=row_number())%>%
-      filter(!is.na(from) & !is.na(to)) #TODO warning
+      filter(!is.na(from) & !is.na(to)) %>%
+      mutate(strength=as.numeric(strength)) %>%  #TODO warning
+      mutate(weight=as.numeric(weight)) %>%  #TODO warning
+      mutate(certainty=as.numeric(certainty))  #TODO warning
 
   }
   if(!is.null(factors)){
@@ -694,13 +703,22 @@ pipe_clean_map <- function(tables=NULL){
 make_igraph_from_links <- function(links){
   links %>% select(from,to) %>% as.matrix()%>% graph_from_edgelist()
 }
-make_igraph <- function(factors,links){
+make_igraph <- function(factors,links,use_labels=F){
+  # never use this to try to recreate a full map it is too intolerant of extra columsn, just for calculations!
 
-
+# browser()
+  if(!use_labels){
   factors <- factors %>% select(factor_id,everything())
-  links <- links %>% select(from,to,everything())
+  links <- links %>% select(from,to,everything()) %>% filter(from %in% factors$factor_id & to %in% factors$factor_id)
+
+  } else {
+  factors <- factors %>% select(label,everything())
+  links <- links %>% select(from_label,to_label,everything()) %>% filter(from_label %in% factors$label & to_label %in% factors$label)
+
+  }
+
   # browser()
-  graph_from_data_frame(links, directed = TRUE, vertices = factors)
+  graph_from_data_frame(links[,1:2], directed = TRUE, vertices = factors[,1])
 
 }
 
@@ -826,8 +844,8 @@ standard_links <- function(){tibble(
   link_map_id=1
   )}
 standard_statements <- function()tibble(statement_id=1,text="blank statement",statement_memo="",source_id="1",question_id="1",statement_map_id=1)
-standard_sources <- function()tibble(source_id=1,source_memo="global source",new_column_1="",source_map_id=1)
-standard_questions <- function()tibble(question_id=1,question_text="global question",question_memo="",new_column_1="",question_map_id=1)
+standard_sources <- function()tibble(source_id="1",source_memo="global source",new_column_1="",source_map_id=1)
+standard_questions <- function()tibble(question_id="1",question_text="global question",question_memo="",new_column_1="",question_map_id=1)
 standard_settings <- function()tibble(setting_id="background_colour",value="",setting_map_id=1)
 
 #' Add class
@@ -931,13 +949,12 @@ cluster_fun <- function(labs,tex){
 }
 
 calculate_robustness_inner <- function(graf){
-  # browser()
 
   if("found_from" %notin% factor_colnames(graf)) {warning("No found_from column");return(NA)}
   if("found_to" %notin% factor_colnames(graf)) {warning("No found_to column");return(NA)}
 
   if(nrow(factors_table(graf))==0) {warning("No paths");return(NA)}
-  graf <- graf %>% pipe_bundle_links()
+  graf <- graf %>% pipe_bundle_links() %>% pipe_clean_map()
 
 
   links <- graf$links %>%
@@ -956,41 +973,42 @@ calculate_robustness_inner <- function(graf){
   )
 
   newgraf <- assemble_map(newnodes,newedges) %>%
-
-    tmp <- normalise_id(graf$factors,graf$links,"factor_id","from","to")
-
-  graf %>%
-    update_map(factors=tmp$main,links=tmp$referring)
+    pipe_normalise_factors_links()
 
 
-
-    pipe_clean_map
-
-
-  graf <- graf %>% merge_map(newgraf)
+  graf <- graf %>% merge_map(newgraf) %>% pipe_clean_map
 
   newnodes <- tibble(
-    label=c(to_vec,"_super_sink_"))
+    factor_id=c(to_vec,"_super_sink_"))
 
   newedges <- tibble(
     to="_super_sink_",
     from=to_vec,
     capacity=Inf
   )
-  newgraf <- list(newnodes,newedges)
+  newgraf <- assemble_map(newnodes,newedges) %>%
+    pipe_normalise_factors_links() %>%
+    pipe_clean_map
 
   graf <-
-    graf %>% merge_map(newgraf) %>%
+    graf %>% merge_map(newgraf)
+
+  graf$factors$capacity  <- graf$factors$capacity %>% replace_null(1)
+  graf$factors  <- graf$factors %>%
     mutate(capacity=if_else(is.na(capacity),1,capacity)) %>%
-    mutate(capacity=pmax(frequency,capacity,na.rm=T)) %E>%
-    filter(from!=to) %>%
-    activate(nodes)
-  source <- V(graf)[(graf %>% factors_table)$label=="_super_source_"]
-  sink <- V(graf)[(graf %>% factors_table)$label=="_super_sink_"]
-  res <- graf %N>%
+    mutate(capacity=pmax(frequency,capacity,na.rm=T))
+
+  graf$links  <- graf$links %>%
+    filter(from!=to)
+
+  ig <- make_igraph(graf$factors,graf$links,use_labels = T)
+
+  source <- V(ig)[graf$factors$label=="_super_source_"]
+  sink <- V(ig)[graf$factors$label=="_super_sink_"]
+  res <- ig %>%
     max_flow(source=source, target=sink)
-  sources <- V(graf)[(graf %>% factors_table)$found_from %>% replace_na(F)]
-  sinks <- V(graf)[(graf %>% factors_table)$found_to %>% replace_na(F)]
+  sources <- V(ig)[graf$factors$found_from %>% replace_na(F)]
+  sinks <- V(ig)[graf$factors$found_to %>% replace_na(F)]
 
   if(length(sinks)>1){
     sinkvec <- c(sink,sinks)
@@ -1009,7 +1027,7 @@ calculate_robustness_inner <- function(graf){
     cn <- (graf %>% factors_table %>% filter(found_from) %>% pull(label))
     sourcevec <- sources
   }
-graf %>% distance_table()
+# graf %>% distance_table()
 ## actually this is stupid because you don't need to calculate flow, you can just
 ## look at the distances. However flow is hardly any slower, so why not.
 ## Here is the same thing with distances - it isn't any faster.
@@ -1024,7 +1042,8 @@ graf %>% distance_table()
 #     else
   all_flows <-
 
-    sinkvec %>% map(function(y)(sourcevec %>% map(function(x) if(x %in% sinks) Inf else max_flow(graf,x,y)$value)) %>% unlist) %>%
+    sinkvec %>% map(function(y)(
+      sourcevec %>% map(function(x) if(x %in% sinks) Inf else max_flow(ig,x,y)$value)) %>% unlist) %>%
     do.call("rbind",.) %>%
     as_tibble
 
@@ -1532,11 +1551,14 @@ pipe_remove_isolated <- function(graf){
 
 }
 
-pipe_remove_isolated_links <- function(graf){
+pipe_remove_isolated_links <- function(graf,labels=F){
   # browser()
+
+  if(labels)graf %>% update_map(factors=graf$factors,
+                      links=graf$links %>% filter(from_label %in% graf$factors$label & to_label %in% graf$factors$label)) else
   graf %>% update_map(factors=graf$factors,
-                      links=graf$links %>% filter(from %in% graf$factors$factor_id & to %in% graf$factors$factor_id)
-  )
+                      links=graf$links %>% filter(from %in% graf$factors$factor_id & to %in% graf$factors$factor_id))
+
 }
 
 #' Zoom factors
@@ -1878,6 +1900,7 @@ pipe_calculate_robustness <- function(graf,field=NULL){
 
 
    }
+  # browser()
   graf %>% add_attribute(res,"flow")
 
 }
