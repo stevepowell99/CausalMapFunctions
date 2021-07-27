@@ -280,6 +280,8 @@ pipe_fix_columns <- function(graf){
 }
 pipe_normalise_factors_links <- function(graf){
   tmp <- normalise_id(graf$factors,graf$links,"factor_id","from","to")
+  factors=tmp$main;
+  links=tmp$referring
 
   graf %>%
     update_map(factors=tmp$main,links=tmp$referring)
@@ -696,7 +698,7 @@ make_igraph <- function(factors,links){
 
 
   factors <- factors %>% select(factor_id,everything())
-  links <- links
+  links <- links %>% select(from,to,everything())
   # browser()
   graph_from_data_frame(links, directed = TRUE, vertices = factors)
 
@@ -707,6 +709,7 @@ normalise_id <- function(main,referring,keyname,referring_keyname1=keyname,refer
   if(is.null(main[,keyname])){notify("keyname not in main table")}
   if(is.null(referring[,referring_keyname1])){notify("keyname not in referring table")}
   # browser()
+  if(is.null(main$label))main$label <- main$factor_id
   # if(length(unique(main[,keyname]))!=nrow(main))
   main$.old_key <- main[,keyname] %>% unlist
   main[,keyname] <- 1:nrow(main)
@@ -726,7 +729,7 @@ normalise_id <- function(main,referring,keyname,referring_keyname1=keyname,refer
   }
 
 
-  return(list(main=main %>% select(-.old_key),referring=referring))
+  return(list(main=main %>% select(-.old_key) %>% mutate(factor_id=row_number()),referring=referring))
 }
 
 
@@ -928,31 +931,44 @@ cluster_fun <- function(labs,tex){
 }
 
 calculate_robustness_inner <- function(graf){
+  # browser()
+
   if("found_from" %notin% factor_colnames(graf)) {warning("No found_from column");return(NA)}
   if("found_to" %notin% factor_colnames(graf)) {warning("No found_to column");return(NA)}
 
   if(nrow(factors_table(graf))==0) {warning("No paths");return(NA)}
-  graf <- graf %N>% pipe_bundle_links() %E>%
-    mutate(frequency=if_else(is.na(frequency),1L,as.integer(frequency))) %>%
-    activate(nodes)
+  graf <- graf %>% pipe_bundle_links()
+
+
+  links <- graf$links %>%
+    mutate(frequency=if_else(is.na(frequency),1L,as.integer(frequency)))
 
 
   from_vec <- factors_table(graf) %>% filter(found_from) %>% pull(label)
   to_vec <- factors_table(graf) %>% filter(found_to) %>% pull(label)
   newnodes <- tibble(
-    label=c(from_vec,"_super_source_"))
+    factor_id=c(from_vec,"_super_source_"))
 
   newedges <- tibble(
     from="_super_source_",
     to=from_vec,
     capacity=Inf
   )
-  newgraf <- tbl_graph(newnodes,newedges)
+
+  newgraf <- assemble_map(newnodes,newedges) %>%
+
+    tmp <- normalise_id(graf$factors,graf$links,"factor_id","from","to")
+
+  graf %>%
+    update_map(factors=tmp$main,links=tmp$referring)
 
 
-  graf <- graf %>% graph_join(newgraf)
-  # sink
-  # sink_vec <- c("six", "seven")
+
+    pipe_clean_map
+
+
+  graf <- graf %>% merge_map(newgraf)
+
   newnodes <- tibble(
     label=c(to_vec,"_super_sink_"))
 
@@ -961,11 +977,10 @@ calculate_robustness_inner <- function(graf){
     from=to_vec,
     capacity=Inf
   )
-  newgraf <- tbl_graph(newnodes,newedges)
-
+  newgraf <- list(newnodes,newedges)
 
   graf <-
-    graf %>% graph_join(newgraf) %E>%
+    graf %>% merge_map(newgraf) %>%
     mutate(capacity=if_else(is.na(capacity),1,capacity)) %>%
     mutate(capacity=pmax(frequency,capacity,na.rm=T)) %E>%
     filter(from!=to) %>%
@@ -1730,36 +1745,39 @@ pipe_trace_paths <- function(graf,from,to,length=4){
   if(from=="") {notify("You have to specify source factors");return(graf)}
   if(to=="") {notify("You have to specify target factors");return(graf)}
   # browser()
-  graf <- graf %>% activate(nodes)
   from <- from %>% make_search
   to <- to %>% make_search
   if(from=="" & to =="") return(graf)
-  graf <- graf %>%
+  links <- graf$links %>%
+    select(from,to,everything())
+
+  factors <- graf$factors %>%
     mutate(found_from=str_detect(tolower(label),tolower(from))) %>%
     mutate(found_to=str_detect(tolower(label),tolower(to))) %>%
     mutate(found_type=paste0(if_else(found_from,"source","-"),if_else(found_to,"target","-"))) %>%
     mutate(found_any=found_from|found_to)
 
-  browser()
+  # browser()
 
-  if(!any(graf %>% factors_table %>% pull(found_any))) return(graf %>% filter(F))
+  if(!any(factors %>% pull(found_any))) return(graf %>% filter(F))
 
-  tracedownvec <- graf %>% distances(to=graf %>% factors_table %>% pull(found_from),mode="in") %>% apply(1,min,na.rm=T)
-  traceupvec <- graf %>% distances(to=graf %>% factors_table %>% pull(found_to),mode="out") %>% apply(1,min,na.rm=T)
+
+
+  tracedownvec <- make_igraph_from_links(links) %>% distances(to=factors %>% pull(found_from),mode="in") %>% apply(1,min,na.rm=T)
+  traceupvec <- make_igraph_from_links(links) %>% distances(to=factors %>% pull(found_to),mode="out") %>% apply(1,min,na.rm=T)
 
   # here we need to intervene to make sure that influences don't move closer to the source, as this is a kind of loop
 
   bothvecsum <- `+`(tracedownvec,traceupvec)
   bothvec <- bothvecsum<=length
-  if(min(bothvecsum)<Inf) graf <- graf %>% mutate(traceupvec=traceupvec,
+  if(min(bothvecsum)<Inf) factors <- factors %>% mutate(traceupvec=traceupvec,
                                                   tracedownvec=tracedownvec,
                                                   bothvec,
                                                   found=found_from|found_to
-  ) %>% filter(bothvec) else graf %>% filter(F)
-  graf <- graf %>%
-    mutate(factor_id=row_number())
+  ) %>% filter(bothvec) else factors %>% filter(F)
 
-  sums <- graf %>% factors_table %>% select(found_from,found_to) %>% colSums(na.rm=T)
+
+  sums <- factors %>% select(found_from,found_to) %>% colSums(na.rm=T)
   if((sums[1]*sums[2])>10000){
     # if(sum(found_from,na.rm=T)*sum(found_to,na.rm=T)>10){
     notify("too much to trace")
@@ -1770,10 +1788,13 @@ pipe_trace_paths <- function(graf,from,to,length=4){
 # all_flows <- calculate_robustness(graf)
 
 # notify(glue("Number of cuts is {res$cut %>% length}"))
-  graf %>%
-    activate(nodes) %>%
+  factors <- factors %>%
     filter(label!="_super_sink_" & label!="_super_source_")
 
+
+  update_map(graf,factors,links) %>%
+    pipe_normalise_factors_links %>%
+    pipe_remove_isolated_links()
   # browser()
   # update_map(graf,factors=factors_table(graf %>% filter(label!="_super_sink_" & label!="_super_source_")))  %>%
   #   pipe_clean_map
@@ -2179,9 +2200,12 @@ pipe_remove_brackets <- function(graf,value="["){
 #'
 #' @examples
 pipe_wrap_factors <- function(graf,length=20){
-  graf %N>%
+  graf %>%
+    update_map(
+      factors=graf$factors %>%
     mutate(label=str_remove_all(label,"\n")) %>%
     mutate(label=str_wrap(label,length))
+    )
 }
 #' Wrap link labels
 #'
@@ -2194,10 +2218,13 @@ pipe_wrap_factors <- function(graf,length=20){
 #'
 #' @examples
 pipe_wrap_links <- function(graf,length=20){
-  graf %E>%
-    mutate(label=str_remove_all(label,"\n")) %>%
+  graf %>%
+    update_map(links=
+    graf$links %>%
+      mutate(label=str_remove_all(label,"\n")) %>%
     mutate(label=str_wrap(label,length)) %>%
     activate(nodes)
+    )
 }
 
 # outputs -----------------------------------------------------------------
@@ -2696,338 +2723,3 @@ formatStyle(dt,names(flow),
 
 
 
-#' Add subtotals to grouped operations from jrf1111/TCCD
-#'
-#' @description
-#' `with_subtotals()` appends a grouped data frame or data frame extension (e.g. a tibble)
-#' to allow easy calculation of group totals and grand totals with `summarise()`.
-#'
-#' @param df A grouped data frame or data frame extension (e.g. a tibble)
-#'
-#' @param method a character string indicating which method is to be used.
-#' Either "change" (the default) or "agg_level". `method` can be abbreviated.
-#'
-#' @return A grouped object of the same type as `df` but with additional rows
-#' that contain group (sub)totals and grand totals. If `method = "agg_level"`,
-#' a new variable called `.agg_level` will also be added.
-#'
-#'
-#' @details
-#' In order to create the extra subtotal and total groups, this function
-#' has two unfortunate side effects.
-#'
-#' The first side effect is that it increases the number of rows of `df`
-#' (sometimes drastically). This may result in performance issues and/or
-#' exhaust available memory. Therefore, it may be advisable to pass a reduced
-#' version of `df` containing only the variables necessary to perform the
-#' desired operation(s). For example, by calling `select()` before
-#' `group_by(...) %>% with_subtotals()`.
-#'
-#' The second side effect is that in order to create the total groups, it must
-#' actually *make* the total group for each grouping variable. When `method = "change"`
-#' (the default), this is achieved by (1) converting numeric variables to
-#' characters or adding a new level to factors then (2) adding the new `total_`
-#' group (a value that hopefully does not already exist in the grouping variable).
-#' This is the default behavior because it allows results to be easily
-#' passed to \link[tidyr]{pivot_wider} and because most use cases of `with_subtotals`
-#' will not require (much) processing after calling `summarise(...)`.
-#' If this behavior is problematic and the results need to have the same data
-#' types as `df`, the user should specify `method = "agg_level"`.
-#' Using `method = "agg_level"` will preserve the data types in `df` and it
-#' will add a new variable called `.agg_level` to indicate the level of
-#' aggregation in the result.
-#'
-#'
-#'
-#'
-#' @examples
-#'
-#' library(tidyverse)
-#' library(data.table)
-#'
-#' new = mtcars %>%
-#'  	group_by(cyl, am) %>%
-#'  	with_subtotals() %>%
-#'  	summarise(
-#'  	n = n(),
-#'  	mean_mpg = mean(mpg)
-#'  	) %>%
-#'  	ungroup()
-#'
-#'
-#' # the old, long, and error prone way
-#' old <- data.table::rbindlist(
-#'   list(
-#'     mtcars %>%
-#'       group_by(cyl, am) %>%
-#'       summarise(
-#'         n = n(),
-#'         mean_mpg = mean(mpg)
-#'       ) %>%
-#'       ungroup(),
-#'
-#'     mtcars %>%
-#'       group_by(cyl) %>%
-#'       summarise(
-#'         n = n(),
-#'         mean_mpg = mean(mpg),
-#'         am = "total_"
-#'       ) %>%
-#'       ungroup(),
-#'
-#'     mtcars %>%
-#'       group_by(am) %>%
-#'       summarise(
-#'         n = n(),
-#'         mean_mpg = mean(mpg),
-#'         cyl = "total_"
-#'       ) %>%
-#'       ungroup(),
-#'
-#'     mtcars %>%
-#'       summarise(
-#'         n = n(),
-#'         mean_mpg = mean(mpg),
-#'         am = "total_",
-#'         cyl = "total_"
-#'       ) %>%
-#'       ungroup()
-#'   ),
-#'   use.names = TRUE
-#' )
-#'
-#'
-#' new <- new %>% arrange_all()
-#' old <- old %>% arrange_all()
-#'
-#' all.equal(old, new, check.attributes = FALSE) # TRUE
-#'
-#'
-#'
-#'
-#'
-#' # comparing `method = "change"` vs. `method = "agg_level"`
-#' change <- mtcars %>%
-#'   group_by(cyl, am) %>%
-#'   with_subtotals(method = "change") %>% # the default
-#'   summarise(
-#'     n = n(),
-#'     mean_mpg = mean(mpg)
-#'   ) %>%
-#'   ungroup()
-#'
-#' agg_level <- mtcars %>%
-#'   group_by(cyl, am) %>%
-#'   with_subtotals(method = "agg_level") %>%
-#'   summarise(
-#'     n = n(),
-#'     mean_mpg = mean(mpg)
-#'   ) %>%
-#'   ungroup()
-#'
-#' # agg_level maintains the original data types and
-#' # agg_level looks better when printed as is
-#' change
-#' agg_level
-#'
-#'
-#' # but change makes it easier to pivot_wider
-#' change %>% pivot_wider(
-#'   id_cols = cyl,
-#'   names_from = am,
-#'   names_prefix = "am_",
-#'   values_from = c(n, mean_mpg)
-#' )
-#'
-#'
-#' agg_level %>% pivot_wider(
-#'   id_cols = c(.agg_level, cyl),
-#'   names_from = am,
-#'   names_prefix = "am_",
-#'   values_from = c(n, mean_mpg)
-#' )
-#'
-#'
-#'
-#'
-#' # both `method = "change"` and `method = "agg_level"`
-#' # work better than other potential solutions
-#' # if there are NAs in the grouping variables
-#' #(see https://stackoverflow.com/questions/31164350)
-#'
-#' df <- mtcars
-#' df$carb[3] <- NA # was 1
-#'
-#' # see rows 3 & 4; you can't tell what is a subtotal vs. missing data
-#' bind_rows(
-#'   df %>%
-#'     group_by(cyl, carb) %>%
-#'     summarise(Mean = mean(disp)),
-#'   df %>%
-#'     group_by(cyl) %>%
-#'     summarise(carb = NA, Mean = mean(disp)),
-#'   df %>%
-#'     group_by(carb) %>%
-#'     summarise(cyl = NA, Mean = mean(disp))
-#' ) %>% arrange(cyl, carb)
-#'
-#' # compare that to using `with_subtotals()`
-#' df %>%
-#'   group_by(cyl, carb) %>%
-#'   with_subtotals() %>%
-#'   summarise(Mean = mean(disp))
-#'
-#' df %>%
-#'   group_by(cyl, carb) %>%
-#'   with_subtotals(method = "agg_level") %>%
-#'   summarise(Mean = mean(disp))
-#' @export
-with_subtotals <- function(df, method = c("change", "agg_level")) {
-  method <- match.arg(method)
-
-
-  # get the grouping vars
-  groups <- dplyr::group_vars(df)
-
-  if (length(groups) == 0) {
-    notify("No grouping variables specified in `with_subtotals()`. Returning object unchanged.")
-    return(df)
-  }
-
-  df <- dplyr::ungroup(df)
-
-
-  if (method == "change") {
-    if (length(groups) > 1) {
-
-      # a backup for getting overall totals later
-      original_df <- dplyr::ungroup(df)
-
-
-      # for each group var, make a new 'total' group
-      total <- function(df, group) {
-        var <- rlang::sym(group)
-
-        if (is.factor(dplyr::pull(df, {{ group }}))) {
-          df <- df %>% dplyr::mutate(
-            {{ group }} := forcats::fct_expand(!!var, "total_")
-          )
-        } else if (!is.character(dplyr::pull(df, {{ group }}))) {
-          df <- df %>% dplyr::mutate({{ group }} := as.character(!!var))
-        }
-
-        df %>% dplyr::mutate({{ group }} := "total_")
-      }
-
-      totals <- data.table::rbindlist(
-        lapply(groups, function(x) {
-          total(df, x)
-        }),
-        use.names = TRUE, fill = TRUE
-      )
-
-      # make a 'grand total' group
-      grand_total <- original_df %>% dplyr::mutate_at(dplyr::vars(!!!groups), ~"total_")
-
-      # add the total and grand total groups to the data
-      old_classes <- class(df)
-      df <- data.table::rbindlist(list(df, totals, grand_total))
-      class(df) <- old_classes
-      rm(original_df, totals, grand_total)
-    }
-
-
-    if (length(groups) == 1) {
-
-      # make a new 'total' group for the one group var
-      group <- groups[1]
-      var <- rlang::sym(group)
-
-      if (is.factor(dplyr::pull(df, {{ group }}))) {
-        df <- df %>% dplyr::mutate(
-          {{ group }} := forcats::fct_expand(!!var, "total_")
-        )
-      } else if (!is.character(dplyr::pull(df, {{ group }}))) {
-        df <- df %>% dplyr::mutate({{ group }} := as.character(!!var))
-      }
-
-      temp <- df %>% dplyr::mutate({{ group }} := "total_")
-
-      # add the total to the data
-      old_classes <- class(df)
-      df <- data.table::rbindlist(list(df, temp))
-      class(df) <- old_classes
-      rm(temp)
-    }
-
-    # restore grouping variables
-    df <- dplyr::group_by(df, !!!rlang::syms(groups))
-  }
-
-  if (method == "agg_level") {
-    if (length(groups) > 1) {
-
-      # a backup for getting overall totals later
-      original_df <- dplyr::ungroup(df)
-
-
-      # for each group var, make a new 'subtotal' group
-      total <- function(df, group) {
-        df %>% dplyr::mutate(
-          !!group := NA,
-          .agg_level = "2 subtotal"
-        )
-      }
-
-      totals <- data.table::rbindlist(
-        lapply(groups, function(x) {
-          total(df, group = x)
-        }),
-        use.names = TRUE, fill = TRUE
-      )
-
-
-
-
-      # make a 'grand total' group
-      grand_total <- original_df %>%
-        dplyr::mutate_at(dplyr::vars(!!!groups), ~NA) %>%
-        dplyr::mutate(.agg_level = "3 total")
-
-
-
-
-      # add the total and grand total groups to the data
-      old_classes <- class(df)
-      df <- df %>% dplyr::mutate(.agg_level = "1 detail")
-      df <- data.table::rbindlist(list(df, totals, grand_total), fill = TRUE)
-      class(df) <- old_classes
-      rm(original_df, totals, grand_total)
-    }
-
-
-    if (length(groups) == 1) {
-
-      # make a new 'total' group for the one group var
-      group <- groups[1]
-
-      grand_total <- df %>%
-        dplyr::mutate(
-          !!group := NA,
-          .agg_level = "3 total"
-        )
-
-      # add the total to the data
-      old_classes <- class(df)
-      df <- df %>% dplyr::mutate(.agg_level = "1 detail")
-      df <- data.table::rbindlist(list(df, grand_total), fill = T)
-      class(df) <- old_classes
-      rm(grand_total)
-    }
-
-    # restore grouping variables
-    df <- dplyr::group_by(df, .agg_level, !!!rlang::syms(groups))
-  }
-
-  return(df)
-}
