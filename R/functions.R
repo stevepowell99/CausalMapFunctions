@@ -262,7 +262,6 @@ create_colors <- function(vec,lo,hi,mid,type,field=""){
 #'
 #' @examples
 pipe_fix_columns <- function(graf){
-  # if(!("color" %in% factor_colnames(graf))) graf <- graf %N>% mutate(color="#222222")
   if(!("color.background" %in% factor_colnames(graf))) graf <- graf %>% update_map(factors=graf$factors %>% mutate(color.background="#aaaaee77"))
   if(!("color.border" %in% factor_colnames(graf))) graf <- graf %>% update_map(factors=graf$factors %>% mutate(color.border="#222222"))
   if(!("frequency" %in% factor_colnames(graf))) graf <- graf %>% update_map(factors=graf$factors %>% mutate(frequency=1L))
@@ -275,7 +274,6 @@ pipe_fix_columns <- function(graf){
   if(!("capacity" %in% link_colnames(graf))) graf <- graf %>% update_map(links=graf$links %>% mutate(capacity=1L))
   if(!("label" %in% link_colnames(graf))) graf <- graf %>% update_map(links=graf$links %>% mutate(label=""))
   if(!("width" %in% link_colnames(graf))) graf <- graf %>% update_map(links=graf$links %>% mutate(width=.2))
-  # if(!("flow" %in% link_colnames(graf))) graf <- graf %>% update_map(links=graf$links %>% mutate(flow=1L))
   graf
 }
 pipe_normalise_factors_links <- function(graf){
@@ -476,49 +474,52 @@ load_map <- function(path=NULL,connection=conn){
     } else if(type=="unknown"){
       notify("Trying to load file, guessing origin")
 
-      newtables <- get_map_tables_from_s3_pieces(path %>% paste0("causalmap/app-sync/",.))
-      if(is.null(newtables)) {
+      graf <- get_map_tables_from_s3_pieces(path %>% paste0("causalmap/app-sync/",.))
+      if(is.null(graf)) {
         graf <- get_map_from_s3(path %>% paste0("cm2data/",.))
 
       }
 
     }
-
-  # browser()
-  if(!is.null(newtables)){
-    factors <- newtables$factors
-    links <- newtables$links %>% mutate(from=as.numeric(from),to=as.numeric(to))
-    statements <- newtables$statements
-    sources <- newtables$sources
-    questions <- newtables$questions
-    settings <- newtables$settings
-
-
-
-  }
-
+#
+#   browser()
+#   if(!is.null(newtables)){
+#     factors <- newtables$factors
+#     links <- newtables$links %>% mutate(from=as.numeric(from),to=as.numeric(to))
+#     statements <- newtables$statements
+#     sources <- newtables$sources
+#     questions <- newtables$questions
+#     settings <- newtables$settings
+#
+#
+#
+#   }
+#
+# browser()
 
   if(is.null(graf) & is.null(factors) & is.null(links)) {
-    # if(is.null(factors) & is.null(links) & !is.null(path)) {
-    links <- standard_links()
-    factors <- standard_factors()
-    notify("you did not provide factors or links");links=links %>% replace_null(standard_links()%>% filter(F))
 
-  } else if(is.null(graf)){
+    graf <- assemble_map()
+      notify("creating blank map");
+    # links=links %>% replace_null(standard_links()%>% filter(F))
 
-
-
-    graf <- assemble_map(
-      factors = factors,
-      links = links,
-      statements = statements,
-      sources = sources,
-      questions = questions,
-      settings = settings
-    )
   }
-  notify("Loading map")
 
+  # if(is.null(graf)){
+  #
+  #
+  #
+  #   graf <- assemble_map(
+  #     factors = factors,
+  #     links = links,
+  #     statements = statements ,
+  #     sources = sources ,
+  #     questions = questions ,
+  #     settings = settings )
+  #
+  #    }
+  notify("Loading map")
+  # browser()
   return(graf %>% pipe_clean_map(tables=.))
 
 
@@ -656,7 +657,9 @@ flow <- attr(links,"flow")
     notify("multiple IDs")
   }
   # browser()
+
   if(!is.null(statements)){if(!identical(statements$statement_id,row_index(statements))){
+    statements <- filter(statements,!is.na(statement_id))
     res <- normalise_id(statements,links,"statement_id")
     statements <- res$main
     links <- res$referring
@@ -681,6 +684,11 @@ flow <- attr(links,"flow")
   #   safely(~left_join(statements %>% rename_with(~paste0("s.",.),!matches("statement_id"))),otherwise=.)() %>% pluck("result")  # ,by="statement_id") %>% otherwise when this is repeated, you get loads of cols
   # browser()
 
+  if(nrow(links)==0 | nrow(factors)==0){
+    links <-
+      links %>% mutate(from_label= "",to_label="",bundle="")
+
+  } else
   links <-
     links %>% mutate(from_label= recode(from,!!!factors$label %>% set_names(factors$factor_id))) %>%
     mutate(to_label= recode(to,!!!factors$label %>% set_names(factors$factor_id))) %>%
@@ -848,8 +856,8 @@ standard_links <- function(){tibble(
   link_map_id=1
   )}
 standard_statements <- function()tibble(statement_id=1,text="blank statement",statement_memo="",source_id="1",question_id="1",statement_map_id=1)
-standard_sources <- function()tibble(source_id="1",source_memo="global source",new_column_1="",source_map_id=1)
-standard_questions <- function()tibble(question_id="1",question_text="global question",question_memo="",new_column_1="",question_map_id=1)
+standard_sources <- function()tibble(source_id="1",source_memo="global source",source_map_id=1)
+standard_questions <- function()tibble(question_id="1",question_text="global question",question_memo="",question_map_id=1)
 standard_settings <- function()tibble(setting_id="background_colour",value="",setting_map_id=1)
 
 #' Add class
@@ -1212,8 +1220,8 @@ parse_line <- function(line,graf){
   notify(line)
   if(str_trim(line)=="")return()
   fun <- word(line, 1,2, sep=" ")
-  if(is.na(fun)){notify("No such function");return(graf %>% filter(F))}
-  if(!exists(str_replace(fun," ","_") %>% paste0("pipe_",.))){notify("No such function");return(graf %>% filter(F))}
+  if(is.na(fun)){notify("No such function");return()}
+  if(!exists(str_replace(fun," ","_") %>% paste0("pipe_",.))){notify("No such function");return(NULL)}
 
   body <-
     str_remove(line,fun) %>%
@@ -1723,7 +1731,7 @@ pipe_cluster_factors <- function(graf,clusters=NULL){
     nodes <- nodes %>%
       mutate(cluster=ifelse(cluster=="",NA,cluster))    %>%
       mutate(cluster=str_remove_all(cluster,"\\\\"))
-    graf %N>% mutate(cluster = nodes$cluster)
+    graf %>% update_map(factors=graf$factors %>% mutate(cluster = nodes$cluster))
   }
 }
 
@@ -2175,7 +2183,8 @@ pipe_fade_factors <- function(graf,field="frequency"){
   class <- graf %>% factors_table %>% pull(UQ(sym(field))) %>% class
   if(class =="character"){warning("No such column");return(graf)}
   # browser()
-  graf %N>% mutate(color.background=alpha(color.background,scales::rescale(UQ(sym(field)),to=c(0.2,1)))) %>% activate(nodes)
+  graf %>% update_map(factors=graf$factors %>%
+                        mutate(color.background=alpha(color.background,scales::rescale(UQ(sym(field)),to=c(0.2,1)))))
 }
 
 #' Fade links
@@ -2193,7 +2202,7 @@ pipe_fade_links <- function(graf,field="frequency"){
   class <- graf %>% links_table %>% pull(UQ(sym(field))) %>% class
   if(class =="character"){warning("No such column");return(graf)}
   # browser()
-  graf %E>% mutate(color=alpha(color,scales::rescale(UQ(sym(field)),to=c(0.2,1)))) %>% activate(nodes)
+  graf %>% update_map(links=graf$links %>%  mutate(color=alpha(color,scales::rescale(UQ(sym(field)),to=c(0.2,1)))))
 }
 
 #' Remove bracketed expressions
@@ -2208,10 +2217,10 @@ pipe_fade_links <- function(graf,field="frequency"){
 #'
 #' @examples
 pipe_remove_brackets <- function(graf,value="["){
-  if(value=="[")graf %N>%
-    mutate(label=str_remove_all(label,"\\[.*?\\]"))
-  else if(value=="(")graf %N>%
-    mutate(label=str_remove_all(label,"\\(.*?\\)"))
+  if(value=="[")graf %>% update_map(factors=graf$factors %>%
+    mutate(label=str_remove_all(label,"\\[.*?\\]")))
+  else if(value=="(")graf %>% update_map(factors=graf$factors %>%
+    mutate(label=str_remove_all(label,"\\(.*?\\)")))
 }
 #' Wrap factor labels
 #'
@@ -2246,8 +2255,7 @@ pipe_wrap_links <- function(graf,length=20){
     update_map(links=
     graf$links %>%
       mutate(label=str_remove_all(label,"\n")) %>%
-    mutate(label=str_wrap(label,length)) %>%
-    activate(nodes)
+    mutate(label=str_wrap(label,length))
     )
 }
 
