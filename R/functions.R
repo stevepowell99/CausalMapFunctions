@@ -770,6 +770,9 @@ compact_map <- function(graf){
   update_map(graf,factors=tmp$factors,links=tmp$links)
 
 }
+collapse_unique <- function(vec){
+  paste0(unique(vec),collapse="; ")
+}
 compact_factors_links <- function(factors,links){
   if(factors$label %>% table %>% max %>% `>`(1)){
     notify("Some factor labels are duplicates; compacting")
@@ -794,7 +797,7 @@ compact_factors_links <- function(factors,links){
 
     factors <-
       factors %>%
-      summarise_all(first) %>%
+      summarise_all(first) %>%  # should it be collapse_unique???
       mutate(factor_id=new_id) %>%
       select(-new_id)
 
@@ -2612,8 +2615,8 @@ make_grviz <- function(
     mutate(label=clean_grv(label) )%>%
     mutate(label=replace_na(label,"."))%>% # obscure! if all are =="", error
     mutate(penwidth=width*48)%>%
-    mutate(arrowsize=3) %>%
-    mutate(arrowhead="normal")
+    mutate(arrowsize=.5) %>%
+    mutate(arrowhead="vee")
 
 # browser()
 
@@ -2648,6 +2651,7 @@ make_grviz <- function(
 
     add_global_graph_attrs("fontsize", 63, "edge") %>%
     add_global_graph_attrs("fontcolor", "#666666", "edge")
+    add_global_graph_attrs("arrowsize", .5, "edge")
 
   return(
     grv %>% DiagrammeR::render_graph()
