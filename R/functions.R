@@ -2611,6 +2611,8 @@ make_grviz <- function(
   links <- graf$links %>%
     select(any_of(xc("from to color width link_label width from_label to_label"))) %>%
     rename(label=link_label) %>%
+    mutate(from=as.numeric(from))%>%
+    mutate(to=as.numeric(to))%>%
     mutate(label=if_else(label=="",".",label))%>%
     mutate(label=clean_grv(label) )%>%
     mutate(label=replace_na(label,"."))%>% # obscure! if all are =="", error
@@ -2650,7 +2652,7 @@ make_grviz <- function(
     add_global_graph_attrs("height", "0", "node")  %>%
 
     add_global_graph_attrs("fontsize", 63, "edge") %>%
-    add_global_graph_attrs("fontcolor", "#666666", "edge")
+    add_global_graph_attrs("fontcolor", "#666666", "edge") %>%
     add_global_graph_attrs("arrowsize", .5, "edge")
 
   return(
@@ -2755,7 +2757,7 @@ add_heat_map <- function(dt,flow){
   flow2 <- flow %>% ungroup%>% mutate(across(where(~!is.numeric(.)),~0))
 heat_breaks <- c(quantile(flow2, probs = seq(.05, .9899, .05), na.rm = TRUE),
                          quantile(flow2, probs = seq(.99, 1, .001), na.rm = TRUE))
-heat_colors <- round(seq(255, 40, length.out = length(heat_breaks) + 1), 0) %>%
+heat_colors <- round(seq(255, 90, length.out = length(heat_breaks) + 1), 0) %>%
   paste0("rgb(",.,",", ., ",", "255)")
 
 formatStyle(dt,names(flow),
