@@ -468,8 +468,8 @@ load_map <- function(path=NULL,connection=conn){
       graf <- get_map_from_s3(path %>% paste0("cm2data/",.))
       if(is.null(graf)) return(NULL)
     } else if(type=="cm1"){
-      newtables <- get_map_tables_from_s3_pieces(path %>% paste0("causalmap/app-sync/",.))
-      if(is.null(newtables))return(NULL)
+      graf <- get_map_tables_from_s3_pieces(path %>% paste0("causalmap/app-sync/",.))
+      if(is.null(graf))return(NULL)
 
     } else if(type=="unknown"){
       notify("Trying to load file, guessing origin")
@@ -2751,7 +2751,8 @@ robustUI <- function(graf){
 #' @export
 #'
 add_heat_map <- function(dt,flow){
-  flow <- flow %>% mutate(across(where(~!is.numeric(.)),~0))
+  # browser()
+  flow <- flow %>% ungroup%>% mutate(across(where(~!is.numeric(.)),~0))
 heat_breaks <- c(quantile(flow, probs = seq(.05, .9899, .05), na.rm = TRUE),
                          quantile(flow, probs = seq(.99, 1, .001), na.rm = TRUE))
 heat_colors <- round(seq(255, 40, length.out = length(heat_breaks) + 1), 0) %>%
