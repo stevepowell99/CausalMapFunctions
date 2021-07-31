@@ -232,15 +232,15 @@ escapeRegex <- function(string){ #from hmisc
 }
 
 div_pal_n <- function(vec,lo,hi,mid){
-  div_gradient_pal(low=lo,high=hi,mid=mid)(rescale(vec)) %>% alpha(.6)
+  div_gradient_pal(low=lo,high=hi,mid=mid)(rescale(vec)) %>% alpha(.95)
 }
 viridis_pal_n <- function(vec){
   vec <- vec %>% as.factor %>% as.numeric
-  viridis_pal()(length(unique(vec)))[vec] %>% alpha(.6)
+  viridis_pal()(length(unique(vec)))[vec] %>% alpha(.95)
 }
 brewer_pal_n <- function(vec){
   vec <- vec %>% as.factor %>% as.numeric
-  scales::brewer_pal("qual")(length(unique(vec)))[vec] %>% alpha(.9)
+  scales::brewer_pal("qual")(length(unique(vec)))[vec] %>% alpha(.95)
 }
 create_colors <- function(vec,lo,hi,mid,type,field=""){
   # browser()
@@ -442,7 +442,6 @@ load_map <- function(path=NULL,connection=conn){
   links <- NULL
   newtables <- NULL
 
-  # browser()
 
   if(!is.null(path)){
     if(!(str_detect(path,"/"))){
@@ -460,13 +459,19 @@ load_map <- function(path=NULL,connection=conn){
       if(tmp$result %>% is.null) return(NULL) else graf <- tmp$result
       notify("Loaded standard file")
 
+    } else if(type=="excel"){
+      graf <- get_map_from_excel(path = path)
+      if(is.null(graf)) return(NULL)
+      notify("Loaded sql file")
     } else if(type=="sql"){
       newtables <- get_map_tables_from_sql(path,connection=connection)
       if(is.null(newtables)) return(NULL)
       notify("Loaded sql file")
     } else  if(type=="cm2"){
-      graf <- get_map_from_s3(path %>% paste0("cm2data/",.))
+      graf <- get_map_from_s3(path %>% paste0("cm2data/",.)) %>% as.list  #as list because of tidygraph format
       if(is.null(graf)) return(NULL)
+      if(is.null(graf$factors) & !is.null(graf$nodes)) graf$factors <- graf$nodes
+      if(is.null(graf$links) & !is.null(graf$edges)) graf$links <- graf$edges
     } else if(type=="cm1"){
       graf <- get_map_tables_from_s3_pieces(path %>% paste0("causalmap/app-sync/",.))
       if(is.null(graf))return(NULL)
@@ -487,8 +492,8 @@ load_map <- function(path=NULL,connection=conn){
       notify("creating blank map");
 
   }
-  notify("Loading map")
   # browser()
+  notify("Loading map")
   return(graf %>%
            add_original_ids %>%
            pipe_clean_map
@@ -501,11 +506,13 @@ load_map <- function(path=NULL,connection=conn){
 }
 
 add_original_ids <- function(graf){
+
+  # browser()
   graf %>%
     update_map(
       .,
-      factors <- .$factors %>% mutate(factor_id0=row_number()),
-      links <- .$links %>% mutate(link_id0=row_number())
+      if(nrow(.$factors)>0)factors <- .$factors %>% mutate(factor_id0=row_number()),
+      if(nrow(.$links)>0)links <- .$links %>% mutate(link_id0=row_number())
     )
 }
 
@@ -2328,7 +2335,9 @@ make_vn <- function(graf,scale=1,safe_limit=200){
       pipe_label_links("frequency") %>%
       pipe_scale_links("frequency")
 
-      }
+  }
+
+  if(max(table(graf$factors$size))>1)graf <- graf %>% update_map(factors=.$factors %>% arrange((size))) %>% pipe_normalise_factors_links()#because this is the way to get the most important ones in front
 
   nodes <- graf$factors %>% mutate(value=size*10) %>%
     select(any_of(xc("factor_id label color.background color.border title group value hidden size"))) ### restrictive in attempt to reduce random freezes
