@@ -481,52 +481,35 @@ load_map <- function(path=NULL,connection=conn){
       }
 
     }
-#
-#   browser()
-#   if(!is.null(newtables)){
-#     factors <- newtables$factors
-#     links <- newtables$links %>% mutate(from=as.numeric(from),to=as.numeric(to))
-#     statements <- newtables$statements
-#     sources <- newtables$sources
-#     questions <- newtables$questions
-#     settings <- newtables$settings
-#
-#
-#
-#   }
-#
-# browser()
-
   if(is.null(graf) & is.null(factors) & is.null(links)) {
 
     graf <- assemble_map()
       notify("creating blank map");
-    # links=links %>% replace_null(standard_links()%>% filter(F))
 
   }
-
-  # if(is.null(graf)){
-  #
-  #
-  #
-  #   graf <- assemble_map(
-  #     factors = factors,
-  #     links = links,
-  #     statements = statements ,
-  #     sources = sources ,
-  #     questions = questions ,
-  #     settings = settings )
-  #
-  #    }
   notify("Loading map")
   # browser()
-  return(graf %>% pipe_clean_map(tables=.))
+  return(graf %>%
+           add_original_ids %>%
+           pipe_clean_map
+         )
 
 
 
 
 
 }
+
+add_original_ids <- function(graf){
+  graf %>%
+    update_map(
+      .,
+      factors <- .$factors %>% mutate(factor_id0=row_number()),
+      links <- .$links %>% mutate(link_id0=row_number())
+    )
+}
+
+
 #' Assemble map
 #'
 #' @param factors
