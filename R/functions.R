@@ -442,7 +442,6 @@ load_map <- function(path=NULL,connection=conn){
   links <- NULL
   newtables <- NULL
 
-
   if(!is.null(path)){
     if(!(str_detect(path,"/"))){
       type <- "unknown"
@@ -486,6 +485,7 @@ load_map <- function(path=NULL,connection=conn){
       }
 
     }
+
   if(is.null(graf) & is.null(factors) & is.null(links)) {
 
     graf <- assemble_map()
@@ -532,8 +532,8 @@ add_original_ids <- function(graf){
 #' @examples
 assemble_map <- function(factors=NULL,links=NULL,statements=NULL,sources=NULL,questions=NULL,settings=NULL){
 
-  list(factors,
-       links,
+  list(factors %>% replace_null(standard_factors()),
+       links %>% replace_null(standard_links()),
        statements %>% replace_null(standard_statements()),
        sources %>% replace_null(standard_sources()),
        questions %>% replace_null(standard_questions()),
