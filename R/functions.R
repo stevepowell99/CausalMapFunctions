@@ -705,6 +705,10 @@ flow <- attr(links,"flow")
 make_igraph_from_links <- function(links){
   links %>% select(from,to) %>% as.matrix()%>% graph_from_edgelist()
 }
+make_igraph_from_map <- function(graf){
+  make_igraph(graf$factors,graf$links)
+
+}
 make_igraph <- function(factors,links,use_labels=F){
   # never use this to try to recreate a full map it is too intolerant of extra columsn, just for calculations!
 
@@ -2265,19 +2269,20 @@ pipe_wrap_links <- function(graf,length=20){
 #'
 #' @examples
 make_map_metrics <- function(graf){
+  ig <- make_igraph_from_map(graf)
   metric=c(
-    igraph::edge_connectivity(graf),
-    # igraph::clique_num(graf),
-    # igraph::count_max_cliques(graf),
-    igraph::count_components(graf),
-    igraph::count_motifs(graf),
-    igraph::diameter(graf),
-    igraph::radius(graf),
-    igraph::gsize(graf),
-    igraph::gorder(graf),
-    igraph::reciprocity(graf) %>% round(2),
-    igraph::min_cut(graf),
-    igraph::mean_distance(graf) %>% round(2)
+    igraph::edge_connectivity(ig),
+    # igraph::clique_num(ig),
+    # igraph::count_max_cliques(ig),
+    igraph::count_components(ig),
+    igraph::count_motifs(ig),
+    igraph::diameter(ig),
+    igraph::radius(ig),
+    igraph::gsize(ig),
+    igraph::gorder(ig),
+    igraph::reciprocity(ig) %>% round(2),
+    igraph::min_cut(ig),
+    igraph::mean_distance(ig) %>% round(2)
   )
 
   name=c(
