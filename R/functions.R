@@ -2317,6 +2317,25 @@ make_map_metrics <- function(graf){
   tibble(name,metric,description)
 }
 
+factor_click_edit <- function(id){
+  as.character(shiny::actionButton(inputId = paste0('factor_click_edit_',id), label = "Rename",class="linky"))
+}
+factor_click_delete <- function(id){
+  as.character(shiny::actionButton(inputId = paste0('factor_click_delete_',id), label = "delete",class="linky"))
+}
+factor_click_name <- function(val){
+  as.character(shiny::textInput(inputId = paste0('factor_click_name'),
+                                label = NULL,value=val))
+}
+# factor_click_name <- function(val){
+#   as.character(shiny::textInput(inputId = paste0('factor_click_name'),
+#                                 label = NULL,value=val,onclick= 'Shiny.onInputChange("factor_click_name", Math.random()'))
+# }
+link_click_delete <- function(id){
+  as.character(shiny::actionLink(inputId = paste0('link_click_delete_',id), label = "delete",class="linky"))
+}
+
+
 ## visNetwork --------------------------------------------------------------
 
 #' Make a visNetwork
@@ -2342,13 +2361,14 @@ make_vn <- function(graf,scale=1,safe_limit=200){
 
   }
 
+  # browser()
   if(max(table(graf$factors$size))>1)graf <- graf %>% update_map(factors=.$factors %>% arrange((size))) %>% pipe_normalise_factors_links()#because this is the way to get the most important ones in front
 
   nodes <- graf$factors %>% mutate(value=size*10) %>%
-    select(any_of(xc("factor_id label color.background color.border title group value hidden size"))) ### restrictive in attempt to reduce random freezes
+    select(any_of(xc("factor_id factor_id0 factor_memo  label color.background color.border title group value hidden size"))) ### restrictive in attempt to reduce random freezes
   edges <- graf$links %>%  as_tibble %>% select(-any_of("label")) %>% rename(label=link_label)
   edges <-  edges %>% vn_fan_edges() %>% mutate(width=width*10) %>%
-    select(any_of(xc("from to id quote color width label smooth.roundness smooth.enabled smooth.type")))
+    select(any_of(xc("from to id s.source_id statement_id s.question_id quote color width label link_memo smooth.roundness smooth.enabled smooth.type link_id0")))
   if(nrow(nodes)>1){
     layout <- layout_with_sugiyama(make_igraph(nodes,edges))$layout*-scale
     colnames(layout) <- c("y", "x")
@@ -2356,31 +2376,34 @@ make_vn <- function(graf,scale=1,safe_limit=200){
     ############## don't get tempted to use the internal visnetwork layout functions - problems with fitting to screen, and they are slower ....
   }
   nodes <- nodes %>%   mutate(id=row_number())
-  edges <- edges %>%   mutate(id=NULL)
-  # nodes <- nodes %>% mutate(title=paste0(label,"<br/>",
-  #                                        as.character(shiny::actionLink(inputId = 'link_click_edit', label = "edit")),
-  #                                        " - ",
-  #                                        as.character(shiny::actionLink(inputId = 'link_click_delete', label = "delete"))
-  #                                        ))
+  edges <- edges %>%   mutate(id=NULL) # id would be necessary for getting ids from clicks etc, but seems to stop tooltip from working
+# browser()
   nodes <-
-    nodes %>% mutate(title=paste0("<div style=''>",
-                                         # as.character(shiny::textInput(inputId = 'link_click_new_label', label = 'Label')),
-                                         # as.character(shiny::actionLink(inputId = 'link_click_edit', label = "coming soon!")) %>% HTML,
-                                         # "</br>",
-                                         # as.character(shiny::actionLink(inputId = 'link_click_delete', label = "delete")),
-                                         # "</br>",
-                                         # "</br>",
-                                         label %>% str_wrap() %>% str_replace_all("\n","</br>"),
-                                         "</div>"
-                                         ))
-  edges <- edges %>% mutate(title=paste0("<div style='background-color:none;border:none;'>",
-                                         as.character(shiny::actionLink(inputId = 'link_click_edit', label = "edit")),
-                                         " - ",
-                                         as.character(shiny::actionLink(inputId = 'link_click_delete', label = "delete")),
-                                         "<br/>",
-                                         "<br/>",
-                                         quote %>% str_wrap(width = 60) %>% str_replace_all("\n","</br>"),
-                                         "</div>"))
+    nodes %>% mutate(title=paste0(
+      map(label,factor_click_name),
+      " ",
+      map(factor_id0,factor_click_edit),
+      # factor_click_name(),
+      "</br>",
+      "</br>",
+      map(factor_id0,factor_click_delete),
+      "</br>",
+      paste0("Memo:", factor_memo)
+      ))
+  edges <-
+    edges %>% mutate(title=paste0(
+      map(link_id0,link_click_delete),
+      "</br>",
+      quote %>% str_wrap,
+      "</br>",
+      "Memo:", link_memo,
+      "</br>",
+      "Source ID:", s.source_id,
+      "</br>",
+      "Statement ID:", statement_id,
+      "</br>",
+      "Question ID:", s.question_id
+      ))
 
   visNetwork(nodes,edges,background="white")   %>%
     visNodes(
@@ -2422,15 +2445,27 @@ make_vn <- function(graf,scale=1,safe_limit=200){
     ) %>%
 
     visEvents(click ="function(data) {
-                Shiny.onInputChange('node_click', data.nodes);
-                Shiny.onInputChange('edge_click', data.edges);
+                Shiny.onInputChange('net_factor_click', data.nodes);
+                Shiny.onInputChange('net_link_click', data.edges);
+                ;}",
+              select = "function(data) {
+                Shiny.onInputChange('net_factor_selected', data.nodes);
+                Shiny.onInputChange('net_link_selected', data.edges);
+                ;}",
+              hoverEdge = "function(edges) {
+                Shiny.onInputChange('net_link_hover', edges);
+                ;}"
+                ,hoverNode = "function(nodes) {
+                Shiny.onInputChange('net_factor_hover', nodes);
                 ;}",
               blurNode = "function(nodes) {
-                Shiny.onInputChange('node_click', null);
-                ;}",
-              blurEdge = "function(edges) {
-                Shiny.onInputChange('edge_click', null);
-                ;}")  %>%
+                Shiny.onInputChange('net_factor_click', null);
+                ;}"
+              # ,
+              # blurEdge = "function(edges) {
+              #   Shiny.onInputChange('net_link_click', null);
+              #   ;}"
+              )  %>%
     visPhysics(stabilization = T) %>% # ,solver="hierarchicalRepulsion") %>% #,solver="hierarchicalRepulsion") %>%
     visOptions(
       collapse = F,
