@@ -276,6 +276,16 @@ pipe_fix_columns <- function(graf){
   if(!("width" %in% link_colnames(graf))) graf <- graf %>% update_map(links=graf$links %>% mutate(width=.2))
   graf
 }
+
+#' Normalise factors and links
+#'
+#' @inheritParams parse_commands
+#'
+#' @return A tidymap with a additional columns.
+#' @export
+#'
+#'
+#' @examples
 pipe_normalise_factors_links <- function(graf){
   tmp <- normalise_id(graf$factors,graf$links,"factor_id","from","to")
   factors=tmp$main;
