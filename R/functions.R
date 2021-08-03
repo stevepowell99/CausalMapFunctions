@@ -414,11 +414,11 @@ update_map <- function(map,
 #'
 #' @examples
 merge_map <- function(graf,graf2){
-  map2 <- graf2
-  graf <- graf
+  map2 <- graf2 %>% pipe_clean_map() #  clean map will put the important vars to integer.
+  graf <- graf %>% pipe_clean_map() #
 
   # browser()
-  maxid <- max(graf$factors$factor_id)
+  maxid <- max(as.numeric(graf$factors$factor_id))
 
   assemble_map(
     factors=graf$factors %>% mutate(factor_map_id=1)%>% bind_rows(map2$factors %>% mutate(factor_map_id=2) %>% mutate(factor_id=factor_id+maxid)),
@@ -609,6 +609,7 @@ flow <- attr(links,"flow")
     links <- standard_links()
   }
 
+
   missing_links <-
     c(links$from,links$to) %>%
     unique %>%
@@ -629,6 +630,10 @@ flow <- attr(links,"flow")
     links <- res$referring
     notify("Normalising factor ids")
   }
+
+  factors <- factors %>% mutate(factor_id=as.integer(factor_id))
+  links <- links %>% mutate(from=as.integer(from),to=as.integer(to))
+
 
   statements <- statements %>%
     replace_null(empty_tibble) %>%
@@ -665,6 +670,9 @@ flow <- attr(links,"flow")
     links <- res$referring
     notify("Normalising statement ids")
   }}
+
+  links <- links %>% mutate(statement_id=as.integer(statement_id))
+  statements <- statements %>% mutate(statement_id=as.integer(statement_id))
 
   sources$source_id <- coerceValue(sources$source_id,statements$source_id)
   questions$question_id <- coerceValue(questions$question_id,statements$question_id)
