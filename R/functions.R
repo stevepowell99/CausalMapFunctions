@@ -23,6 +23,9 @@ library(paws)
 s3 <- paws::s3()
 
 
+
+
+
 # Loading maps --------------------------------------------------------------
 
 s3file_exists <- function(object,buck){
@@ -199,6 +202,15 @@ coerceValue <- function (val, old)
   warning("The data type is not supported: ", classes(old))
   val
 }
+
+left_join_safe <- function(x,y,by=NULL,...){
+  if(is.null(by))by=intersect(colnames(x),colnames(y))
+  for(i in seq_along(by)){
+    y[,by[i]] <- coerceValue(y[,by[i]],x[,by[i]])
+  }
+  left_join(x,y,by,...)
+}
+
 replace_null <- function(x,replacement=0){
   if(is.null(x)) replacement else x
 }
@@ -1153,26 +1165,26 @@ links_table <- function(graf)graf$links
 #' @rdname tibbles
 #' @export
 #'
-statements_table <- function(graf){
+statements_table <- function(graf,filter=T){
   graf$statements %>%
   {if(is.null(.)) NULL else
-  filter(.,statement_id %in% links_table(graf)$statement_id)}}
-
-#' @rdname tibbles
-#' @export
-#'
-sources_table <- function(graf){
-  graf$sources  %>%
-  {if(is.null(.)) NULL else
-  filter(.,source_id %in% statements_table(graf)$source_id)}
+  {if(filter) filter(.,statement_id %in% links_table(graf)$statement_id) else . }}
 }
 #' @rdname tibbles
 #' @export
 #'
-questions_table <- function(graf){
+sources_table <- function(graf,filter=T){
+  graf$sources  %>%
+  {if(is.null(.)) NULL else
+  {if(filter) filter(.,source_id %in% statements_table(graf)$source_id) else . }}
+}
+#' @rdname tibbles
+#' @export
+#'
+questions_table <- function(graf,filter=T){
   graf$questions %>%
   {if(is.null(.)) NULL else
-  filter(.,question_id %in% statements_table(graf)$question_id)}
+  {if(filter) filter(.,question_id %in% statements_table(graf)$question_id) else . }}
 }
 #' @rdname tibbles
 #' @export
