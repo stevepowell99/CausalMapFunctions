@@ -89,11 +89,11 @@ get_map_tables_from_sql <- function(path,connection=conn){
   # browser()
   links <- req(vdata) %>%
     select(from,to,everything(),-project) %>%
-    left_join(vmeta %>% group_by(session_token) %>% summarise_all(last),by="session_token") %>%
+    left_join_safe(vmeta %>% group_by(session_token) %>% summarise_all(last),by="session_token") %>%
     suppressMessages
 
   if(nrow(vsentiment)>0)
-    links <- links %>%   left_join(vsentiment %>% group_by(session_token) %>% select(-project) %>% summarise_all(last),by="session_token") %>%
+    links <- links %>%   left_join_safe(vsentiment %>% group_by(session_token) %>% select(-project) %>% summarise_all(last),by="session_token") %>%
     suppressMessages
   factors=tibble(label=c(links$from,links$to) %>% unique)
 
@@ -125,6 +125,7 @@ get_map_tables_from_s3_pieces <- function(path){
   questions = NULL
   settings = NULL
 
+  # browser()
   notify("Trying cm1 file")
   # browser()
   pathx <- paste0(root,"/factors");
@@ -139,7 +140,6 @@ get_map_tables_from_s3_pieces <- function(path){
   if(!is.null(statements))statements <-  join_statements_to_meta(statements,statements_extra) %>% select(statement_id,everything())
   # graf <- create_map(factors,links)
   # attr(graf,"statements") <- statements_with_meta
-  # browser()
   notify("Loaded cm1 file")
   list(
     factors = factors,
@@ -158,7 +158,7 @@ join_statements_to_meta <- function(statements,meta){
     unique %>%
     spread(key,value,convert=T) %>%
     select(-contains("statement_note")) %>%
-    left_join(statements,.,by="statement_id") %>%
+    left_join_safe(statements,.,by="statement_id") %>%
     suppressMessages
 }
 
@@ -175,6 +175,7 @@ notify <- notify # alias
 ## from DT package
 coerceValue <- function (val, old)
 {
+  # old=unlist(old)
   if (is.integer(old))
     return(as.integer(val))
   if (is.numeric(old))
@@ -199,17 +200,22 @@ coerceValue <- function (val, old)
     val[!i] = NA
     return(val)
   }
-  warning("The data type is not supported: ", classes(old))
+  # warning("The data type is not supported: ", classes(old))
   val
 }
 
 left_join_safe <- function(x,y,by=NULL,...){
+  # browser()
   if(is.null(by))by=intersect(colnames(x),colnames(y))
+  # x <- as_tibble(x)
+  # y <- as_tibble(y)
   for(i in seq_along(by)){
-    y[,by[i]] <- coerceValue(y[,by[i]],x[,by[i]])
+    y[,by[i]] <- coerceValue(unlist(y[,by[i]]),unlist(x[,by[i]]))
   }
   left_join(x,y,by,...)
 }
+# left_join_safe <- left_join
+
 
 replace_null <- function(x,replacement=0){
   if(is.null(x)) replacement else x
@@ -226,10 +232,10 @@ replace_zero <- function(x,replacement=0){
   if(length(x)==0) replacement else x
 }
 
-# left_join_safe <- function(x,y,by,...){
+# left_join_safe_safe <- function(x,y,by,...){
 #   browser()
 #
-#   left_join(x,y %>% select(colnames(.) %>% setdiff(colnames(x)) %>% c(by)),...)
+#   left_join_safe(x,y %>% select(colnames(.) %>% setdiff(colnames(x)) %>% c(by)),...)
 # }
 
 xc <- function(x, sep = " ") {
@@ -473,7 +479,6 @@ load_map <- function(path=NULL,connection=conn){
       path <- path %>% str_remove("^.*?/")
     }#
   } else type <- "individual"
-
   if(type=="file") graf <- readRDS(path) else
     if(type=="standard"){
       tmp <- safely(get)(path)
@@ -496,8 +501,8 @@ load_map <- function(path=NULL,connection=conn){
     } else if(type=="cm1"){
       graf <- get_map_tables_from_s3_pieces(path %>% paste0("causalmap/app-sync/",.))
       if(is.null(graf))return(NULL)
-
     } else if(type=="unknown"){
+      # browser()
       notify("Trying to load file, guessing origin")
 
       graf <- get_map_tables_from_s3_pieces(path %>% paste0("causalmap/app-sync/",.))
@@ -691,18 +696,18 @@ flow <- attr(links,"flow")
   links$statement_id <- coerceValue(links$statement_id,statements$statement_id)
 
   statements <- statements %>%
-    left_join(sources %>% rename_with(~paste0("r.",.),!matches("source_id"))) %>% suppressMessages %>%
-    left_join(questions %>% rename_with(~paste0("q.",.),!matches("question_id"))) %>% suppressMessages
+    left_join_safe(sources %>% rename_with(~paste0("r.",.),!matches("source_id"))) %>% suppressMessages %>%
+    left_join_safe(questions %>% rename_with(~paste0("q.",.),!matches("question_id"))) %>% suppressMessages
   # statements <- statements %>%
-  #     safely(~left_join(sources %>% rename_with(~paste0("r.",.),!matches("source_id"))),otherwise=.)() %>% pluck("result") %>%
-  #     safely(~left_join(questions %>% rename_with(~paste0("q.",.),!matches("question_id"))),otherwise=.)() %>% pluck("result")
+  #     safely(~left_join_safe(sources %>% rename_with(~paste0("r.",.),!matches("source_id"))),otherwise=.)() %>% pluck("result") %>%
+  #     safely(~left_join_safe(questions %>% rename_with(~paste0("q.",.),!matches("question_id"))),otherwise=.)() %>% pluck("result")
 
+  # browser()
   links <- links %>%
-    left_join(statements %>% rename_with(~paste0("s.",.),!matches("statement_id"))) %>%
+    left_join_safe(statements %>% rename_with(~paste0("s.",.),!matches("statement_id"))) %>%
     suppressMessages
   # links <- links %>%
-  #   safely(~left_join(statements %>% rename_with(~paste0("s.",.),!matches("statement_id"))),otherwise=.)() %>% pluck("result")  # ,by="statement_id") %>% otherwise when this is repeated, you get loads of cols
-  # browser()
+  #   safely(~left_join_safe(statements %>% rename_with(~paste0("s.",.),!matches("statement_id"))),otherwise=.)() %>% pluck("result")  # ,by="statement_id") %>% otherwise when this is repeated, you get loads of cols
 
   if(nrow(links)==0 | nrow(factors)==0){
     links <-
@@ -1984,11 +1989,11 @@ pipe_flip_opposites <- function(graf,flipchar="~",add_colors=T){
 pipe_merge_statements <- function(graf){
   warning("deprecated!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
   statements <- statements_table(graf) %>%
-    left_join(sources_table(graf)) %>% suppressMessages %>%
-    left_join(questions_table(graf)) %>% suppressMessages
+    left_join_safe(sources_table(graf)) %>% suppressMessages %>%
+    left_join_safe(questions_table(graf)) %>% suppressMessages
 
   links <- links_table(graf) %>%
-    left_join(statements) %>% suppressMessages # ,by="statement_id") %>% otherwise when this is repeated, you get loads of cols
+    left_join_safe(statements) %>% suppressMessages # ,by="statement_id") %>% otherwise when this is repeated, you get loads of cols
 
   # browser()
   update_map(graf,links=links,statements=statements )
