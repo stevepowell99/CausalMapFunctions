@@ -204,6 +204,18 @@ coerceValue <- function (val, old)
   val
 }
 
+bind_rows_safe <- function(x,y,...){
+
+  by=intersect(colnames(x),colnames(y))
+  if(is.null(by))return()
+  for(i in seq_along(by)){
+    y[,by[i]] <- coerceValue(unlist(y[,by[i]]),unlist(x[,by[i]]))
+  }
+  bind_rows(x,y,...)
+
+}
+
+
 left_join_safe <- function(x,y,by=NULL,...){
   # browser()
   if(is.null(by))by=intersect(colnames(x),colnames(y))
@@ -346,7 +358,7 @@ update_join <- function(old,new){
   old %>%
     mutate(.rn=row_number()) %>%
     anti_join(new) %>%
-    bind_rows(new) %>%
+    bind_rows_safe(new) %>%
     arrange(.rn) %>%
     select(-.rn)
 }
@@ -432,19 +444,20 @@ update_map <- function(map,
 #'
 #' @examples
 merge_map <- function(graf,graf2){
+  # browser()
   map2 <- graf2 %>% pipe_clean_map() #  clean map will put the important vars to integer.
   graf <- graf %>% pipe_clean_map() #
 
-  # browser()
   maxid <- max(as.numeric(graf$factors$factor_id))
+  maxmapid <- max(as.numeric(graf$factors$factor_map_id))
 
   assemble_map(
-    factors=graf$factors %>% mutate(factor_map_id=1)%>% bind_rows(map2$factors %>% mutate(factor_map_id=2) %>% mutate(factor_id=factor_id+maxid)),
-    links=graf$links  %>% mutate(link_map_id=1)%>% bind_rows(map2$links %>% mutate(link_map_id=2) %>% mutate(from=from+maxid,to=to+maxid)),
-    statements=graf$statements  %>% mutate(statement_map_id=1)%>% bind_rows(map2$statements %>% mutate(statement_map_id=2)),
-    sources=graf$sources %>% mutate(source_map_id=1)%>% bind_rows(map2$sources %>% mutate(source_map_id=2)),
-    questions=graf$questions %>% mutate(question_map_id=1)%>% bind_rows(map2$questions %>% mutate(question_map_id=2)),
-    settings=graf$settings %>% mutate(setting_map_id=1)%>% bind_rows(map2$settings %>% mutate(setting_map_id=2))
+    factors=graf$factors %>% bind_rows_safe(map2$factors %>% mutate(factor_map_id=maxmapid+1) %>% mutate(factor_id=factor_id+maxid)),
+    links=graf$links  %>% bind_rows_safe(map2$links %>% mutate(link_map_id=maxmapid+1) %>% mutate(from=from+maxid,to=to+maxid)),
+    statements=graf$statements  %>% bind_rows_safe(map2$statements %>% mutate(statement_map_id=maxmapid+1)),
+    sources=graf$sources %>% bind_rows_safe(map2$sources %>% mutate(source_map_id=maxmapid+1)),
+    questions=graf$questions %>% bind_rows_safe(map2$questions %>% mutate(question_map_id=maxmapid+1)),
+    settings=graf$settings %>% bind_rows_safe(map2$settings %>% mutate(setting_map_id=maxmapid+1))
   ) %>%
     pipe_clean_map(tables=.)
 
