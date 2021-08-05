@@ -15,11 +15,11 @@ factors_table(graf)
 
 links_table(graf)
 
-statements_table(graf)
+statements_table(graf, filter = T)
 
-sources_table(graf)
+sources_table(graf, filter = T)
 
-questions_table(graf)
+questions_table(graf, filter = T)
 
 settings_table(graf)
 

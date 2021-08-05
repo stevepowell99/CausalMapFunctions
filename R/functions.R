@@ -757,6 +757,16 @@ make_igraph_from_map <- function(graf){
   make_igraph(graf$factors,graf$links)
 
 }
+#' Make igraph (from factors and links)
+#'
+#' @param factors
+#' @param links
+#' @param use_labels
+#'
+#' @return
+#' @export
+#'
+#' @examples
 make_igraph <- function(factors,links,use_labels=F){
   # never use this to try to recreate a full map it is too intolerant of extra columsn, just for calculations!
 
