@@ -2707,7 +2707,7 @@ make_grviz <- function(
     mutate(label=clean_grv(label) )%>%
     mutate(label=replace_na(label,"."))%>% # obscure! if all are =="", error
     mutate(penwidth=width*48)%>%
-    mutate(arrowsize=.5) %>%
+    mutate(arrowsize=9) %>%
     mutate(arrowhead="vee")
 
 # browser()
@@ -2742,8 +2742,7 @@ make_grviz <- function(
     add_global_graph_attrs("height", "0", "node")  %>%
 
     add_global_graph_attrs("fontsize", 63, "edge") %>%
-    add_global_graph_attrs("fontcolor", "#666666", "edge") %>%
-    add_global_graph_attrs("arrowsize", .5, "edge")
+    add_global_graph_attrs("fontcolor", "#666666", "edge")
 
   return(
     grv %>% DiagrammeR::render_graph()
