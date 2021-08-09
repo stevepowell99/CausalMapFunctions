@@ -2707,7 +2707,8 @@ make_grviz <- function(
     mutate(label=clean_grv(label) )%>%
     mutate(label=replace_na(label,"."))%>% # obscure! if all are =="", error
     mutate(penwidth=width*48)%>%
-    mutate(arrowsize=9) %>%
+    mutate(arrowsize=(width*19)) %>%
+    # mutate(color="blue") %>%
     mutate(arrowhead="vee")
 
 # browser()
