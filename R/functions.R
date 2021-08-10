@@ -274,7 +274,9 @@ brewer_pal_n <- function(vec){
 }
 create_colors <- function(vec,lo,hi,mid,type,field=""){
   # browser()
-  if(class(vec)=="character") res <- brewer_pal_n(vec) else res <- div_pal_n(vec,lo=lo,hi=hi,mid=mid)
+  if(class(vec)=="character") res <- brewer_pal_n(vec) else
+    if(lo %in% xc("white gray lightgray")) res <- colour_ramp(c(hi,lo))(rescale(vec)) else
+      res <- div_pal_n(vec,lo=lo,hi=hi,mid=mid)
   attr(res,type) <-   list(table=tibble(vec,res) %>% unique,field=field)
   res
 }
@@ -2065,7 +2067,8 @@ pipe_scale_factors <- function(graf,field="frequency"){
   if(class =="character"){warning("No such column");return(graf)}
   # browser()
   graf %>%
-    update_map(factors=graf$factors %>% mutate(size=scales::rescale(UQ(sym(field)),to=c(0.2,1))))
+    update_map(factors=graf$factors %>% mutate(size=scales::rescale(UQ(sym(field)),to=c(0.2,1)))) %>%
+    add_attribute(.,attr = "scale_factors",list(table=tibble(vec=.$factors[,field] %>% range,res=xc("lo hi")) ))
 
 }
 #' Scale factors
@@ -2084,7 +2087,8 @@ pipe_scale_links <- function(graf,field="frequency",fixed=NULL){
 
   class <- graf$links %>% pull(UQ(sym(field))) %>% class
   if(class =="character"){warning("No such column");return(graf)}
-  graf  %>% update_map(links=graf$links %>% mutate(width=scales::rescale(UQ(sym(field)),to=c(0.1,1))))
+  graf  %>% update_map(links=graf$links %>% mutate(width=scales::rescale(UQ(sym(field)),to=c(0.1,1)))) %>%
+    add_attribute(.,attr = "scale_links",list(table=tibble(vec=.$links[,field] %>% range,res=xc("lo hi")) ))
 }
 
 #' Label factors
