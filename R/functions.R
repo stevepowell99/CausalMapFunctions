@@ -284,6 +284,47 @@ create_colors <- function(vec,lo,hi,mid,type,field=""){
 # tidymap major functions and pipes but not for use with parser -------------------------------------------------------------
 
 
+#' Fix factors columns
+#'
+#' @inheritParams parse_commands
+#'
+#' @return A tidymap with a additional columns.
+#' @export
+#'
+#'
+#' @examples
+fix_columns_factors <- function(factors){
+  if(!("color.background" %in% colnames(factors))) factors <- factors %>% mutate(color.background="#aaaaee77")
+  if(!("color.border" %in% colnames(factors))) factors <- factors %>% mutate(color.border="#222222")
+  if(!("frequency" %in% colnames(factors))) factors <- factors %>% mutate(frequency=1L)
+  if(!("in_degree" %in% colnames(factors))) factors <- factors %>% mutate(in_degree=1L)
+  if(!("out_degree" %in% colnames(factors))) factors <- factors %>% mutate(out_degree=1L)
+  if(!("size" %in% colnames(factors))) factors <- factors %>% mutate(size=1L)
+  if(!("found" %in% colnames(factors))) factors <- factors %>% mutate(found=1L)
+
+  factors
+}
+
+#' Fix links columns
+#'
+#' @inheritParams parse_commands
+#'
+#' @return A tidymap with a additional columns.
+#' @export
+#'
+#'
+#' @examples
+fix_columns_links <- function(links){
+
+  if(!("color" %in% colnames(links))) links <- links %>% mutate(color="#22446688")
+  if(!("frequency" %in% colnames(links))) links <- links %>% mutate(frequency=1L)
+  if(!("capacity" %in% colnames(links))) links <- links %>% mutate(capacity=1L)
+  if(!("label" %in% colnames(links))) links <- links %>% mutate(label="")
+  if(!("width" %in% colnames(links))) links <- links %>% mutate(width=.2)
+  if(!("link_id0" %in% colnames(links))) links <- links %>% mutate(link_id0=1L)
+  links
+}
+
 #' Fix columns
 #'
 #' @inheritParams parse_commands
@@ -294,19 +335,10 @@ create_colors <- function(vec,lo,hi,mid,type,field=""){
 #'
 #' @examples
 pipe_fix_columns <- function(graf){
-  if(!("color.background" %in% factor_colnames(graf))) graf <- graf %>% update_map(factors=graf$factors %>% mutate(color.background="#aaaaee77"))
-  if(!("color.border" %in% factor_colnames(graf))) graf <- graf %>% update_map(factors=graf$factors %>% mutate(color.border="#222222"))
-  if(!("frequency" %in% factor_colnames(graf))) graf <- graf %>% update_map(factors=graf$factors %>% mutate(frequency=1L))
-  if(!("size" %in% factor_colnames(graf))) graf <- graf %>% update_map(factors=graf$factors %>% mutate(size=1L))
-  if(!("found" %in% factor_colnames(graf))) graf <- graf %>% update_map(factors=graf$factors %>% mutate(found=1L))
-
-
-  if(!("color" %in% link_colnames(graf))) graf <- graf %>% update_map(links=graf$links %>% mutate(color="#22446688"))
-  if(!("frequency" %in% link_colnames(graf))) graf <- graf %>% update_map(links=graf$links %>% mutate(frequency=1L))
-  if(!("capacity" %in% link_colnames(graf))) graf <- graf %>% update_map(links=graf$links %>% mutate(capacity=1L))
-  if(!("label" %in% link_colnames(graf))) graf <- graf %>% update_map(links=graf$links %>% mutate(label=""))
-  if(!("width" %in% link_colnames(graf))) graf <- graf %>% update_map(links=graf$links %>% mutate(width=.2))
-  graf
+  graf %>% update_map(
+    factors = graf$factors %>% fix_columns_factors(),
+    links = graf$links %>% fix_columns_links()
+  )
 }
 
 #' Normalise factors and links
@@ -560,7 +592,7 @@ add_original_ids <- function(graf){
 
 
 #' Assemble map
-#'
+#' It simply adds standard tables where any are missing
 #' @param factors
 #' @param links
 #' @param statements
@@ -600,7 +632,6 @@ assemble_map <- function(factors=NULL,links=NULL,statements=NULL,sources=NULL,qu
 #'
 #' @examples
 pipe_clean_map <- function(tables=NULL){
-  # browser()
   if(!is.null(tables)){
     factors <- tables$factors
     links <- tables$links
@@ -626,7 +657,11 @@ flow <- attr(links,"flow")
       mutate(certainty=as.numeric(certainty))  #TODO warning
 
   }
-  if(!is.null(factors)){
+  # browser()
+if(is.null(factors) & !is.null(links)){
+  factors <- tibble(factor_id=get_all_link_ids(links),factor_id0=factor_id) %>% fix_columns_factors()
+}
+if(!is.null(factors)){
     factors <-  factors %>%
       {if("factor_id" %notin% colnames(.)) mutate(.,factor_id=row_number()) else .} %>%
       add_column(.name_repair="minimal",!!!standard_factors())  %>%
@@ -656,6 +691,7 @@ flow <- attr(links,"flow")
     # factors <- factors %>%
     #   bind_rows(tibble(factor_id=missing_links,label=as.character(missing_links)))
   }
+  # browser()
   if(!identical(factors$factor_id,row_index(factors))){
     res <- normalise_id(factors,links,"factor_id","from","to")
     factors <- res$main
@@ -2383,7 +2419,7 @@ factor_click_edit <- function(id){
   as.character(shiny::actionButton(inputId = paste0('factor_click_edit_',id), label = "Rename",class="linky"))
 }
 factor_click_delete <- function(id){
-  as.character(shiny::actionButton(inputId = paste0('factor_click_delete_',id), label = "delete",class="linky"))
+  as.character(shiny::actionButton(inputId = paste0('factor_click_delete_',id), label = "Delete factor",class="linky"))
 }
 factor_click_name <- function(val){
   as.character(shiny::textInput(inputId = paste0('factor_click_name'),
@@ -2394,7 +2430,7 @@ factor_click_name <- function(val){
 #                                 label = NULL,value=val,onclick= 'Shiny.onInputChange("factor_click_name", Math.random()'))
 # }
 link_click_delete <- function(id){
-  as.character(shiny::actionLink(inputId = paste0('link_click_delete_',id), label = "delete",class="linky"))
+  as.character(shiny::actionLink(inputId = paste0('link_click_delete_',id), label = "Delete link",class="linky"))
 }
 
 
