@@ -256,6 +256,14 @@ xc <- function(x, sep = " ") {
 
 `%notin%` <- Negate(`%in%`)
 
+#' Escape Regex
+#'
+#' @param string
+#'
+#' @return
+#' @export
+#'
+#' @examples
 escapeRegex <- function(string){ #from hmisc
   gsub("([.|()\\^{}+$*?]|\\[|\\])", "\\\\\\1",
        string)
@@ -2103,8 +2111,9 @@ pipe_scale_factors <- function(graf,field="frequency"){
   if(class =="character"){warning("No such column");return(graf)}
   # browser()
   graf %>%
-    update_map(factors=graf$factors %>% mutate(size=scales::rescale(UQ(sym(field)),to=c(0.2,1)))) %>%
-    add_attribute(.,attr = "scale_factors",list(table=tibble(vec=.$factors[,field] %>% range,res=xc("lo hi")) ))
+    update_map(factors=graf$factors %>% mutate(size=scales::rescale(UQ(sym(field)),to=c(0.2,1))))
+  # %>%
+  #   add_attribute(.,attr = "scale_factors",list(table=tibble(vec=.$factors[,field] %>% range,res=xc("lo hi")) ))
 
 }
 #' Scale factors
@@ -2123,8 +2132,9 @@ pipe_scale_links <- function(graf,field="frequency",fixed=NULL){
 
   class <- graf$links %>% pull(UQ(sym(field))) %>% class
   if(class =="character"){warning("No such column");return(graf)}
-  graf  %>% update_map(links=graf$links %>% mutate(width=scales::rescale(UQ(sym(field)),to=c(0.1,1)))) %>%
-    add_attribute(.,attr = "scale_links",list(table=tibble(vec=.$links[,field] %>% range,res=xc("lo hi")) ))
+  graf  %>% update_map(links=graf$links %>% mutate(width=scales::rescale(UQ(sym(field)),to=c(0.1,1))))
+  # %>%  # this legend stuff not finished yet, caused crashes
+  #   add_attribute(.,attr = "scale_links",list(table=tibble(vec=.$links[,field] %>% range,res=xc("lo hi")) ))
 }
 
 #' Label factors
