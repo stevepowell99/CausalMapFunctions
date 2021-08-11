@@ -2,7 +2,8 @@
 % Please edit documentation in R/functions.R
 \name{assemble_map}
 \alias{assemble_map}
-\title{Assemble map}
+\title{Assemble map
+It simply adds standard tables where any are missing}
 \usage{
 assemble_map(
   factors = NULL,
@@ -21,4 +22,5 @@ assemble_map(
 }
 \description{
 Assemble map
+It simply adds standard tables where any are missing
 }
