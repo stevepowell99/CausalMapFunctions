@@ -283,7 +283,7 @@ brewer_pal_n <- function(vec){
 create_colors <- function(vec,lo,hi,mid,type,field=""){
   # browser()
   if(class(vec)=="character") res <- brewer_pal_n(vec) else
-    if(lo %in% xc("white gray lightgray")) res <- colour_ramp(c(hi,lo))(rescale(vec)) else
+    if(lo %in% xc("white gray lightgray")) res <- colour_ramp(c(lo,hi))(rescale(vec)) else
       res <- div_pal_n(vec,lo=lo,hi=hi,mid=mid)
   attr(res,type) <-   list(table=tibble(vec,res) %>% unique,field=field)
   res
