@@ -10,7 +10,8 @@ pipe_color_links(
   lo = "green",
   hi = "blue",
   mid = "gray",
-  fixed = NULL
+  fixed = NULL,
+  fun = "length"
 )
 }
 \arguments{

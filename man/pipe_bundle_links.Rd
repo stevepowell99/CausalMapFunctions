@@ -4,7 +4,7 @@
 \alias{pipe_bundle_links}
 \title{Bundle links}
 \usage{
-pipe_bundle_links(graf, counter = "frequency", group = NULL)
+pipe_bundle_links(graf, group = NULL)
 }
 \arguments{
 \item{graf}{A tidymap representing a causal map.
