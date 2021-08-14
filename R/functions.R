@@ -328,7 +328,7 @@ fix_columns_links <- function(links){
   if(!("frequency" %in% colnames(links))) links <- links %>% mutate(frequency=1L)
   if(!("capacity" %in% colnames(links))) links <- links %>% mutate(capacity=1L)
   if(!("label" %in% colnames(links))) links <- links %>% mutate(label="")
-  if(!("width" %in% colnames(links))) links <- links %>% mutate(width=.2)
+  # if(!("width" %in% colnames(links))) links <- links %>% mutate(width=.2)
   if(!("link_id0" %in% colnames(links))) links <- links %>% mutate(link_id0=1L)
   links
 }
@@ -905,6 +905,18 @@ compact_factors_links <- function(factors,links){
 
 
 # tidymap minor functions ----------------------------------------------------
+
+#' Count unique
+#'
+#' @param vec
+#'
+#' @return
+#' @export
+#'
+#' @examples
+count_unique <- function(vec){
+  length(unique(vec))
+}
 
 has_statements <- function(graf){
   !is.null(graf %>% statements_table)
@@ -1758,50 +1770,53 @@ pipe_bundle_factors <- function(graf,value=""){
 #' if(F)cashTransferMap %>% pipe_merge_statements() %>%  pipe_select_factors(10) %>% pipe_bundle_links(counter="frequency",group="1. Sex")%>% pipe_label_links(field = "frequency") %>% pipe_color_links(field="1. Sex") %>% pipe_scale_links() %>%  make_grviz()
 #' # or, counting sources rather than statements:
 #' if(F)cashTransferMap %>% pipe_merge_statements() %>%  pipe_select_factors(10) %>% pipe_bundle_links(group="1. Sex",counter="#SourceID")%>% pipe_label_links(field = "frequency") %>% pipe_color_links(field="1. Sex") %>% pipe_scale_links() %>%  make_grviz()
-pipe_bundle_links <- function(graf,counter="frequency",group=NULL){
-  # statements <- graf %>% statements_table()
-  # flow <- graf %>% attr("flow")
-  # factors <- factors_table(graf)
+pipe_bundle_links <- function(graf,group=NULL){
   links <- graf$links
-  # if(nrow(factors)==0) return(NULL)
   coln <- colnames(links)
 
-
-  if(counter %notin% coln & counter!="frequency" ) {
-    notify("counter not found, trying with s.") #legacy
-    if(paste0("s.",counter) %in% coln  & counter!="frequency") counter <-  paste0("s.",counter) else
-    {
-      notify("counter not found")
-      return(graf)
-
-    }
+#
+#   if(counter %notin% coln & counter!="frequency" ) {
+#     notify("counter not found, trying with s.") #legacy
+#     if(paste0("s.",counter) %in% coln  & counter!="frequency") counter <-  paste0("s.",counter) else
+#     {
+#       notify("counter not found")
+#       return(graf)
+#
+#     }
+#   }
+  if(is.null(group)){
+  links <- links %>% chop(!c(from,to))
+  } else {
+    if(group %notin% coln) {notify("no such group");return(graf)}else
+  links <- links %>% chop(!c(from,to,!!(sym(group))))
   }
-  if(!is.null(group)){if(group %notin% coln) {notify("no such group");return(graf)}}
 
-  if(is.null(group)) links <- links %>% group_by(from,to) else
-    links <- links %>% group_by(from,to,UQ(sym(group)))
-
-  if (counter == "frequency") {
-    if ("frequency" %in% coln){
-
-      # browser()
-      links <- links %>%
-        mutate(rn_ = row_number()) %>%
-        mutate(frequency = sum(frequency))
-    }else
-      links <- links %>%
-        mutate(rn_ = row_number()) %>%
-        mutate(frequency = n())
-  } else
-    links <- links %>%
-    mutate(rn_ = row_number()) %>%
-    mutate(frequency = length(unique(UQ(sym(
-      counter
-    )))))
-
-  links <-
-    links %>%
-    filter(rn_ == 1) %>% ungroup %>% select(-rn_)
+  links <- links %>% mutate(frequency=fun_map(link_id,"length"))#legacy
+#
+#   if(is.null(group)) links <- links %>% group_by(from,to) else
+#     links <- links %>% group_by(from,to,UQ(sym(group)))
+#
+#   if (counter == "frequency") {
+#     if ("frequency" %in% coln){
+#
+#       # browser()
+#       links <- links %>%
+#         mutate(rn_ = row_number()) %>%
+#         mutate(frequency = sum(frequency))
+#     }else
+#       links <- links %>%
+#         mutate(rn_ = row_number()) %>%
+#         mutate(frequency = n())
+#   } else
+#     links <- links %>%
+#     mutate(rn_ = row_number()) %>%
+#     mutate(frequency = length(unique(UQ(sym(
+#       counter
+#     )))))
+#
+#   links <-
+#     links %>%
+#     filter(rn_ == 1) %>% ungroup %>% select(-rn_)
 
   update_map(graf,links=links)
 
@@ -2125,17 +2140,30 @@ pipe_scale_factors <- function(graf,field="frequency"){
 #' @export
 #'
 #' @examples
-pipe_scale_links <- function(graf,field="frequency",fixed=NULL){
+pipe_scale_links <- function(graf,field="frequency",fixed=NULL,fun="length"){
   if(!is.null(fixed))return(graf  %>% update_map(links=graf$links %>%  mutate(width=fixed)))
-  # browser()
   if(field %notin% colnames(links_table(graf))){warning("No such column");return(graf)}
 
   class <- graf$links %>% pull(UQ(sym(field))) %>% class
   if(class =="character"){warning("No such column");return(graf)}
-  graf  %>% update_map(links=graf$links %>% mutate(width=scales::rescale(UQ(sym(field)),to=c(0.1,1))))
+  # browser()
+  links <- graf$links %>% mutate(width=scales::rescale(fun_map(UQ(sym(field)),fun),to=c(0.1,1)))
+  graf  %>% update_map(links=links)
+
+
   # %>%  # this legend stuff not finished yet, caused crashes
   #   add_attribute(.,attr = "scale_links",list(table=tibble(vec=.$links[,field] %>% range,res=xc("lo hi")) ))
 }
+
+fun_map <- function(vec,fun){
+  map(vec,~exec(fun,.)) %>% unlist
+
+}
+first_map <- function(vec,fun){
+  map(vec,first) %>% unlist
+
+}
+
 
 #' Label factors
 #'
@@ -2263,51 +2291,14 @@ pipe_color_borders <- function(graf,field="frequency",lo="green",hi="blue",mid="
 #'
 #'
 #' @examples
-pipe_color_links <- function(graf,field="frequency",lo="green",hi="blue",mid="gray",fixed=NULL){
+pipe_color_links <- function(graf,field="frequency",lo="green",hi="blue",mid="gray",fixed=NULL,fun="length"){
   if(field %notin% link_colnames(graf)){warning("No such column");return(graf)}
 # browser()
   if(!is.null(fixed)) links <- graf$links %>% mutate(color=fixed) else
     links <- graf$links %>%
-      mutate(color=create_colors(UQ(sym(field)),lo=lo,hi=hi,mid=mid,type="color_links",field=field))
+      mutate(color=create_colors(fun_map(UQ(sym(field)),fun),lo=lo,hi=hi,mid=mid,type="color_links",field=field))
   graf %>% update_map(links=links)
 
-}
-#' Fade factors
-#'
-#' @inheritParams parse_commands
-#' @param field A numerical field in the link table which will control the amount of fading
-#' (the alpha value of the factors).
-#' @return A tidymap in which the column `color.background`in the factor table has alpha proportionate to the values in `field`.
-#' @export
-#'
-#'
-#' @examples
-pipe_fade_factors <- function(graf,field="frequency"){
-  if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
-  if("color.background" %notin% factor_colnames(graf)){warning("No such column");return(graf)}
-  class <- graf %>% factors_table %>% pull(UQ(sym(field))) %>% class
-  if(class =="character"){warning("No such column");return(graf)}
-  # browser()
-  graf %>% update_map(factors=graf$factors %>%
-                        mutate(color.background=alpha(color.background,scales::rescale(UQ(sym(field)),to=c(0.2,1)))))
-}
-
-#' Fade links
-#'
-#' @inheritParams parse_commands
-#' @param field A numerical field in the link table which will control the amount of fading
-#' (the alpha value of the links).
-#' @return A tidymap in which the column `color`in the link table has alpha proportionate to the values in `field`.
-#' @export
-#'
-#' @examples
-pipe_fade_links <- function(graf,field="frequency"){
-  if(field %notin% link_colnames(graf)){warning("No such column");return(graf)}
-  if("color" %notin% link_colnames(graf)){warning("No such column");return(graf)}
-  class <- graf %>% links_table %>% pull(UQ(sym(field))) %>% class
-  if(class =="character"){warning("No such column");return(graf)}
-  # browser()
-  graf %>% update_map(links=graf$links %>%  mutate(color=alpha(color,scales::rescale(UQ(sym(field)),to=c(0.2,1)))))
 }
 
 #' Remove bracketed expressions
@@ -2474,8 +2465,11 @@ make_vn <- function(graf,scale=1,safe_limit=200){
 
   nodes <- graf$factors %>% mutate(value=size*10) %>%
     select(any_of(xc("factor_id factor_id0 factor_memo  label color.background color.border title group value hidden size"))) ### restrictive in attempt to reduce random freezes
-  edges <- graf$links %>%  as_tibble %>% select(-any_of("label")) %>% rename(label=link_label)
-  edges <-  edges %>% vn_fan_edges() %>% mutate(width=width*10) %>%
+  edges <- graf$links %>%  as_tibble %>% select(-any_of("label")) %>% rename(label=link_label) %>%
+    mutate_all(first_map)## in case there are any list columns left*****************
+  edges <-  edges %>% vn_fan_edges()
+  if(is.list(edges$width))edges$width=2 else edges$width=edges$width*10
+  edges <-  edges  %>%
     select(any_of(xc("from to id s.source_id statement_id s.question_id quote color width label link_memo smooth.roundness smooth.enabled smooth.type link_id0")))
   if(nrow(nodes)>1){
     layout <- layout_with_sugiyama(make_igraph(nodes,edges))$layout*-scale
@@ -2512,7 +2506,6 @@ make_vn <- function(graf,scale=1,safe_limit=200){
       "</br>",
       "Question ID:", s.question_id
       ))
-
   visNetwork(nodes,edges,background="white")   %>%
     visNodes(
       shadow = list(enabled = T, size = 10),
@@ -2596,6 +2589,7 @@ make_vn <- function(graf,scale=1,safe_limit=200){
 
 
 vn_fan_edges <- function(edges){
+  # browser()
   edges %>%
     mutate(a=ifelse(from>to,from,to),b=ifelse(from>to,to,from)) %>%
     unite(smooth_index,a,b,remove=F) %>%  # need to cope with arrows coming the other way as well
