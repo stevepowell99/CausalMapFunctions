@@ -1189,7 +1189,7 @@ calculate_robustness_inner <- function(graf){
 unwrap <- function(str){
   str_replace_all(str,"\n"," ")
 }
-find_fun <- function(df,field=NULL,value,operator=NULL,what,pager=F){
+find_fun <- function(df,field=NULL,value,operator=NULL,what){
   # browser()
   if(is.null(field) & is.null(operator)){
     field="label"
@@ -1215,12 +1215,12 @@ find_fun <- function(df,field=NULL,value,operator=NULL,what,pager=F){
               if(operator %in% xc("starts start")){df <- df %>%  mutate(found=str_detect(tolower(unwrap(UQ(sym(field)))),paste0("^",value %>% paste0(collapse="|"))))} else
                 if(operator %in% xc("ends end")){df <- df %>%  mutate(found=str_detect(tolower(unwrap(UQ(sym(field)))),paste0(value %>% paste0(collapse="|"),"$")))}
 
-
-  if(pager & operator %in% xc("= equals equal")){
-    vec <- df[,field] %>% unique
-    pager_current <- which(value_original==vec) %>% min
-    attr(df,"pager") <- list(pager=vec,pager_current=pager_current)
-  }
+#
+#   if(pager & operator %in% xc("= equals equal")){
+#     vec <- df[,field] %>% unique
+#     pager_current <- which(value_original==vec) %>% min
+#     attr(df,"pager") <- list(pager=vec,pager_current=pager_current)
+#   }
   df
 
 }
@@ -1499,10 +1499,10 @@ parse_commands <- function(graf=NULL,tex){
 
 # main graph functions ----------------------------------------------------
 
-pipe_page_factors <- function(...)pipe_find_factors(pager=T,...)
-pipe_page_statements <- function(...)pipe_find_statements(pager=T,...)
-pipe_page_links <- function(...)pipe_find_links(pager=T,...)
-
+# pipe_page_factors <- function(...)pipe_find_factors(pager=T,...)
+# pipe_page_statements <- function(...)pipe_find_statements(pager=T,...)
+# pipe_page_links <- function(...)pipe_find_links(pager=T,...)
+#
 
 #' Find factors
 #'
@@ -1533,11 +1533,11 @@ pipe_page_links <- function(...)pipe_find_links(pager=T,...)
 #' pipe_find_factors(cashTransferMap,field="label",value="Cash",operator="contains")
 #' pipe_find_factors(cashTransferMap,field="id",value=10,operator="greater")
 #' pipe_find_factors(cashTransferMap,NULL,"purchase OR buy")
-pipe_find_factors <- function(graf,field="label",value,operator="contains",up=1,down=1,pager=F){
+pipe_find_factors <- function(graf,field="label",value,operator="contains",up=1,down=1){
   st <- attr(graf,"statements")
-  df <- graf %>% factors_table %>% find_fun(field,value,operator,pager=pager)
-  pager <- df %>% attr("pager")
-  graf <- update_map(graf,factors=df) %>% add_attribute(pager,"pager")
+  df <- graf %>% factors_table %>% find_fun(field,value,operator)
+  # pager <- df %>% attr("pager")
+  graf <- update_map(graf,factors=df) #%>% add_attribute(pager,"pager")
 
   ig <- make_igraph(graf$factors,graf$links)
   downvec <- ig %>% igraph::distances(to=graf %>% factors_table %>% pull(found),mode="in") %>% apply(1,min) %>% `<=`(down)
@@ -1563,9 +1563,9 @@ pipe_find_factors <- function(graf,field="label",value,operator="contains",up=1,
 #' pipe_find_links(cashTransferMap,value="Cash")
 #' pipe_find_links(cashTransferMap,field="label",value="Cash",operator="contains")
 #' pipe_find_links(cashTransferMap,field="from",value="12",operator="greater")
-pipe_find_links <- function(graf,field=NULL,value,operator=NULL,pager=F){
+pipe_find_links <- function(graf,field=NULL,value,operator=NULL){
 # browser()
-  graf$links <- graf$links %>% find_fun(field,value,operator,pager=pager) %>% filter(found)
+  graf$links <- graf$links %>% find_fun(field,value,operator) %>% filter(found)
 
   graf
 
@@ -1578,9 +1578,9 @@ pipe_find_links <- function(graf,field=NULL,value,operator=NULL,pager=F){
 #' @export
 #'
 #' @examples
-pipe_find_statements <- function(graf,field,value,operator="=",pager=F){
+pipe_find_statements <- function(graf,field,value,operator="="){
 # browser()
-  statements <- graf$statements %>% find_fun(field,value,operator,pager=pager)  %>%
+  statements <- graf$statements %>% find_fun(field,value,operator)  %>%
     filter(found)
 
   links <- graf$links %>%  filter(statement_id %in% statements$statement_id)
@@ -2465,8 +2465,9 @@ make_vn <- function(graf,scale=1,safe_limit=200){
 
   nodes <- graf$factors %>% mutate(value=size*10) %>%
     select(any_of(xc("factor_id factor_id0 factor_memo  label color.background color.border title group value hidden size"))) ### restrictive in attempt to reduce random freezes
-  edges <- graf$links %>%  as_tibble %>% select(-any_of("label")) %>% rename(label=link_label) %>%
-    mutate_all(first_map)## in case there are any list columns left*****************
+  edges <- graf$links %>%  as_tibble %>% select(-any_of("label")) %>% rename(label=link_label)
+
+  if(nrow(edges)>0) edges <- edges %>% mutate_all(first_map)## in case there are any list columns left*****************
   edges <-  edges %>% vn_fan_edges()
   if(is.list(edges$width))edges$width=2 else edges$width=edges$width*10
   edges <-  edges  %>%
@@ -2590,6 +2591,7 @@ make_vn <- function(graf,scale=1,safe_limit=200){
 
 vn_fan_edges <- function(edges){
   # browser()
+  if(nrow(edges)==0)return(edges)
   edges %>%
     mutate(a=ifelse(from>to,from,to),b=ifelse(from>to,to,from)) %>%
     unite(smooth_index,a,b,remove=F) %>%  # need to cope with arrows coming the other way as well
