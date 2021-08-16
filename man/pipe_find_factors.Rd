@@ -11,7 +11,7 @@ pipe_find_factors(
   operator = "contains",
   up = 1,
   down = 1,
-  pager = F
+  remove_isolated = T
 )
 }
 \arguments{

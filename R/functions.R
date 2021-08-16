@@ -1615,7 +1615,7 @@ pipe_find_statements <- function(graf,field,value,operator="=",remove_isolated=T
 pipe_select_links <- function(graf,top=NULL,bottom=NULL){
   graf <- graf %>%
     pipe_bundle_links()
-
+# browser()
   links <- graf$links %>%
     arrange(desc(frequency)) %>%
     {if(!is.null(top))slice(.,1:top) else slice(.,(nrow_links_table(graf)+1-bottom):nrow_links_table(graf))} %>%
@@ -1784,14 +1784,17 @@ pipe_bundle_links <- function(graf,group="link_id"){
 # browser()
 
 
-    if(is.null(group)){
+  if(is.null(group)){
   links <- links %>% chop(!c(from,to))
   } else {
     if(group %notin% coln) {notify("no such group");return(graf)}else
-  links <- links %>% chop(!c(from,to,!!(sym(group))))
+  # links <- links %>% chop(!c(from,to,!!(sym(group))))
+
+
+  links <- links %>% group_by(from,to) %>% mutate(frequency=n()) %>% summarise_all(first) %>% ungroup
   }
 
-  links <- links %>% mutate(frequency=fun_map(link_id,"length"))#legacy
+  # links <- links %>% mutate(frequency=fun_map(link_id,"length"))#legacy
 
 
   update_map(graf,links=links)
@@ -2123,7 +2126,8 @@ pipe_scale_links <- function(graf,field="frequency",fixed=NULL,fun="length"){
   class <- graf$links %>% pull(UQ(sym(field))) %>% class
   if(class =="character"){warning("No such column");return(graf)}
   # browser()
-  links <- graf$links %>% mutate(width=scales::rescale(fun_map(UQ(sym(field)),fun),to=c(0.1,1)))
+  links <- graf$links %>% mutate(width=scales::rescale(UQ(sym(field)),to=c(0.1,1)))
+  # links <- graf$links %>% mutate(width=scales::rescale(fun_map(UQ(sym(field)),fun),to=c(0.1,1)))
   graf  %>% update_map(links=links)
 
 
@@ -2268,12 +2272,13 @@ pipe_color_borders <- function(graf,field="frequency",lo="green",hi="blue",mid="
 #'
 #'
 #' @examples
-pipe_color_links <- function(graf,field="link_id",lo="green",hi="blue",mid="gray",fixed=NULL,fun="length"){
+pipe_color_links <- function(graf,field="frequency",lo="green",hi="blue",mid="gray",fixed=NULL,fun="length"){
 # browser()
   if(field %notin% link_colnames(graf)){warning("No such column");return(graf)}
   if(!is.null(fixed)) links <- graf$links %>% mutate(color=fixed) else
     links <- graf$links %>%
-      mutate(color=create_colors(fun_map(UQ(sym(field)),fun),lo=lo,hi=hi,mid=mid,type="color_links",field=field))
+      mutate(color=create_colors(UQ(sym(field)),lo=lo,hi=hi,mid=mid,type="color_links",field=field))
+      # mutate(color=create_colors(fun_map(UQ(sym(field)),fun),lo=lo,hi=hi,mid=mid,type="color_links",field=field))
   graf %>% update_map(links=links)
 
 }
