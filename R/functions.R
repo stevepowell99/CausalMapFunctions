@@ -280,7 +280,7 @@ brewer_pal_n <- function(vec){
   vec <- vec %>% as.factor %>% as.numeric
   scales::brewer_pal("qual")(length(unique(vec)))[vec] %>% alpha(.95)
 }
-create_colors <- function(vec,lo,hi,mid,type,field=""){
+create_colors <- function(vec,lo="blue",hi="red",mid="gray",type,field="frequency"){
   # browser()
   if(class(vec)=="character") res <- brewer_pal_n(vec) else
     if(lo %in% xc("white gray lightgray")) res <- colour_ramp(c(lo,hi))(rescale(vec)) else
@@ -653,19 +653,21 @@ flow <- attr(links,"flow")
     factors=standard_factors()
     links=standard_links()
   }
+  # browser()
   if(!is.null(links)){
     links <-  links %>%
       add_column(.name_repair="minimal",!!!standard_links())   %>%
       select(which(!duplicated(colnames(.)))) %>%
       # select(any_of(colnames(standard_links()))) %>%
       mutate(link_id=row_number())%>%
-      filter(!is.na(from) & !is.na(to)) %>%
-      mutate(strength=as.numeric(strength)) %>%  #TODO warning
-      mutate(weight=as.numeric(weight)) %>%  #TODO warning
-      mutate(certainty=as.numeric(certainty))  #TODO warning
+      filter(!is.na(from) & !is.na(to))
+
+    # %>%
+    #   mutate(strength=as.numeric(strength)) %>%  #TODO warning
+    #   mutate(weight=as.numeric(weight)) %>%  #TODO warning
+    #   mutate(certainty=as.numeric(certainty))  #TODO warning
 
   }
-  # browser()
 if(is.null(factors) & !is.null(links)){
   factors <- tibble(factor_id=get_all_link_ids(links),factor_id0=factor_id) %>% fix_columns_factors()
 }
@@ -737,7 +739,6 @@ if(!is.null(factors)){
     warning("multiple IDs")
     notify("multiple IDs")
   }
-  # browser()
 
   if(!is.null(statements)){if(!identical(statements$statement_id,row_index(statements))){
     statements <- filter(statements,!is.na(statement_id))
@@ -747,9 +748,10 @@ if(!is.null(factors)){
     notify("Normalising statement ids")
   }}
 
-  links <- links %>% mutate(statement_id=as.integer(statement_id))
-  statements <- statements %>% mutate(statement_id=as.integer(statement_id))
+  if(is.character(links$statement_id))links <- links %>% mutate(statement_id=as.integer(statement_id))
+  if(is.character(statements$statement_id))statements <- statements %>% mutate(statement_id=as.integer(statement_id))
 
+  # browser()
   sources$source_id <- coerceValue(sources$source_id,statements$source_id)
   questions$question_id <- coerceValue(questions$question_id,statements$question_id)
   links$statement_id <- coerceValue(links$statement_id,statements$statement_id)
@@ -1533,7 +1535,7 @@ parse_commands <- function(graf=NULL,tex){
 #' pipe_find_factors(cashTransferMap,field="label",value="Cash",operator="contains")
 #' pipe_find_factors(cashTransferMap,field="id",value=10,operator="greater")
 #' pipe_find_factors(cashTransferMap,NULL,"purchase OR buy")
-pipe_find_factors <- function(graf,field="label",value,operator="contains",up=1,down=1){
+pipe_find_factors <- function(graf,field="label",value,operator="contains",up=1,down=1,remove_isolated=T){
   st <- attr(graf,"statements")
   df <- graf %>% factors_table %>% find_fun(field,value,operator)
   # pager <- df %>% attr("pager")
@@ -1542,11 +1544,12 @@ pipe_find_factors <- function(graf,field="label",value,operator="contains",up=1,
   ig <- make_igraph(graf$factors,graf$links)
   downvec <- ig %>% igraph::distances(to=graf %>% factors_table %>% pull(found),mode="in") %>% apply(1,min) %>% `<=`(down)
   upvec <- ig %>% igraph::distances(to=graf %>% factors_table %>% pull(found),mode="out") %>% apply(1,min) %>% `<=`(up)
-
+# browser()
   if(any(upvec)|any(downvec))
     graf %>% update_map(factors=factors_table(graf) %>% filter(found|upvec|downvec)) %>%
     pipe_normalise_factors_links %>%
-    pipe_remove_isolated_links() else
+    pipe_remove_isolated_links() %>%
+    {if(remove_isolated) pipe_remove_isolated(.) else .} else
       graf %>% filter(F)
   # if we don't clean the map here, the factor and link ids get out of sync
 
@@ -1563,11 +1566,11 @@ pipe_find_factors <- function(graf,field="label",value,operator="contains",up=1,
 #' pipe_find_links(cashTransferMap,value="Cash")
 #' pipe_find_links(cashTransferMap,field="label",value="Cash",operator="contains")
 #' pipe_find_links(cashTransferMap,field="from",value="12",operator="greater")
-pipe_find_links <- function(graf,field=NULL,value,operator=NULL){
+pipe_find_links <- function(graf,field=NULL,value,operator="contains",remove_isolated=T){
 # browser()
   graf$links <- graf$links %>% find_fun(field,value,operator) %>% filter(found)
 
-  graf
+  if(remove_isolated) pipe_remove_isolated(graf) else  graf
 
 }
 
@@ -1578,7 +1581,7 @@ pipe_find_links <- function(graf,field=NULL,value,operator=NULL){
 #' @export
 #'
 #' @examples
-pipe_find_statements <- function(graf,field,value,operator="="){
+pipe_find_statements <- function(graf,field,value,operator="=",remove_isolated=T){
 # browser()
   statements <- graf$statements %>% find_fun(field,value,operator)  %>%
     filter(found)
@@ -1589,7 +1592,8 @@ pipe_find_statements <- function(graf,field,value,operator="="){
            update_map(
              links=links,
              statements=statements
-             )
+           ) %>%
+           {if(remove_isolated) pipe_remove_isolated(.) else .}
          )
 
 
@@ -1770,21 +1774,17 @@ pipe_bundle_factors <- function(graf,value=""){
 #' if(F)cashTransferMap %>% pipe_merge_statements() %>%  pipe_select_factors(10) %>% pipe_bundle_links(counter="frequency",group="1. Sex")%>% pipe_label_links(field = "frequency") %>% pipe_color_links(field="1. Sex") %>% pipe_scale_links() %>%  make_grviz()
 #' # or, counting sources rather than statements:
 #' if(F)cashTransferMap %>% pipe_merge_statements() %>%  pipe_select_factors(10) %>% pipe_bundle_links(group="1. Sex",counter="#SourceID")%>% pipe_label_links(field = "frequency") %>% pipe_color_links(field="1. Sex") %>% pipe_scale_links() %>%  make_grviz()
-pipe_bundle_links <- function(graf,group=NULL){
+pipe_bundle_links <- function(graf,group="link_id"){
   links <- graf$links
   coln <- colnames(links)
 
-#
-#   if(counter %notin% coln & counter!="frequency" ) {
-#     notify("counter not found, trying with s.") #legacy
-#     if(paste0("s.",counter) %in% coln  & counter!="frequency") counter <-  paste0("s.",counter) else
-#     {
-#       notify("counter not found")
-#       return(graf)
-#
-#     }
-#   }
-  if(is.null(group)){
+  lists <- links %>% map(is.list) %>% unlist
+  if(sum(lists)>0) links <- unchop(links,which(lists)) # in case it is already bundled
+
+# browser()
+
+
+    if(is.null(group)){
   links <- links %>% chop(!c(from,to))
   } else {
     if(group %notin% coln) {notify("no such group");return(graf)}else
@@ -1792,31 +1792,7 @@ pipe_bundle_links <- function(graf,group=NULL){
   }
 
   links <- links %>% mutate(frequency=fun_map(link_id,"length"))#legacy
-#
-#   if(is.null(group)) links <- links %>% group_by(from,to) else
-#     links <- links %>% group_by(from,to,UQ(sym(group)))
-#
-#   if (counter == "frequency") {
-#     if ("frequency" %in% coln){
-#
-#       # browser()
-#       links <- links %>%
-#         mutate(rn_ = row_number()) %>%
-#         mutate(frequency = sum(frequency))
-#     }else
-#       links <- links %>%
-#         mutate(rn_ = row_number()) %>%
-#         mutate(frequency = n())
-#   } else
-#     links <- links %>%
-#     mutate(rn_ = row_number()) %>%
-#     mutate(frequency = length(unique(UQ(sym(
-#       counter
-#     )))))
-#
-#   links <-
-#     links %>%
-#     filter(rn_ == 1) %>% ungroup %>% select(-rn_)
+
 
   update_map(graf,links=links)
 
@@ -2160,6 +2136,7 @@ fun_map <- function(vec,fun){
 
 }
 first_map <- function(vec,fun){
+
   map(vec,first) %>% unlist
 
 }
@@ -2291,9 +2268,9 @@ pipe_color_borders <- function(graf,field="frequency",lo="green",hi="blue",mid="
 #'
 #'
 #' @examples
-pipe_color_links <- function(graf,field="frequency",lo="green",hi="blue",mid="gray",fixed=NULL,fun="length"){
-  if(field %notin% link_colnames(graf)){warning("No such column");return(graf)}
+pipe_color_links <- function(graf,field="link_id",lo="green",hi="blue",mid="gray",fixed=NULL,fun="length"){
 # browser()
+  if(field %notin% link_colnames(graf)){warning("No such column");return(graf)}
   if(!is.null(fixed)) links <- graf$links %>% mutate(color=fixed) else
     links <- graf$links %>%
       mutate(color=create_colors(fun_map(UQ(sym(field)),fun),lo=lo,hi=hi,mid=mid,type="color_links",field=field))
@@ -2460,13 +2437,13 @@ make_vn <- function(graf,scale=1,safe_limit=200){
 
   }
 
-  # browser()
   if(max(table(graf$factors$size))>1)graf <- graf %>% update_map(factors=.$factors %>% arrange((size))) %>% pipe_normalise_factors_links()#because this is the way to get the most important ones in front
 
   nodes <- graf$factors %>% mutate(value=size*10) %>%
     select(any_of(xc("factor_id factor_id0 factor_memo  label color.background color.border title group value hidden size"))) ### restrictive in attempt to reduce random freezes
   edges <- graf$links %>%  as_tibble %>% select(-any_of("label")) %>% rename(label=link_label)
 
+  # browser()
   if(nrow(edges)>0) edges <- edges %>% mutate_all(first_map)## in case there are any list columns left*****************
   edges <-  edges %>% vn_fan_edges()
   if(is.list(edges$width))edges$width=2 else edges$width=edges$width*10
@@ -2744,7 +2721,9 @@ make_grviz <- function(
     select(any_of(xc("label size tooltip fillcolor color fontsize fontcolor cluster"))) %>%
     mutate(factor_id=row_number())
 
+# browser()
   links <- graf$links %>%
+    mutate_all(first_map)%>%
     select(any_of(xc("from to color width link_label width from_label to_label"))) %>%
     rename(label=link_label) %>%
     mutate(from=as.numeric(from))%>%
@@ -2757,7 +2736,6 @@ make_grviz <- function(
     # mutate(color="blue") %>%
     mutate(arrowhead="vee")
 
-# browser()
 
   grv <-
     DiagrammeR::create_graph() %>%
