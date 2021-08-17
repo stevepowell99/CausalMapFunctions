@@ -328,7 +328,7 @@ fix_columns_links <- function(links){
   if(!("frequency" %in% colnames(links))) links <- links %>% mutate(frequency=1L)
   if(!("capacity" %in% colnames(links))) links <- links %>% mutate(capacity=1L)
   if(!("label" %in% colnames(links))) links <- links %>% mutate(label="")
-  # if(!("width" %in% colnames(links))) links <- links %>% mutate(width=.2)
+  if(!("width" %in% colnames(links))) links <- links %>% mutate(width=.2)
   if(!("link_id0" %in% colnames(links))) links <- links %>% mutate(link_id0=1L)
   links
 }
@@ -1774,26 +1774,31 @@ pipe_bundle_factors <- function(graf,value=""){
 #' if(F)cashTransferMap %>% pipe_merge_statements() %>%  pipe_select_factors(10) %>% pipe_bundle_links(counter="frequency",group="1. Sex")%>% pipe_label_links(field = "frequency") %>% pipe_color_links(field="1. Sex") %>% pipe_scale_links() %>%  make_grviz()
 #' # or, counting sources rather than statements:
 #' if(F)cashTransferMap %>% pipe_merge_statements() %>%  pipe_select_factors(10) %>% pipe_bundle_links(group="1. Sex",counter="#SourceID")%>% pipe_label_links(field = "frequency") %>% pipe_color_links(field="1. Sex") %>% pipe_scale_links() %>%  make_grviz()
-pipe_bundle_links <- function(graf,group="link_id"){
+pipe_bundle_links <- function(graf,group=NULL,count="link_id"){
   links <- graf$links
   coln <- colnames(links)
+    if(count %notin% coln) {notify("no such counter");return(graf)}else
 
   lists <- links %>% map(is.list) %>% unlist
   if(sum(lists)>0) links <- unchop(links,which(lists)) # in case it is already bundled
 
-# browser()
 
 
   if(is.null(group)){
-  links <- links %>% chop(!c(from,to))
+  links <- links %>% group_by(from,to)
+  # links <- links %>% chop(!c(from,to))
   } else {
     if(group %notin% coln) {notify("no such group");return(graf)}else
   # links <- links %>% chop(!c(from,to,!!(sym(group))))
 
+  links <- links %>% group_by(from,to,!!(sym(group)))
 
-  links <- links %>% group_by(from,to) %>% mutate(frequency=n()) %>% summarise_all(first) %>% ungroup
+  # links <- links %>% group_by(from,to) %>% mutate(frequency=n()) %>% summarise_all(first) %>% ungroup
   }
+# browser()
 
+  links <- links %>% mutate(frequency=length(unique(!!(sym(count))))) %>%
+    summarise_all(first) %>% ungroup #legacy
   # links <- links %>% mutate(frequency=fun_map(link_id,"length"))#legacy
 
 
