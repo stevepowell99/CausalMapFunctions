@@ -315,6 +315,7 @@ fix_columns_factors <- function(factors){
   if(!("out_degree" %in% colnames(factors))) factors <- factors %>% mutate(out_degree=1L)
   if(!("size" %in% colnames(factors))) factors <- factors %>% mutate(size=1L)
   if(!("found" %in% colnames(factors))) factors <- factors %>% mutate(found=1L)
+  if(!("found_type" %in% colnames(factors))) factors <- factors %>% mutate(found_type="")
 
   factors
 }
