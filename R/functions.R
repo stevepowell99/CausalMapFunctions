@@ -1620,13 +1620,21 @@ pipe_find_statements <- function(graf,field,value,operator="=",remove_isolated=T
 #'
 #' @examples
 pipe_select_links <- function(graf,top=NULL,bottom=NULL){
-  graf <- graf %>%
-    pipe_bundle_links()
-# browser()
   links <- graf$links %>%
-    arrange(desc(frequency)) %>%
-    {if(!is.null(top))slice(.,1:top) else slice(.,(nrow_links_table(graf)+1-bottom):nrow_links_table(graf))} %>%
-    select(from,to,frequency,everything())
+    group_by(bundle) %>%
+    mutate(.f=n())%>%
+    ungroup %>%
+    arrange(desc(.f),bundle) %>%
+    mutate(.index=(lag(bundle,default="")!=bundle) %>% cumsum()) %>%
+    filter(.index<=top)
+
+#   graf <- graf %>%
+#     pipe_bundle_links()
+# # browser()
+#   links <- graf$links %>%
+#     arrange(desc(frequency)) %>%
+#     {if(!is.null(top))slice(.,1:top) else slice(.,(nrow_links_table(graf)+1-bottom):nrow_links_table(graf))} %>%
+#     select(from,to,frequency,everything())
 
   update_map(graf,links=links) %>%
     pipe_remove_isolated
