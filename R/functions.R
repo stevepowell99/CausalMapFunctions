@@ -172,6 +172,12 @@ notify <- notify # alias
 #   return()
 # }
 
+# mode average / most frequent
+getmode <- function(v) {
+  uniqv <- unique(v)
+  uniqv[which.max(tabulate(match(v, uniqv)))]
+}
+
 ## from DT package
 coerceValue <- function (val, old)
 {
@@ -1798,7 +1804,7 @@ pipe_bundle_links <- function(graf,group=NULL,count="link_id"){
 # browser()
 
   links <- links %>% mutate(frequency=length(unique(!!(sym(count))))) %>%
-    summarise_all(first) %>% ungroup #legacy
+    summarise_all(getmode) %>% ungroup #legacy       ############# NOTE MODE
   # links <- links %>% mutate(frequency=fun_map(link_id,"length"))#legacy
 
 
@@ -2691,7 +2697,7 @@ make_grviz <- function(
   # if((nrow(graf %>% links_table)>safe_limit))notify("Map larger than 'safe limit'; setting print layout to use straight edges")
 
   maxwidth <- replace_null(maxwidth,graf %>% attr("set_print") %>% .$maxwidth %>% replace_null("dot"))
-
+# browser()
   grv_layout <- replace_null(grv_layout,
                              graf %>% attr("set_print") %>% .$grv_layout %>% replace_null(
                                if_else(nrow(graf %>% factors_table)>safe_limit/3,"twopi","dot")))
@@ -2730,6 +2736,8 @@ make_grviz <- function(
     mutate(fontcolor="black") %>%
     select(any_of(xc("label size tooltip fillcolor color fontsize fontcolor cluster"))) %>%
     mutate(factor_id=row_number())
+
+  if(is.null(factors$cluster))factors$cluster <- ""
 
 # browser()
   links <- graf$links %>%
