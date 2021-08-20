@@ -177,6 +177,9 @@ getmode <- function(v) {
   uniqv <- unique(v)
   uniqv[which.max(tabulate(match(v, uniqv)))]
 }
+getmean <- function(v) {mean(as.numeric(v),na.rm=T)}
+getsum <- function(v) {sum(as.numeric(v),na.rm=T)}
+getmedian <- function(v) {median(as.numeric(v),na.rm=T)}
 
 ## from DT package
 coerceValue <- function (val, old)
@@ -1792,12 +1795,16 @@ pipe_bundle_factors <- function(graf,value=""){
 #' if(F)cashTransferMap %>% pipe_merge_statements() %>%  pipe_select_factors(10) %>% pipe_bundle_links(counter="frequency",group="1. Sex")%>% pipe_label_links(field = "frequency") %>% pipe_color_links(field="1. Sex") %>% pipe_scale_links() %>%  make_grviz()
 #' # or, counting sources rather than statements:
 #' if(F)cashTransferMap %>% pipe_merge_statements() %>%  pipe_select_factors(10) %>% pipe_bundle_links(group="1. Sex",counter="#SourceID")%>% pipe_label_links(field = "frequency") %>% pipe_color_links(field="1. Sex") %>% pipe_scale_links() %>%  make_grviz()
-pipe_bundle_links <- function(graf,group=NULL,count="link_id"){
+pipe_bundle_links <- function(graf,group="bundle"){
   links <- graf$links
   coln <- colnames(links)
-    if(count %notin% coln) {notify("no such counter");return(graf)}else
+    if(group %notin% coln) {notify("no such counter");return(graf)}else
+# browser()
+  return(update_map(graf,links=graf$links %>% add_attribute(group,attr = "group")))
 
-  lists <- links %>% map(is.list) %>% unlist
+
+
+if(F){  lists <- links %>% map(is.list) %>% unlist
   if(sum(lists)>0) links <- unchop(links,which(lists)) # in case it is already bundled
 
 
@@ -1820,7 +1827,9 @@ pipe_bundle_links <- function(graf,group=NULL,count="link_id"){
   # links <- links %>% mutate(frequency=fun_map(link_id,"length"))#legacy
 
 
-  update_map(graf,links=links)
+}
+
+
 
 }
 
@@ -2439,6 +2448,75 @@ link_click_delete <- function(id){
   as.character(shiny::actionLink(inputId = paste0('link_click_delete_',id), label = "Delete link",class="linky"))
 }
 
+fixed <- function(...) 2L
+fixed_string <- function(...)""
+
+prepare_visual_bundles <- function(graf,
+                                   group=NULL,
+                                   color_field=NULL,
+                                   color_fun=NULL,
+                                   size_field=NULL,
+                                   size_fun=NULL,
+                                   label_field=NULL,
+                                   label_fun=NULL,
+                                   lo="",
+                                   mid="",
+                                   hi=""
+                                   ){
+  if(is.null(graf))return(graf)
+  if(group %>% replace_null("")=="")group <- "link_id"
+  # browser()
+  if((group) %notin% colnames(graf$links))return(graf)
+
+  if(lo%>% replace_null("")=="" )lo <- "white"
+  if(mid%>% replace_null("")=="" )mid <- "white"
+  if(hi%>% replace_null("")=="" )hi <- "green"
+  if(color_field%>% replace_null("")=="" )color_field <- "link_id"
+  if(size_field%>% replace_null("")=="" )size_field <- "link_id"
+  if(label_field%>% replace_null("")=="" )label_field <- "link_id"
+  if(color_fun %>% replace_null("")=="")color_fun <- "fixed"
+  if(color_fun=="mean")color_fun <- "getmean"
+  if(color_fun=="sum")color_fun <- "getsum"
+  if(color_fun=="median")color_fun <- "getmedian"
+  if(color_fun=="mode")color_fun <- "getmode"
+  if(color_fun=="unique")color_fun <- "count_unique"
+  if(size_fun %>% replace_null("")=="")size_fun <- "fixed"
+  if(size_fun=="mean")size_fun <- "getmean"
+  if(size_fun=="sum")size_fun <- "getsum"
+  if(size_fun=="median")size_fun <- "getmedian"
+  if(size_fun=="mode")size_fun <- "getmode"
+  if(size_fun=="unique")size_fun <- "count_unique"
+  if(label_fun %>% replace_null("")=="")label_fun <- "fixed_string"
+  if(label_fun=="mean")label_fun <- "getmean"
+  if(label_fun=="sum")label_fun <- "getsum"
+  if(label_fun=="median")label_fun <- "getmedian"
+  if(label_fun=="mode")label_fun <- "getmode"
+  if(label_fun=="unique")label_fun <- "count_unique"
+
+# browser()
+  links <-
+    graf$links %>% {if(is.null(group))group_by(.,from,to) else group_by(.,from,to,!!(sym(group)))} %>%
+    summarise(
+      frequency=n(),
+      color=exec(color_fun,!!sym(color_field)),
+      width=exec(size_fun,!!sym(size_field)),
+      link_label=exec(label_fun,!!sym(label_field)),
+      link_id0=collapse_unique(link_id0),
+      link_memo=collapse_unique(link_memo),
+      quote=collapse_unique(quote),
+      s.source_id=collapse_unique(s.source_id),
+      statement_id=collapse_unique(statement_id),
+      s.question_id=collapse_unique(s.question_id)
+      ) %>%
+    ungroup %>%
+    mutate(
+      color=create_colors(color,type="color_links",lo=lo,mid=mid,hi=hi),
+      width=scales::rescale(as.numeric(width),to=c(0.1,1))
+    )
+  # browser()
+  update_map(graf,links=links)
+
+}
 
 ## visNetwork --------------------------------------------------------------
 
@@ -2456,6 +2534,8 @@ link_click_delete <- function(id){
 make_vn <- function(graf,scale=1,safe_limit=200){
 
   # browser()
+  # graf <- prepare_visual_bundles(graf)
+
   if(nrow(links_table(graf))>replace_null(safe_limit,200)){
     notify("Map larger than 'safe limit'; bundling and labelling links")
     graf <- graf %>%
@@ -2485,7 +2565,6 @@ make_vn <- function(graf,scale=1,safe_limit=200){
   }
   nodes <- nodes %>%   mutate(id=row_number())
   edges <- edges %>%   mutate(id=NULL) # id would be necessary for getting ids from clicks etc, but seems to stop tooltip from working
-# browser()
   nodes <-
     nodes %>% mutate(title=paste0(
       map(label,factor_click_name),
@@ -2498,6 +2577,7 @@ make_vn <- function(graf,scale=1,safe_limit=200){
       "</br>",
       paste0("Memo:", factor_memo)
       ))
+# browser()
   edges <-
     edges %>% mutate(title=paste0(
       map(link_id0,link_click_delete),
@@ -2670,6 +2750,10 @@ pipe_set_print <- function(
     )
 }
 
+literal <- function(lis){
+  paste0(lis,collapse = "; ")
+}
+
 #' Make a Graphviz map
 #' @description Make a Graphviz map: https://graphviz.org/documentation/
 #' @param graf A tidymap. Link and factor tables may contain columns to control formatting
@@ -2703,13 +2787,16 @@ make_grviz <- function(
 ){
   # graf b
   # if(is.null(grv_layout))
+
+  # graf <- prepare_visual_bundles(graf)
+
+# browser()
   safe_limit <- replace_null(safe_limit,graf %>% attr("set_print") %>% .$safe_limit %>% replace_null(200))
 
   # if((nrow(graf %>% factors_table)>safe_limit/3))notify("Map larger than 'safe limit'; setting print layout to twopi")
   # if((nrow(graf %>% links_table)>safe_limit))notify("Map larger than 'safe limit'; setting print layout to use straight edges")
 
   maxwidth <- replace_null(maxwidth,graf %>% attr("set_print") %>% .$maxwidth %>% replace_null("dot"))
-# browser()
   grv_layout <- replace_null(grv_layout,
                              graf %>% attr("set_print") %>% .$grv_layout %>% replace_null(
                                if_else(nrow(graf %>% factors_table)>safe_limit/3,"twopi","dot")))
@@ -2753,12 +2840,12 @@ make_grviz <- function(
 
 # browser()
   links <- graf$links %>%
-    mutate_all(first_map)%>%
+    # mutate_all(first_map)%>%
     select(any_of(xc("from to color width link_label width from_label to_label"))) %>%
     rename(label=link_label) %>%
     mutate(from=as.numeric(from))%>%
     mutate(to=as.numeric(to))%>%
-    mutate(label=if_else(label=="",".",label))%>%
+    mutate(label=if_else(label=="",".",as.character(label)))%>%
     mutate(label=clean_grv(label) )%>%
     mutate(label=replace_na(label,"."))%>% # obscure! if all are =="", error
     mutate(penwidth=width*48)%>%
