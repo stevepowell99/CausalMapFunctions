@@ -177,9 +177,9 @@ getmode <- function(v) {
   uniqv <- unique(v)
   uniqv[which.max(tabulate(match(v, uniqv)))]
 }
-getmean <- function(v) {mean(as.numeric(v),na.rm=T)}
-getsum <- function(v) {sum(as.numeric(v),na.rm=T)}
-getmedian <- function(v) {median(as.numeric(v),na.rm=T)}
+getmean <- function(v) {mean(as.numeric(v),na.rm=T) %>% round(digits = 2)}
+getsum <- function(v) {sum(as.numeric(v),na.rm=T) %>% round(digits = 2)}
+getmedian <- function(v) {median(as.numeric(v),na.rm=T) %>% round(digits = 2)}
 
 ## from DT package
 coerceValue <- function (val, old)
