@@ -139,6 +139,44 @@ get_map_tables_from_s3_pieces <- function(path){
   # browser()
   if(!is.null(statements))statements <-  join_statements_to_meta(statements,statements_extra) %>% select(statement_id,everything())
   # graf <- create_map(factors,links)
+
+  if("#SourceID" %in% colnames(statements)){
+    statements <- statements %>% select(-any_of("source_id")) %>% rename(source_id=`#SourceID`)
+    tmpb <- statements %>%
+      select(-any_of("timestamp")) %>%
+      group_by(`source_id`) %>%
+      summarise(across(everything(),~length(unique(.)))) %>%
+      ungroup %>%
+      select(-`source_id`)
+    source_cols <- colnames(tmpb)[tmpb %>% summarise_all(~min(.)==1&max(.)==1) %>% unlist]
+    # browser()
+  #
+    sources <- statements[,c("source_id",source_cols)] %>%
+      group_by(`source_id`) %>%
+      summarise_all(first)
+  #
+  #
+  #
+  }
+
+  if("#QuestionID" %in% colnames(statements)){
+    statements <- statements %>% select(-any_of("question_id")) %>% rename(question_id=`#QuestionID`)
+    tmpa <- statements %>%
+      select(-any_of("timestamp")) %>%
+      group_by(`question_id`) %>%
+      summarise(across(everything(),~length(unique(.)))) %>%
+      ungroup %>%
+      select(-`question_id`)
+    question_cols <- colnames(tmpa)[tmpa %>% summarise_all(~min(.)==1&max(.)==1) %>% unlist]
+    questions <- statements[,c("question_id",question_cols)] %>%
+      group_by(`question_id`) %>%
+      summarise_all(first)
+
+  }
+  statements <-
+    statements %>% select(-colnames(sources),-colnames(questions),any_of("source_id"),any_of("question_id"))
+#
+# browser()
   # attr(graf,"statements") <- statements_with_meta
   notify("Loaded cm1 file")
   list(
@@ -569,6 +607,7 @@ load_map <- function(path=NULL,connection=conn){
       if(is.null(graf$factors) & !is.null(graf$nodes)) graf$factors <- graf$nodes
       if(is.null(graf$links) & !is.null(graf$edges)) graf$links <- graf$edges
     } else if(type=="cm1"){
+        # browser()
       graf <- get_map_tables_from_s3_pieces(path %>% paste0("causalmap/app-sync/",.))
       if(is.null(graf))return(NULL)
     } else if(type=="unknown"){
@@ -655,6 +694,7 @@ assemble_map <- function(factors=NULL,links=NULL,statements=NULL,sources=NULL,qu
 #'
 #' @examples
 pipe_clean_map <- function(tables=NULL){
+  # browser()
   if(!is.null(tables)){
     factors <- tables$factors
     links <- tables$links
@@ -738,6 +778,7 @@ if(!is.null(factors)){
   factors <- tmp$factors
   links <- tmp$links
 
+  # browser()
   sources <- sources %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_sources()) %>% select(which(!duplicated(colnames(.)))) #%>% select(any_of(colnames(standard_sources())))
   questions <- questions %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_questions()) %>% select(which(!duplicated(colnames(.))))#%>% select(any_of(colnames(standard_questions())))
   settings <- settings %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_settings()) %>% select(any_of(colnames(standard_settings())))
@@ -2369,11 +2410,14 @@ pipe_wrap_factors <- function(graf,length=20){
 #'
 #' @examples
 pipe_wrap_links <- function(graf,length=20){
+  # browser()
   graf %>%
     update_map(links=
     graf$links %>%
       mutate(label=str_remove_all(label,"\n")) %>%
-    mutate(label=str_wrap(label,length))
+    mutate(label=str_wrap(label,length)) %>%
+      mutate(link_label=str_remove_all(link_label,"\n")) %>%
+    mutate(link_label=str_wrap(link_label,length))
     )
 }
 
