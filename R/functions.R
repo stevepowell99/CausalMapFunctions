@@ -2511,6 +2511,24 @@ link_click_delete <- function(id){
 fixed <- function(...) 2L
 fixed_string <- function(...)""
 
+#' Prepare visual bundles
+#'
+#' @param graf
+#' @param group
+#' @param color_field
+#' @param color_fun
+#' @param size_field
+#' @param size_fun
+#' @param label_field
+#' @param label_fun
+#' @param lo
+#' @param mid
+#' @param hi
+#'
+#' @return
+#' @export
+#'
+#' @examples
 prepare_visual_bundles <- function(graf,
                                    group=NULL,
                                    color_field=NULL,
