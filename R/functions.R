@@ -2509,12 +2509,13 @@ prepare_visual_bundles <- function(graf,
       color=exec(color_fun,!!sym(color_field)),
       width=exec(size_fun,!!sym(size_field)),
       link_label=exec(label_fun,!!sym(label_field)),
-      link_id0=collapse_unique(link_id0),
-      link_memo=collapse_unique(link_memo),
-      quote=collapse_unique(quote),
-      s.source_id=collapse_unique(s.source_id),
-      statement_id=collapse_unique(statement_id),
-      s.question_id=collapse_unique(s.question_id)
+      across(everything(),collapse_unique)
+      # link_id0=collapse_unique(link_id0),
+      # link_memo=collapse_unique(link_memo),
+      # quote=collapse_unique(quote),
+      # s.source_id=collapse_unique(s.source_id),
+      # statement_id=collapse_unique(statement_id),
+      # s.question_id=collapse_unique(s.question_id)
       ) %>%
     ungroup %>%
     mutate(
