@@ -210,6 +210,13 @@ notify <- notify # alias
 #   return()
 # }
 
+
+as_numeric_if_all <- function(vec){
+  if(!any(is.na(as.numeric(vec)))) as.numeric(vec) else
+    vec
+}
+
+
 # mode average / most frequent
 getmode <- function(v) {
   uniqv <- unique(v)
@@ -731,6 +738,7 @@ if(!is.null(factors)){
       {if("factor_id" %notin% colnames(.)) mutate(.,factor_id=row_number()) else .} %>%
       add_column(.name_repair="minimal",!!!standard_factors())  %>%
       select(which(!duplicated(colnames(.)))) %>%
+      select(-any_of(xc("color.border color.background"))) %>%
       # select(any_of(colnames(standard_factors()))) %>%
       mutate(label=as.character(label)) %>%
       filter(!is.na(factor_id)) #TODO warning
@@ -927,7 +935,7 @@ compact_map <- function(graf){
 
 }
 collapse_unique <- function(vec){
-  paste0(unique(vec),collapse="; ")
+  paste0(unique(vec),collapse="; ")# %>% as_numeric_if_all
 }
 compact_factors_links <- function(factors,links){
   if(factors$label %>% table %>% max %>% `>`(1)){
@@ -2531,30 +2539,37 @@ prepare_visual_bundles <- function(graf,
   if(color_fun=="sum")color_fun <- "getsum"
   if(color_fun=="median")color_fun <- "getmedian"
   if(color_fun=="mode")color_fun <- "getmode"
-  if(color_fun=="unique")color_fun <- "count_unique"
+  if(color_fun=="count")color_fun <- "count_unique"
   if(size_fun %>% replace_null("")=="")size_fun <- "fixed"
   if(size_fun=="mean")size_fun <- "getmean"
   if(size_fun=="sum")size_fun <- "getsum"
   if(size_fun=="median")size_fun <- "getmedian"
   if(size_fun=="mode")size_fun <- "getmode"
-  if(size_fun=="unique")size_fun <- "count_unique"
+  if(size_fun=="count")size_fun <- "count_unique"
   if(label_fun %>% replace_null("")=="")label_fun <- "fixed_string"
   if(label_fun=="mean")label_fun <- "getmean"
   if(label_fun=="sum")label_fun <- "getsum"
   if(label_fun=="median")label_fun <- "getmedian"
   if(label_fun=="mode")label_fun <- "getmode"
-  if(label_fun=="unique")label_fun <- "count_unique"
+  if(label_fun=="count")label_fun <- "count_unique"
 
 # browser()
   links <-
     graf$links %>% {if(is.null(group))group_by(.,from,to) else group_by(.,from,to,!!(sym(group)))} %>%
-    summarise(
-      frequency=across(matches("link_id"),length),
-      color=across(matches(color_field),!!sym(color_fun)),
-      width=across(matches(size_field),!!sym(size_fun)),
-      link_label=across(matches(label_field),!!sym(label_fun)),
-      across(everything(),collapse_unique)
+    mutate(
+      frequency=length(link_id),
+      color=exec(color_fun,!!sym(color_field)),
+      width=exec(size_fun,!!sym(size_field)),
+      link_label=exec(label_fun,!!sym(label_field))
       ) %>%
+    summarise_all(collapse_unique) %>%
+    # summarise(
+    #   frequency=across(matches("link_id"),length),
+    #   color=across(matches(color_field),!!sym(color_fun)),
+    #   width=across(matches(size_field),!!sym(size_fun)),
+    #   link_label=across(matches(label_field),!!sym(label_fun)),
+    #   across(everything(),collapse_unique)
+    #   ) %>%
     ungroup %>%
     mutate(
       color=create_colors(color,type="color_links",lo=lo,mid=mid,hi=hi,field=color_field),
