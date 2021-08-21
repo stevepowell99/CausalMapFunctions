@@ -297,6 +297,11 @@ create_colors <- function(vec,lo="blue",hi="red",mid="gray",type,field="frequenc
   attr(res,type) <-   list(table=tibble(vec,res) %>% unique,field=field)
   res
 }
+create_sizes <- function(vec,type,field="frequency"){
+  res <- scales::rescale(as.numeric(vec),to=c(0.1,1))
+  attr(res,type) <-   list(table=tibble(vec,res) %>% unique,field=field)
+  res
+}
 
 # tidymap major functions and pipes but not for use with parser -------------------------------------------------------------
 
@@ -2137,8 +2142,11 @@ pipe_scale_factors <- function(graf,field="frequency"){
   if(class =="character"){warning("No such column");return(graf)}
   # browser()
   graf %>%
-    update_map(factors=graf$factors %>% mutate(size=scales::rescale(UQ(sym(field)),to=c(0.2,1))))
+    update_map(factors=graf$factors %>% mutate(size=create_sizes(UQ(sym(field)),type="size_factors")))
   # %>%
+
+  # width=create_sizes(as.numeric(width),type="size_links")
+
   #   add_attribute(.,attr = "scale_factors",list(table=tibble(vec=.$factors[,field] %>% range,res=xc("lo hi")) ))
 
 }
@@ -2510,10 +2518,14 @@ prepare_visual_bundles <- function(graf,
       ) %>%
     ungroup %>%
     mutate(
-      color=create_colors(color,type="color_links",lo=lo,mid=mid,hi=hi),
-      width=scales::rescale(as.numeric(width),to=c(0.1,1))
+      color=create_colors(color,type="color_links",lo=lo,mid=mid,hi=hi,field=color_field),
+      width=create_sizes(as.numeric(width),type="size_links",field=size_field)
     )
+  # if("size_fun"!="fixed"){
   # browser()
+  #
+  #   attr(links$width,"size_links") <-   list(table=tibble(vec,res) %>% unique,field=size_field)
+  # }
   update_map(graf,links=links)
 
 }
