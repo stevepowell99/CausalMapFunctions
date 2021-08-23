@@ -3,6 +3,7 @@
 export(add_attribute)
 export(add_class)
 export(add_heat_map)
+export(as_numeric_if_all)
 export(assemble_map)
 export(count_unique)
 export(escapeRegex)
