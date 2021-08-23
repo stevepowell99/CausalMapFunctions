@@ -211,6 +211,14 @@ notify <- notify # alias
 # }
 
 
+#' Title
+#'
+#' @param vec
+#'
+#' @return
+#' @export
+#'
+#' @examples
 as_numeric_if_all <- function(vec){
   if(!any(is.na(as.numeric(vec)))) as.numeric(vec) else
     vec
@@ -336,6 +344,7 @@ brewer_pal_n <- function(vec){
 }
 create_colors <- function(vec,lo="blue",hi="red",mid="gray",type,field="frequency"){
   # browser()
+  vec <- as_numeric_if_all(vec)
   if(class(vec)=="character") res <- brewer_pal_n(vec) else
     if(lo %in% xc("white gray lightgray")) res <- colour_ramp(c(lo,hi))(rescale(vec)) else
       res <- div_pal_n(vec,lo=lo,hi=hi,mid=mid)
@@ -2595,10 +2604,8 @@ prepare_visual_bundles <- function(graf,
       width=create_sizes(as.numeric(width),type="size_links",field=size_field)
     )
   # if("size_fun"!="fixed"){
-  # browser()
-  #
-  #   attr(links$width,"size_links") <-   list(table=tibble(vec,res) %>% unique,field=size_field)
-  # }
+
+    # }
   update_map(graf,links=links)
 
 }

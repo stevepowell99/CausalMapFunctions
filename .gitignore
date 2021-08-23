@@ -13,3 +13,5 @@ concern
 config - ignored.yml
 
 config.yml
+
+*.dcf
