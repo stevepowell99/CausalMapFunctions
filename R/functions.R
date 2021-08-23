@@ -1540,6 +1540,7 @@ parse_line <- function(line,graf){
 #' @examples
 #'cashTransferMap %>% parse_commands("select factors top=10 \n color factors field=n") %>% make_vn()
 parse_commands <- function(graf=NULL,tex){
+# browser()
   tex <- tex %>% replace_null("") %>% str_split("\n") %>% `[[`(1) %>% str_trim() %>% keep(!str_detect(.,"^#"))
   if(length(tex)>1)tex <- tex %>% keep(.!="")
 
@@ -1554,7 +1555,6 @@ parse_commands <- function(graf=NULL,tex){
       # browser()
       if(!str_detect(line,"^#")){tmp <- parse_line(line,graf)
 
-# browser()
       graf <- possibly(~do.call(tmp$fun,tmp$vals),otherwise=graf)()
 }
     }
@@ -1680,12 +1680,13 @@ pipe_find_statements <- function(graf,field,value,operator="=",remove_isolated=T
 #' But previously the algorithm actually combined them into 20 individual links (i.e. create radically fewer actual links) and just remembered the frequency. Now, it keeps the individual links (so a map with select links top =3 might still have 3000 actual links if there were 1000 from A to B and 1000 from B to C and 1000 from C to D. By default, the Interactive and Print maps would indeed combine these into three thick pipes for performance sake, but there would still be 3000 links there somewhere.
 pipe_select_links <- function(graf,top=NULL,bottom=NULL){
   links <- graf$links %>%
+    unite(bundle,from_label,to_label,remove = F,sep = " / ") %>%
     group_by(bundle) %>%
     mutate(.f=n())%>%
     ungroup %>%
     arrange(desc(.f),bundle) %>%
     mutate(.index=(lag(bundle,default="")!=bundle) %>% cumsum()) %>%  #makes a column which increments for each new group
-    filter(.index<=top) %>%
+    filter(.index<=as.numeric(top)) %>%
     select(-.index)
 
 #   graf <- graf %>%
