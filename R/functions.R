@@ -352,6 +352,7 @@ create_colors <- function(vec,lo="blue",hi="red",mid="gray",type,field="frequenc
   res
 }
 create_sizes <- function(vec,type,field="frequency"){
+  # browser()
   res <- scales::rescale(as.numeric(vec),to=c(0.1,1))
   attr(res,type) <-   list(table=tibble(vec,res) %>% unique,field=field)
   res
@@ -1863,35 +1864,10 @@ pipe_bundle_links <- function(graf,group="bundle"){
   links <- graf$links
   coln <- colnames(links)
     if(group %notin% coln) {notify("no such counter");return(graf)}else
-# browser()
-  return(update_map(graf,links=graf$links %>% add_attribute(group,attr = "group")))
 
-
-
-if(F){  lists <- links %>% map(is.list) %>% unlist
-  if(sum(lists)>0) links <- unchop(links,which(lists)) # in case it is already bundled
-
-
-
-  if(is.null(group)){
-  links <- links %>% group_by(from,to)
-  # links <- links %>% chop(!c(from,to))
-  } else {
-    if(group %notin% coln) {notify("no such group");return(graf)}else
-  # links <- links %>% chop(!c(from,to,!!(sym(group))))
-
-  links <- links %>% group_by(from,to,!!(sym(group)))
-
-  # links <- links %>% group_by(from,to) %>% mutate(frequency=n()) %>% summarise_all(first) %>% ungroup
-  }
-# browser()
-
-  links <- links %>% mutate(frequency=length(unique(!!(sym(count))))) %>%
-    summarise_all(getmode) %>% ungroup #legacy       ############# NOTE MODE
-  # links <- links %>% mutate(frequency=fun_map(link_id,"length"))#legacy
-
-
-}
+    return(update_map(graf,links=links %>%
+                         {if(is.null(group))group_by(.,from,to) else group_by(.,from,to,!!(sym(group)))} %>%
+                        add_attribute(group,attr = "group")))
 
 
 
@@ -2195,18 +2171,11 @@ pipe_merge_map <- function(graf,path){
 #'
 #' @examples
 pipe_scale_factors <- function(graf,field="frequency"){
-  # graf <- pipe_metrics(graf)
   if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
   class <- graf %>% factors_table %>% pull(UQ(sym(field))) %>% class
   if(class =="character"){warning("No such column");return(graf)}
-  # browser()
   graf %>%
     update_map(factors=graf$factors %>% mutate(size=create_sizes(UQ(sym(field)),type="size_factors")))
-  # %>%
-
-  # width=create_sizes(as.numeric(width),type="size_links")
-
-  #   add_attribute(.,attr = "scale_factors",list(table=tibble(vec=.$factors[,field] %>% range,res=xc("lo hi")) ))
 
 }
 #' Scale factors
@@ -2219,19 +2188,23 @@ pipe_scale_factors <- function(graf,field="frequency"){
 #'
 #' @examples
 pipe_scale_links <- function(graf,field="frequency",fixed=NULL,fun="length"){
-  if(!is.null(fixed))return(graf  %>% update_map(links=graf$links %>%  mutate(width=fixed)))
-  if(field %notin% colnames(links_table(graf))){warning("No such column");return(graf)}
+  links <- graf$links
+    fun <- full_function_name(links,fun)
 
-  class <- graf$links %>% pull(UQ(sym(field))) %>% class
-  if(class =="character"){warning("No such column");return(graf)}
-  # browser()
-  links <- graf$links %>% mutate(width=scales::rescale(UQ(sym(field)),to=c(0.1,1)))
-  # links <- graf$links %>% mutate(width=scales::rescale(fun_map(UQ(sym(field)),fun),to=c(0.1,1)))
+
+  if(!is.null(fixed))return(graf  %>% update_map(links=links %>%  mutate(width=fixed)))
+  #if(!is_grouped_df(links)) links <- links %>% group_by(from,to)
+
+  if(field %notin% colnames(links)){warning("No such column");return(graf)}
+
+
+links <- links %>% mutate(width=exec(fun,!!sym(field)))
+  links$width=create_sizes(links$width,type="size_links",field=field)
+
+
+
   graf  %>% update_map(links=links)
 
-
-  # %>%  # this legend stuff not finished yet, caused crashes
-  #   add_attribute(.,attr = "scale_links",list(table=tibble(vec=.$links[,field] %>% range,res=xc("lo hi")) ))
 }
 
 fun_map <- function(vec,fun){
@@ -2290,23 +2263,23 @@ pipe_label_factors <- function(graf,field="frequency",clear=F){
 #'
 #'
 #' @examples
-pipe_label_links <- function(graf,field="frequency",clear=T,field_label=F){
+pipe_label_links <- function(graf,field="frequency",fun="unique",clear=T,field_label=F){
   clear=as.logical(clear)
   if(field %notin% link_colnames(graf)){warning("No such column");return(graf)}
+  fun <- full_function_name(graf,fun)
+  links <- graf$links
+
+  #if(!is_grouped_df(links)) links <- links %>% group_by(from,to)
+
+  if(field %notin% colnames(links)){warning("No such column");return(graf)}
+
   # browser()
-  graf %>% update_map(links=graf$links %>%
-                        mutate(link_label=paste0(
-                          (if(clear)NULL else paste0(link_label,". ")) %>%
-                            keep(.!="")
-                          ,
-                          if(field_label)paste0(field,": ")
-                          ,
-                          UQ(sym(field))
-                          ,
-                          if(field_label)". "
-                        )
-                        )
-                      )
+  links <- links %>%
+    mutate(link_label=exec(fun,!!sym(field)))
+  # links$link_label <- exec(fun,links[[field]])
+
+
+  graf %>% update_map(links=links)
 }
 
 #' Color factors (background color)
@@ -2372,13 +2345,20 @@ pipe_color_borders <- function(graf,field="frequency",lo="green",hi="blue",mid="
 #'
 #' @examples
 pipe_color_links <- function(graf,field="frequency",lo="green",hi="blue",mid="gray",fixed=NULL,fun="length"){
-# browser()
   if(field %notin% link_colnames(graf)){warning("No such column");return(graf)}
-  if(!is.null(fixed)) links <- graf$links %>% mutate(color=fixed) else
-    links <- graf$links %>%
-      mutate(color=create_colors(UQ(sym(field)),lo=lo,hi=hi,mid=mid,type="color_links",field=field))
-      # mutate(color=create_colors(fun_map(UQ(sym(field)),fun),lo=lo,hi=hi,mid=mid,type="color_links",field=field))
-  graf %>% update_map(links=links)
+  links <- graf$links
+  fun <- full_function_name(links,fun)
+
+
+    if(field %notin% colnames(links)){warning("No such column");return(graf)}
+
+
+  links <- links %>% mutate(color=exec(fun,!!sym(field)))
+  links$color=create_colors(links$color,type="color_links",lo=lo,mid=mid,hi=hi,field=field)
+
+
+
+  graf  %>% update_map(links=links)
 
 }
 
@@ -2518,6 +2498,25 @@ link_click_delete <- function(id){
   as.character(shiny::actionLink(inputId = paste0('link_click_delete_',id), label = "Delete link",class="linky"))
 }
 
+
+literal <- function(lis){
+  paste0(lis,collapse = "; ")
+}
+
+full_function_name <- function(df,nam){
+
+  if(is_grouped_df(df) & nam=="unique") "collapse_unique"
+  else if(!is_grouped_df(df) & (nam=="unique" | nam=="literal")) "identity"
+  else if(nam=="mean")"getmean"
+  else if(nam=="sum")"getsum"
+  else if(nam=="median")"getmedian"
+  else if(nam=="mode")"getmode"
+  else if(nam=="count")"count_unique"
+  else nam
+
+}
+
+
 fixed <- function(...) 2L
 fixed_string <- function(...)""
 
@@ -2588,21 +2587,15 @@ prepare_visual_bundles <- function(graf,
       frequency=length(link_id),
       color=exec(color_fun,!!sym(color_field)),
       width=exec(size_fun,!!sym(size_field)),
+      color=create_colors(color,type="color_links",lo=lo,mid=mid,hi=hi,field=color_field),
+      width=create_sizes(as.numeric(width),type="size_links",field=size_field) %>% as.numeric,
       link_label=exec(label_fun,!!sym(label_field))
       ) %>%
     summarise_all(collapse_unique) %>%
-    # summarise(
-    #   frequency=across(matches("link_id"),length),
-    #   color=across(matches(color_field),!!sym(color_fun)),
-    #   width=across(matches(size_field),!!sym(size_fun)),
-    #   link_label=across(matches(label_field),!!sym(label_fun)),
-    #   across(everything(),collapse_unique)
-    #   ) %>%
-    ungroup %>%
-    mutate(
-      color=create_colors(color,type="color_links",lo=lo,mid=mid,hi=hi,field=color_field),
-      width=create_sizes(as.numeric(width),type="size_links",field=size_field)
-    )
+    ungroup
+  # %>%
+  #   mutate(
+  #   )
   # if("size_fun"!="fixed"){
 
     # }
@@ -2637,13 +2630,20 @@ make_vn <- function(graf,scale=1,safe_limit=200){
 
   }
 
+
   if(max(table(graf$factors$size))>1)graf <- graf %>% update_map(factors=.$factors %>% arrange((size))) %>% pipe_normalise_factors_links()#because this is the way to get the most important ones in front
 
   nodes <- graf$factors %>% mutate(value=size*10) %>%
     select(any_of(xc("factor_id factor_id0 factor_memo  label color.background color.border title group value hidden size"))) ### restrictive in attempt to reduce random freezes
-  edges <- graf$links %>%  as_tibble %>% select(-any_of("label")) %>% rename(label=link_label)
+  edges <- graf$links %>% select(-any_of("label")) %>% rename(label=link_label)
 
   # browser()
+
+  if(is_grouped_df(edges))edges <- edges %>% summarise_all(collapse_unique) %>%
+    ungroup
+
+  edges$width <- as.numeric(edges$width)
+
   if(nrow(edges)>0) edges <- edges %>% mutate_all(first_map)## in case there are any list columns left*****************
   edges <-  edges %>% vn_fan_edges()
   if(is.list(edges$width))edges$width=2 else edges$width=edges$width*10
@@ -2842,9 +2842,6 @@ pipe_set_print <- function(
     )
 }
 
-literal <- function(lis){
-  paste0(lis,collapse = "; ")
-}
 
 #' Make a Graphviz map
 #' @description Make a Graphviz map: https://graphviz.org/documentation/
@@ -2931,8 +2928,12 @@ make_grviz <- function(
   if(is.null(factors$cluster))factors$cluster <- ""
 
 # browser()
-  links <- graf$links %>%
+  links <- graf$links
+    if(is_grouped_df(links))links <- links %>% summarise_all(collapse_unique) %>%
+    ungroup
+
     # mutate_all(first_map)%>%
+  links <- links %>%
     select(any_of(xc("from to color width link_label width from_label to_label"))) %>%
     rename(label=link_label) %>%
     mutate(from=as.numeric(from))%>%
@@ -2940,6 +2941,7 @@ make_grviz <- function(
     mutate(label=if_else(label=="",".",as.character(label)))%>%
     mutate(label=clean_grv(label) )%>%
     mutate(label=replace_na(label,"."))%>% # obscure! if all are =="", error
+    mutate(width=as.numeric(width))%>%
     mutate(penwidth=width*48)%>%
     mutate(arrowsize=(width*19)) %>%
     # mutate(color="blue") %>%
