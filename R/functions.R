@@ -2175,7 +2175,7 @@ pipe_scale_factors <- function(graf,field="frequency"){
   class <- graf %>% factors_table %>% pull(UQ(sym(field))) %>% class
   if(class =="character"){warning("No such column");return(graf)}
   graf %>%
-    update_map(factors=graf$factors %>% mutate(size=create_sizes(UQ(sym(field)),type="size_factors")))
+    update_map(factors=graf$factors %>% mutate(size=create_sizes(UQ(sym(field)),type="scale_factors")))
 
 }
 #' Scale factors
@@ -2199,7 +2199,7 @@ pipe_scale_links <- function(graf,field="frequency",fixed=NULL,fun="length"){
 
 
 links <- links %>% mutate(width=exec(fun,!!sym(field)))
-  links$width=create_sizes(links$width,type="size_links",field=field)
+  links$width=create_sizes(links$width,type="scale_links",field=field)
 
 
 
