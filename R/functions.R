@@ -1406,7 +1406,7 @@ make_search <- function(x)x %>% escapeRegex %>% str_trim
 #' @export
 parse_line <- function(line,graf){
   # browser()
-  notify(line)
+  # notify(line)
   if(str_trim(line)=="")return()
   fun <- word(line, 1,2, sep=" ")
   if(is.na(fun)){notify("No such function");return()}
@@ -1551,6 +1551,7 @@ parse_line <- function(line,graf){
 #'cashTransferMap %>% parse_commands("select factors top=10 \n color factors field=n") %>% make_vn()
 parse_commands <- function(graf=NULL,tex){
 # browser()
+  notify("parsing")
   tex <- tex %>% replace_null("") %>% str_split("\n") %>% `[[`(1) %>% str_trim() %>% keep(!str_detect(.,"^#"))
   if(length(tex)>1)tex <- tex %>% keep(.!="")
 
@@ -1621,7 +1622,7 @@ pipe_find_factors <- function(graf,field="label",value,operator="contains",up=1,
 # browser()
   if(any(upvec)|any(downvec))
     graf %>% update_map(factors=factors_table(graf) %>% filter(found|upvec|downvec)) %>%
-    pipe_normalise_factors_links %>%
+    # pipe_normalise_factors_links %>%
     pipe_remove_isolated_links() %>%
     {if(remove_isolated) pipe_remove_isolated(.) else .} else
       graf %>% filter(F)
