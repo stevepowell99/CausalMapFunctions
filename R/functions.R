@@ -1040,7 +1040,7 @@ standard_links <- function(){tibble(
   from_flipped=F,
   to_flipped=F,
   link_label="",
-  hashtag="",
+  hashtags="",
   link_memo="",
   link_map_id=1
   )}
@@ -2498,6 +2498,9 @@ factor_click_name <- function(val){
 link_click_delete <- function(id){
   as.character(shiny::actionLink(inputId = paste0('link_click_delete_',id), label = "Delete link",class="linky"))
 }
+link_click_edit <- function(id){
+  as.character(shiny::actionLink(inputId = paste0('link_click_edit_',id), label = "Edit link",class="linky"))
+}
 
 
 literal <- function(lis){
@@ -2649,7 +2652,7 @@ make_vn <- function(graf,scale=1,safe_limit=200){
   edges <-  edges %>% vn_fan_edges()
   if(is.list(edges$width))edges$width=2 else edges$width=edges$width*10
   edges <-  edges  %>%
-    select(any_of(xc("from to id s.source_id statement_id s.question_id quote color width label link_memo smooth.roundness smooth.enabled smooth.type link_id0")))
+    select(any_of(xc("from to id s.source_id statement_id s.question_id quote color hashtags width label link_memo smooth.roundness smooth.enabled smooth.type link_id0")))
   if(nrow(nodes)>1){
     layout <- layout_with_sugiyama(make_igraph(nodes,edges))$layout*-scale
     colnames(layout) <- c("y", "x")
@@ -2673,15 +2676,19 @@ make_vn <- function(graf,scale=1,safe_limit=200){
 # browser()
   edges <-
     edges %>% mutate(title=paste0(
+      map(link_id0,link_click_edit),
+      "</br>",
       map(link_id0,link_click_delete),
-      "</br>",
+      "</br><p class='link_tooltip'>",
       quote %>% str_wrap,
-      "</br>",
+      "</p></br>",
       "Memo:", link_memo,
       "</br>",
       "Source ID:", s.source_id,
       "</br>",
       "Statement ID:", statement_id,
+      "</br>",
+      "Hashtags:", hashtags ,
       "</br>",
       "Question ID:", s.question_id
       ))
@@ -2719,9 +2726,8 @@ make_vn <- function(graf,scale=1,safe_limit=200){
       keyboard = F, # would be nice for navigation but interferes with text editing
       selectConnectedEdges = F,
       tooltipStay=0,
-      tooltipDelay=100
-      ,
-      tooltipStyle='color:red;position: fixed;visibility:hidden;width:400px;background-color:aliceblue'
+      tooltipDelay=100,
+      tooltipStyle='color:red;position: fixed;visibility:hidden;width:100px;background-color:aliceblue'
     ) %>%
 
     visEvents(click ="function(data) {
