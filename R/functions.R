@@ -2906,6 +2906,7 @@ make_grviz <- function(
   nodesep_slider <- replace_null(nodesep_slider,graf %>% attr("set_print") %>% .$nodesep_slider %>% replace_null(20))
 
   if(is.null(graf))return()
+  if(nrow(graf$factors)==0)return()
   # graf <- graf %>% pipe_fix_columns()
 
   if(!is.null(safe_limit) & nrow(links_table(graf))>replace_null(safe_limit,200)){
