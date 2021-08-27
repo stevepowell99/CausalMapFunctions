@@ -2628,9 +2628,9 @@ make_vn <- function(graf,scale=1,safe_limit=200){
   if(nrow(links_table(graf))>replace_null(safe_limit,200)){
     notify("Map larger than 'safe limit'; bundling and labelling links")
     graf <- graf %>%
-      pipe_bundle_links() %>%
-      pipe_label_links("frequency") %>%
-      pipe_scale_links("frequency")
+      pipe_bundle_links(group = "bundle") %>%
+      pipe_label_links(field = "link_id",fun="count") %>%
+      pipe_scale_links(field = "link_id",fun="count")
 
   }
 
@@ -2911,8 +2911,10 @@ make_grviz <- function(
   if(!is.null(safe_limit) & nrow(links_table(graf))>replace_null(safe_limit,200)){
     notify("Map larger than 'safe limit'; bundling and labelling links")
     graf <- graf %>%
-      pipe_bundle_links() %>%
-      pipe_label_links("frequency")
+      pipe_bundle_links(group = "bundle") %>%
+      pipe_label_links(field = "link_id",fun="count") %>%
+      pipe_scale_links(field = "link_id",fun="count")
+
 
     # if(nrow(factors_table(graf))>safe_limit) graf <- graf %>% pipe_select_factors(safe_limit/10)
   }
