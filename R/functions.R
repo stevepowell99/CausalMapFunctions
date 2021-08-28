@@ -2705,6 +2705,7 @@ make_vn <- function(graf,scale=1,safe_limit=200){
       smooth = F,
       arrowStrikethrough = T,
       physics = F,
+      shadow=T,
       arrows =
         list(to = T)
     ) %>%
