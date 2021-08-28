@@ -353,7 +353,7 @@ create_colors <- function(vec,lo="blue",hi="red",mid="gray",type,field="frequenc
 }
 create_sizes <- function(vec,type,field="frequency"){
   # browser()
-  res <- scales::rescale(as.numeric(vec),to=c(0.1,1))
+  res <- scales::rescale(as.numeric(vec),to=c(0.5,1))
   attr(res,type) <-   list(table=tibble(vec,res) %>% unique,field=field)
   res
 }
@@ -371,8 +371,8 @@ create_sizes <- function(vec,type,field="frequency"){
 #'
 #' @examples
 fix_columns_factors <- function(factors){
-  if(!("color.background" %in% colnames(factors))) factors <- factors %>% mutate(color.background="#aaaaee77")
-  if(!("color.border" %in% colnames(factors))) factors <- factors %>% mutate(color.border="#222222")
+  if(!("color.background" %in% colnames(factors))) factors <- factors %>% mutate(color.background="#eeeeee88")
+  if(!("color.border" %in% colnames(factors))) factors <- factors %>% mutate(color.border="#eeeeee88")
   if(!("frequency" %in% colnames(factors))) factors <- factors %>% mutate(frequency=1L)
   if(!("in_degree" %in% colnames(factors))) factors <- factors %>% mutate(in_degree=1L)
   if(!("out_degree" %in% colnames(factors))) factors <- factors %>% mutate(out_degree=1L)
@@ -394,7 +394,7 @@ fix_columns_factors <- function(factors){
 #' @examples
 fix_columns_links <- function(links){
 
-  if(!("color" %in% colnames(links))) links <- links %>% mutate(color="#22446688")
+  if(!("color" %in% colnames(links))) links <- links %>% mutate(color="#22bb4488")
   if(!("frequency" %in% colnames(links))) links <- links %>% mutate(frequency=1L)
   if(!("capacity" %in% colnames(links))) links <- links %>% mutate(capacity=1L)
   if(!("label" %in% colnames(links))) links <- links %>% mutate(label="")
@@ -2679,18 +2679,12 @@ make_vn <- function(graf,scale=1,safe_limit=200){
       map(link_id0,link_click_edit),
       "</br>",
       map(link_id0,link_click_delete),
-      "</br><p class='link_tooltip'>",
-      quote %>% str_wrap,
-      "</p></br>",
-      "Memo:", link_memo,
-      "</br>",
-      "Source ID:", s.source_id,
-      "</br>",
-      "Statement ID:", statement_id,
-      "</br>",
-      "Hashtags:", hashtags ,
-      "</br>",
-      "Question ID:", s.question_id
+      "</br><p class='link_tooltip'>",quote %>% str_wrap,"</p>",
+      "</br><p class='link_tooltip'>Memo:", link_memo  %>% str_wrap,"</p>",
+      "</br><p class='link_tooltip'>Source ID:", s.source_id  %>% str_wrap,"</p>",
+      "</br><p class='link_tooltip'>Statement ID:", statement_id  %>% str_wrap,"</p>",
+      "</br><p class='link_tooltip'>Hashtags:", hashtags   %>% str_wrap,"</p>",
+      "</br><p class='link_tooltip'>Question ID:", s.question_id  %>% str_wrap,"</p>"
       ))
   visNetwork(nodes,edges,background="white")   %>%
     visNodes(
@@ -2931,7 +2925,7 @@ make_grviz <- function(
     mutate(tooltip=label)%>%
     mutate(fillcolor=color.background) %>%
     mutate(color=color.border) %>%
-    mutate(fontsize=(size+2)*20) %>%
+    mutate(fontsize=(size+4)*25) %>%
     mutate(fontcolor="black") %>%
     select(any_of(xc("label size tooltip fillcolor color fontsize fontcolor cluster"))) %>%
     mutate(factor_id=row_number())
@@ -2954,7 +2948,7 @@ make_grviz <- function(
     mutate(label=replace_na(label,"."))%>% # obscure! if all are =="", error
     mutate(width=as.numeric(width))%>%
     mutate(penwidth=width*48)%>%
-    mutate(arrowsize=(width*19)) %>%
+    mutate(arrowsize=(width*9)) %>%
     # mutate(color="blue") %>%
     mutate(arrowhead="vee")
 
