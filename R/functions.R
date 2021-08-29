@@ -2919,15 +2919,17 @@ make_grviz <- function(
   # if("frequency" %in% colnames(links_table(graf)))graf <-  graf %>% mutate(tooltip=as.character(n))
 # browser()
 # browser()
-  factors <- graf$factors %>%
+  factors <-
+    graf$factors %>%
     mutate(label=clean_grv(label) )%>%
     # mutate(cluster=if_else(is.na(cluster),"",cluster) )%>%
     mutate(tooltip=label)%>%
     mutate(fillcolor=color.background) %>%
     mutate(color=color.border) %>%
+    mutate(penwidth=if_else(graf$factors$color.border %>% unique %>% length %>% `==`(1),0,14)) %>% # if borders are all same colour, don't print border
     mutate(fontsize=(size+4)*25) %>%
     mutate(fontcolor="black") %>%
-    select(any_of(xc("label size tooltip fillcolor color fontsize fontcolor cluster"))) %>%
+    select(any_of(xc("label size tooltip fillcolor color fontsize fontcolor cluster penwidth"))) %>%
     mutate(factor_id=row_number())
 
   if(is.null(factors$cluster))factors$cluster <- ""
@@ -2978,7 +2980,7 @@ make_grviz <- function(
     add_global_graph_attrs("fontcolor", "black", "node") %>%
     # add_global_graph_attrs("fontsize", "80", "node") %>%
     add_global_graph_attrs("margin", "0.3", "node") %>%
-    add_global_graph_attrs("penwidth", "14", "node") %>%
+    # add_global_graph_attrs("penwidth", "14", "node") %>%
     add_global_graph_attrs("width", "0", "node") %>%
     add_global_graph_attrs("height", "0", "node")  %>%
 
