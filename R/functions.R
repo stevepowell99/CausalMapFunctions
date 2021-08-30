@@ -342,19 +342,19 @@ brewer_pal_n <- function(vec){
   vec <- vec %>% as.factor %>% as.numeric
   scales::brewer_pal("qual")(length(unique(vec)))[vec] %>% alpha(.95)
 }
-create_colors <- function(vec,lo="blue",hi="red",mid="gray",type,field="frequency"){
+create_colors <- function(vec,lo="blue",hi="red",mid="gray",type,field="frequency",fun=NULL){
   # browser()
   vec <- as_numeric_if_all(vec)
   if(class(vec)=="character") res <- brewer_pal_n(vec) else
     if(lo %in% xc("white gray lightgray")) res <- colour_ramp(c(lo,hi))(rescale(vec)) else
       res <- div_pal_n(vec,lo=lo,hi=hi,mid=mid)
-  attr(res,type) <-   list(table=tibble(vec,res) %>% unique,field=field)
+  attr(res,type) <-   list(table=tibble(vec,res) %>% unique,field=field,fun=fun)
   res
 }
-create_sizes <- function(vec,type,field="frequency"){
+create_sizes <- function(vec,type,field="frequency",fun=NULL){
   # browser()
   res <- scales::rescale(as.numeric(vec),to=c(0.5,1))
-  attr(res,type) <-   list(table=tibble(vec,res) %>% unique,field=field)
+  attr(res,type) <-   list(table=tibble(vec,res) %>% unique,field=field,fun=fun)
   res
 }
 
@@ -2200,7 +2200,7 @@ pipe_scale_links <- function(graf,field="frequency",fixed=NULL,fun="length"){
 
 
 links <- links %>% mutate(width=exec(fun,!!sym(field)))
-  links$width=create_sizes(links$width,type="scale_links",field=field)
+  links$width=create_sizes(links$width,type="scale_links",field=field,fun=fun)
 
 
 
@@ -2355,7 +2355,7 @@ pipe_color_links <- function(graf,field="frequency",lo="green",hi="blue",mid="gr
 
 
   links <- links %>% mutate(color=exec(fun,!!sym(field)))
-  links$color=create_colors(links$color,type="color_links",lo=lo,mid=mid,hi=hi,field=field)
+  links$color=create_colors(links$color,type="color_links",lo=lo,mid=mid,hi=hi,field=field,fun=fun)
 
 
 
