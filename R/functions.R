@@ -734,6 +734,22 @@ flow <- attr(links,"flow")
       mutate(link_id=row_number())%>%
       filter(!is.na(from) & !is.na(to))
 
+    links$link_id <- as.integer(links$link_id)
+    links$statement_id <- as.integer(links$statement_id)
+    links$from <- as.integer(links$from)
+    links$to <- as.integer(links$to)
+    links$link_map_id <- as.integer(links$link_map_id)
+    links$weight <- as.numeric(links$weight)
+    links$strength <- as.numeric(links$strength)
+    links$certainty <- as.numeric(links$certainty)
+    links$from_flipped <- as.logical(links$from_flipped)
+    links$to_flipped <- as.logical(links$to_flipped)
+    links$link_label <- as.character(links$link_label)
+    links$hashtags <- as.character(links$hashtags)
+    links$quote <- as.character(links$quote)
+    links$link_memo <- as.character(links$link_memo)
+
+
     # %>%
     #   mutate(strength=as.numeric(strength)) %>%  #TODO warning
     #   mutate(weight=as.numeric(weight)) %>%  #TODO warning
@@ -753,6 +769,10 @@ if(!is.null(factors)){
       mutate(label=as.character(label)) %>%
       filter(!is.na(factor_id)) #TODO warning
 
+    factors$label <- as.character(factors$label)
+    factors$factor_memo <- as.character(factors$factor_memo)
+    factors$factor_id <- as.integer(factors$factor_id)
+    factors$factor_map_id <- as.integer(factors$factor_map_id)
 
   }
   if(!is.null(factors) & is.null(links)){
@@ -933,7 +953,7 @@ normalise_id <- function(main,referring,keyname,referring_keyname1=keyname,refer
   }
 
 
-  return(list(main=main %>% select(-.old_key) %>% mutate(factor_id=row_number()),referring=referring))
+  return(list(main=main %>% select(-.old_key) %>% mutate(factor_id=row_number()),referring=referring))## factor_id wtf !FIXME
 }
 
 
