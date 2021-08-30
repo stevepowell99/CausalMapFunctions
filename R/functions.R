@@ -371,8 +371,8 @@ create_sizes <- function(vec,type,field="frequency"){
 #'
 #' @examples
 fix_columns_factors <- function(factors){
-  if(!("color.background" %in% colnames(factors))) factors <- factors %>% mutate(color.background="#eeeeee88")
-  if(!("color.border" %in% colnames(factors))) factors <- factors %>% mutate(color.border="#eeeeee88")
+  if(!("color.background" %in% colnames(factors))) factors <- factors %>% mutate(color.background="#ffffff")
+  if(!("color.border" %in% colnames(factors))) factors <- factors %>% mutate(color.border="#ffffff")
   if(!("frequency" %in% colnames(factors))) factors <- factors %>% mutate(frequency=1L)
   if(!("in_degree" %in% colnames(factors))) factors <- factors %>% mutate(in_degree=1L)
   if(!("out_degree" %in% colnames(factors))) factors <- factors %>% mutate(out_degree=1L)
@@ -2964,6 +2964,7 @@ make_grviz <- function(
     add_global_graph_attrs("splines", grv_splines, "graph") %>%
     add_global_graph_attrs("overlap", grv_overlap, "graph") %>%
     add_global_graph_attrs("labelloc", "bottom","graph") %>%
+    add_global_graph_attrs("outputorder", "nodesfirst","graph") %>%
     add_global_graph_attrs("tooltip", " ", "graph") %>%
     add_global_graph_attrs("rankdir", "LR", "graph") %>%
     add_global_graph_attrs("fontsize", "28", "graph") %>%
