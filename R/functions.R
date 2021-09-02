@@ -2747,7 +2747,10 @@ make_vn <- function(graf,scale=1,safe_limit=200){
               #   Shiny.onInputChange('net_link_click', null);
               #   ;}"
               )  %>%
-    visPhysics(stabilization = T) %>% # ,solver="hierarchicalRepulsion") %>% #,solver="hierarchicalRepulsion") %>%
+    visPhysics(visPhysics(stabilization = T,         
+                          solver = "barnesHut", barnesHut = list(avoidOverlap = 0.9,centralGravity=0.4,damping=0.9 ),
+                          maxVelocity=25
+    ) ) %>% # ,solver="hierarchicalRepulsion") %>% #,solver="hierarchicalRepulsion") %>%
     visOptions(
       collapse = F,
       manipulation=F
