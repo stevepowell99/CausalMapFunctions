@@ -2,7 +2,22 @@
 % Please edit documentation in R/functions.R
 \name{pipe_normalise_factors_links}
 \alias{pipe_normalise_factors_links}
-\title{Normalise factors and links}
+\title{#' Fix columns
+#'
+#' @inheritParams parse_commands
+#'
+#' @return A tidymap with a additional columns.
+#' @export
+#'
+#'
+#' @examples
+pipe_fix_columns <- function(graf){
+  graf %>% update_map(
+    factors = graf$factors %>% fix_columns_factors(),
+    links = graf$links %>% fix_columns_links()
+  )
+}
+Normalise factors and links}
 \usage{
 pipe_normalise_factors_links(graf)
 }
@@ -16,5 +31,20 @@ In this package, nodes are called `factors` and edges are called `links.`}
 A tidymap with a additional columns.
 }
 \description{
+#' Fix columns
+#'
+#' @inheritParams parse_commands
+#'
+#' @return A tidymap with a additional columns.
+#' @export
+#'
+#'
+#' @examples
+pipe_fix_columns <- function(graf){
+  graf %>% update_map(
+    factors = graf$factors %>% fix_columns_factors(),
+    links = graf$links %>% fix_columns_links()
+  )
+}
 Normalise factors and links
 }
