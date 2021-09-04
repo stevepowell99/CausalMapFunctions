@@ -403,21 +403,21 @@ fix_columns_links <- function(links){
   links
 }
 
-#' Fix columns
-#'
-#' @inheritParams parse_commands
-#'
-#' @return A tidymap with a additional columns.
-#' @export
-#'
-#'
-#' @examples
-pipe_fix_columns <- function(graf){
-  graf %>% update_map(
-    factors = graf$factors %>% fix_columns_factors(),
-    links = graf$links %>% fix_columns_links()
-  )
-}
+#' #' Fix columns
+#' #'
+#' #' @inheritParams parse_commands
+#' #'
+#' #' @return A tidymap with a additional columns.
+#' #' @export
+#' #'
+#' #'
+#' #' @examples
+#' pipe_fix_columns <- function(graf){
+#'   graf %>% update_map(
+#'     factors = graf$factors %>% fix_columns_factors(),
+#'     links = graf$links %>% fix_columns_links()
+#'   )
+#' }
 
 #' Normalise factors and links
 #'
@@ -734,20 +734,24 @@ pipe_clean_map <- function(tables=NULL){
       mutate(link_id=row_number())%>%
       filter(!is.na(from) & !is.na(to))
 
-    links$link_id <- as.integer(links$link_id)
-    links$statement_id <- as.integer(links$statement_id)
-    links$from <- as.integer(links$from)
-    links$to <- as.integer(links$to)
-    links$link_map_id <- as.integer(links$link_map_id)
-    links$weight <- as.numeric(links$weight)
-    links$strength <- as.numeric(links$strength)
-    links$certainty <- as.numeric(links$certainty)
-    links$from_flipped <- as.logical(links$from_flipped)
-    links$to_flipped <- as.logical(links$to_flipped)
-    links$link_label <- as.character(links$link_label)
-    links$hashtags <- as.character(links$hashtags)
-    links$quote <- as.character(links$quote)
-    links$link_memo <- as.character(links$link_memo)
+    links[,colnames(standard_links())] <- map(colnames(standard_links()),
+                                                  ~coerceValue(links[[.]],standard_links()[[.]])
+    )
+
+    # links$link_id <- as.integer(links$link_id)
+    # links$statement_id <- as.integer(links$statement_id)
+    # links$from <- as.integer(links$from)
+    # links$to <- as.integer(links$to)
+    # links$link_map_id <- as.integer(links$link_map_id)
+    # links$weight <- as.numeric(links$weight)
+    # links$strength <- as.numeric(links$strength)
+    # links$certainty <- as.numeric(links$certainty)
+    # links$from_flipped <- as.logical(links$from_flipped)
+    # links$to_flipped <- as.logical(links$to_flipped)
+    # links$link_label <- as.character(links$link_label)
+    # links$hashtags <- as.character(links$hashtags)
+    # links$quote <- as.character(links$quote)
+    # links$link_memo <- as.character(links$link_memo)
 
 
     # %>%
@@ -765,14 +769,12 @@ pipe_clean_map <- function(tables=NULL){
       add_column(.name_repair="minimal",!!!standard_factors())  %>%
       select(which(!duplicated(colnames(.)))) %>%
       select(-any_of(xc("color.border color.background"))) %>%
-      # select(any_of(colnames(standard_factors()))) %>%
-      mutate(label=as.character(label)) %>%
       filter(!is.na(factor_id)) #TODO warning
 
-    factors$label <- as.character(factors$label)
-    factors$factor_memo <- as.character(factors$factor_memo)
-    factors$factor_id <- as.integer(factors$factor_id)
-    factors$factor_map_id <- as.integer(factors$factor_map_id)
+    factors[,colnames(standard_factors())] <- map(colnames(standard_factors()),
+      ~coerceValue(factors[[.]],standard_factors()[[.]])
+    )
+    if(!is.null(factors$size))factors$size <- factors$size %>% replace_na(1)
 
   }
   if(!is.null(factors) & is.null(links)){
@@ -812,6 +814,13 @@ pipe_clean_map <- function(tables=NULL){
     select(which(!duplicated(colnames(.)))) # %>% select(any_of(colnames(standard_statements())))
 
 
+  statements[,colnames(standard_statements())] <- map(colnames(standard_statements()),
+                                                ~coerceValue(statements[[.]],standard_statements()[[.]])
+  )
+
+
+
+
   tmp <- compact_factors_links(factors,links)
   factors <- tmp$factors
   links <- tmp$links
@@ -821,6 +830,14 @@ pipe_clean_map <- function(tables=NULL){
   questions <- questions %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_questions()) %>% select(which(!duplicated(colnames(.))))#%>% select(any_of(colnames(standard_questions())))
   settings <- settings %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_settings()) %>% select(any_of(colnames(standard_settings())))
   settings <- settings %>% mutate_all(as.character)
+
+  sources[,colnames(standard_sources())] <- map(colnames(standard_sources()),
+                                                ~coerceValue(sources[[.]],standard_sources()[[.]])
+  )
+  questions[,colnames(standard_questions())] <- map(colnames(standard_questions()),
+                                                ~coerceValue(questions[[.]],standard_questions()[[.]])
+  )
+
 
   if(sources$source_id  %>% replace_zero(F) %>% duplicated() %>% any){
     warning("multiple IDs")
@@ -887,8 +904,9 @@ pipe_clean_map <- function(tables=NULL){
   attr(links,"flow") <- flow
 
 
-  assemble_map(factors,links,statements,sources,questions,settings) %>%
-    pipe_fix_columns()
+  assemble_map(factors,links,statements,sources,questions,settings)
+  # %>%
+  #   pipe_fix_columns()
 
 }
 
@@ -1046,7 +1064,7 @@ add_attribute <- function(graf,value,attr="flow"){
 
 
 standard_factors <- function(links=standard_links()){if(is.null(links$from) | is.null(links$to))stop("Wrong links")
-  tibble(label=c(links$from,links$to) %>% unique %>% as.character,factor_memo="",factor_map_id=1,factor_id=as.numeric(label))
+  tibble(label=c(links$from,links$to) %>% unique %>% as.character,factor_memo="",factor_map_id=1L,size=1L,factor_id=as.numeric(label))
 }
 standard_links <- function(){tibble(
   link_id=1,
@@ -1055,6 +1073,7 @@ standard_links <- function(){tibble(
   to=1,
   quote="",
   weight=1,
+  actualisation=1,
   strength=1,
   certainty=1,
   from_flipped=F,
@@ -2658,8 +2677,10 @@ make_vn <- function(graf,scale=1,safe_limit=200){
   if(max(table(graf$factors$size))>1)graf <- graf %>% update_map(factors=.$factors %>% arrange((size))) %>% pipe_normalise_factors_links()#because this is the way to get the most important ones in front
 
   nodes <- graf$factors %>% mutate(value=size*10) %>%
-    select(any_of(xc("factor_id factor_id0 factor_memo  label color.background color.border title group value hidden size"))) ### restrictive in attempt to reduce random freezes
-  edges <- graf$links %>% select(-any_of("label")) %>% rename(label=link_label)
+    select(any_of(xc("factor_id factor_id0 factor_memo  label color.background color.border title group value hidden size"))) %>% ### restrictive in attempt to reduce random freezes
+    fix_columns_factors()
+  edges <- graf$links %>% select(-any_of("label")) %>% rename(label=link_label) %>%
+    fix_columns_links()
 
   # browser()
 
@@ -2928,6 +2949,7 @@ make_grviz <- function(
   if(!is.null(safe_limit) & nrow(links_table(graf))>replace_null(safe_limit,200)){
     notify("Map larger than 'safe limit'; bundling and labelling links")
     graf <- graf %>%
+      update_map(factors=fix_columns_factors(graf$factors),links=fix_columns_links(graf$links)) %>%
       pipe_bundle_links(group = "bundle") %>%
       pipe_label_links(field = "link_id",fun="count") %>%
       pipe_scale_links(field = "link_id",fun="count")
@@ -2942,6 +2964,7 @@ make_grviz <- function(
   # browser()
   factors <-
     graf$factors %>%
+    fix_columns_factors() %>%
     mutate(label=clean_grv(label) )%>%
     # mutate(cluster=if_else(is.na(cluster),"",cluster) )%>%
     mutate(tooltip=label)%>%
@@ -2956,7 +2979,10 @@ make_grviz <- function(
   if(is.null(factors$cluster))factors$cluster <- ""
 
   # browser()
-  links <- graf$links
+  links <- graf$links %>%
+    fix_columns_links()
+
+
   if(is_grouped_df(links))links <- links %>% summarise_all(collapse_unique) %>%
     ungroup
 
