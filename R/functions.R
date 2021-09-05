@@ -342,7 +342,7 @@ brewer_pal_n <- function(vec){
   vec <- vec %>% as.factor %>% as.numeric
   scales::brewer_pal("qual")(length(unique(vec)))[vec] %>% alpha(.95)
 }
-create_colors <- function(vec,lo="blue",hi="red",mid="gray",type,field="frequency",fun=NULL){
+create_colors <- function(vec,lo="#FCFDBF",hi="#5F187F",mid="#D3436E",type,field="frequency",fun=NULL){
   # browser()
   vec <- as_numeric_if_all(vec)
   if(class(vec)=="character") res <- brewer_pal_n(vec) else
@@ -730,34 +730,13 @@ pipe_clean_map <- function(tables=NULL){
     links <-  links %>%
       add_column(.name_repair="minimal",!!!standard_links())   %>%
       select(which(!duplicated(colnames(.)))) %>%
-      # select(any_of(colnames(standard_links()))) %>%
+      select(-starts_with("color")) %>%
       mutate(link_id=row_number())%>%
       filter(!is.na(from) & !is.na(to))
 
     links[,colnames(standard_links())] <- map(colnames(standard_links()),
                                                   ~coerceValue(links[[.]],standard_links()[[.]])
     )
-
-    # links$link_id <- as.integer(links$link_id)
-    # links$statement_id <- as.integer(links$statement_id)
-    # links$from <- as.integer(links$from)
-    # links$to <- as.integer(links$to)
-    # links$link_map_id <- as.integer(links$link_map_id)
-    # links$weight <- as.numeric(links$weight)
-    # links$strength <- as.numeric(links$strength)
-    # links$certainty <- as.numeric(links$certainty)
-    # links$from_flipped <- as.logical(links$from_flipped)
-    # links$to_flipped <- as.logical(links$to_flipped)
-    # links$link_label <- as.character(links$link_label)
-    # links$hashtags <- as.character(links$hashtags)
-    # links$quote <- as.character(links$quote)
-    # links$link_memo <- as.character(links$link_memo)
-
-
-    # %>%
-    #   mutate(strength=as.numeric(strength)) %>%  #TODO warning
-    #   mutate(weight=as.numeric(weight)) %>%  #TODO warning
-    #   mutate(certainty=as.numeric(certainty))  #TODO warning
 
   }
   if(is.null(factors) & !is.null(links)){
@@ -768,7 +747,8 @@ pipe_clean_map <- function(tables=NULL){
       {if("factor_id" %notin% colnames(.)) mutate(.,factor_id=row_number()) else .} %>%
       add_column(.name_repair="minimal",!!!standard_factors())  %>%
       select(which(!duplicated(colnames(.)))) %>%
-      select(-any_of(xc("color.border color.background"))) %>%
+      select(-starts_with("color")) %>%
+      # select(-any_of(xc("color.border color.background"))) %>%
       filter(!is.na(factor_id)) #TODO warning
 
     factors[,colnames(standard_factors())] <- map(colnames(standard_factors()),
@@ -2337,7 +2317,7 @@ pipe_label_links <- function(graf,field="frequency",fun="unique",clear=T,field_l
 #'
 #'
 #' @examples
-pipe_color_factors <- function(graf,field="frequency",lo="green",hi="blue",mid="gray",fixed=NULL){
+pipe_color_factors <- function(graf,field="frequency",lo="#FCFDBF",hi="#5F187F",mid="#D3436E",fixed=NULL){
   if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
   if(!is.null(fixed)) factors <- graf$factors %>%
       mutate(color.background=fixed) else  factors <- graf$factors %>%
@@ -2359,7 +2339,7 @@ pipe_color_factors <- function(graf,field="frequency",lo="green",hi="blue",mid="
 #'
 #'
 #' @examples
-pipe_color_borders <- function(graf,field="frequency",lo="green",hi="blue",mid="gray",fixed=NULL){
+pipe_color_borders <- function(graf,field="frequency",lo="#FCFDBF",hi="#5F187F",mid="#D3436E",fixed=NULL){
   if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
 
   # browser()
@@ -2384,7 +2364,7 @@ pipe_color_borders <- function(graf,field="frequency",lo="green",hi="blue",mid="
 #'
 #'
 #' @examples
-pipe_color_links <- function(graf,field="frequency",lo="green",hi="blue",mid="gray",fixed=NULL,fun="length"){
+pipe_color_links <- function(graf,field="frequency",lo="#FCFDBF",hi="#5F187F",mid="#D3436E",fixed=NULL,fun="length"){
   if(field %notin% link_colnames(graf)){warning("No such column");return(graf)}
   links <- graf$links
   fun <- full_function_name(links,fun)
