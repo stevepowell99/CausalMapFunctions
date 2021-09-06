@@ -594,7 +594,7 @@ load_map <- function(path=NULL,connection=conn){
   factors <- NULL
   links <- NULL
   newtables <- NULL
-
+# browser()
   if(!is.null(path)){
     if(!(str_detect(path,"/"))){
       type <- "unknown"
@@ -648,8 +648,8 @@ load_map <- function(path=NULL,connection=conn){
   # browser()
   notify("Loading map")
   return(graf %>%
-           add_original_ids %>%
-           pipe_clean_map
+           pipe_clean_map %>%
+           add_original_ids
   )
 
 
@@ -1052,6 +1052,7 @@ standard_links <- function(){tibble(
   from=1,
   to=1,
   quote="",
+  frequency=1,
   weight=1,
   actualisation=1,
   strength=1,
