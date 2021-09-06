@@ -2120,6 +2120,7 @@ pipe_flip_opposites <- function(graf,flipchar="~",add_colors=T){
     graf$links %>%
     mutate(from_flipped=factors$is_flipped[from] %>% as.logical) %>%
     mutate(to_flipped=factors$is_flipped[to] %>% as.logical) %>%
+    unite("flipped_bundle",from_flipped,to_flipped,sep = "|",remove=F) %>%
     {if(add_colors)color_flipped_links(.) else .}
 
   graf %>%
