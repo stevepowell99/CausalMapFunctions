@@ -711,7 +711,6 @@ assemble_map <- function(factors=NULL,links=NULL,statements=NULL,sources=NULL,qu
 #'
 #' @examples
 pipe_clean_map <- function(tables=NULL){
-  # browser()
   if(!is.null(tables)){
     factors <- tables$factors
     links <- tables$links
@@ -740,7 +739,9 @@ pipe_clean_map <- function(tables=NULL){
 
   }
   if(is.null(factors) & !is.null(links)){
-    factors <- tibble(factor_id=get_all_link_ids(links),factor_id0=factor_id) %>% fix_columns_factors()
+  # browser()
+    # if(links$from)
+    factors <- tibble(factor_id=get_all_link_ids(links),factor_id0=factor_id,label=factor_id) %>% fix_columns_factors()
   }
   if(!is.null(factors)){
     factors <-  factors %>%
@@ -1047,23 +1048,26 @@ standard_factors <- function(links=standard_links()){if(is.null(links$from) | is
   tibble(label=c(links$from,links$to) %>% unique %>% as.character,factor_memo="",factor_map_id=1L,size=1L,factor_id=as.numeric(label))
 }
 standard_links <- function(){tibble(
-  link_id=1,
-  statement_id=1,
-  from=1,
-  to=1,
+  link_id=1L,
+  statement_id=1L,
+  from=1L,
+  to=1L,
   quote="",
-  frequency=1,
-  weight=1,
-  actualisation=1,
-  strength=1,
-  certainty=1,
+  frequency=1L,
+  weight=1L,
+  actualisation=1L,
+  strength=1L,
+  certainty=1L,
   from_flipped=F,
   to_flipped=F,
   link_label="",
+  from_label="",
+  to_label="",
   hashtags="",
   link_memo="",
-  link_map_id=1
-)}
+  link_map_id=1L
+)
+  }
 standard_statements <- function()tibble(statement_id=1,text="blank statement",statement_memo="",source_id="1",question_id="1",statement_map_id=1)
 standard_sources <- function()tibble(source_id="1",source_memo="global source",source_map_id=1)
 standard_questions <- function()tibble(question_id="1",question_text="global question",question_memo="",question_map_id=1)
