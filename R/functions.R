@@ -740,7 +740,9 @@ pipe_clean_map <- function(tables=NULL){
   }
   if(is.null(factors) & !is.null(links)){
   # browser()
-    # if(links$from)
+    if(all(links$from==1) & all(links$to==1))# then these must have been blank
+
+
     factors <- tibble(factor_id=get_all_link_ids(links),factor_id0=factor_id,label=factor_id) %>% fix_columns_factors()
   }
   if(!is.null(factors)){
