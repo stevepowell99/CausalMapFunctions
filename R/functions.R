@@ -2769,7 +2769,7 @@ make_vn <- function(graf,scale=1,safe_limit=200){
   if(max(table(graf$factors$size))>1)graf <- graf %>% update_map(factors=.$factors %>% arrange((size))) %>% pipe_normalise_factors_links()#because this is the way to get the most important ones in front
 
   nodes <- graf$factors %>% mutate(value=size*10) %>%
-    select(any_of(xc("factor_id factor_id0 factor_memo  label color.background color.border title group value hidden size"))) %>% ### restrictive in attempt to reduce random freezes
+    select(any_of(xc("factor_id factor_memo  label color.background color.border title group value hidden size"))) %>% ### restrictive in attempt to reduce random freezes
     fix_columns_factors()
   edges <- graf$links %>% select(-any_of("label")) %>% rename(label=link_label) %>%
     fix_columns_links()
@@ -2785,7 +2785,7 @@ make_vn <- function(graf,scale=1,safe_limit=200){
   edges <-  edges %>% vn_fan_edges()
   if(is.list(edges$width))edges$width=2 else edges$width=edges$width*10
   edges <-  edges  %>%
-    select(any_of(xc("from to id s.source_id statement_id s.question_id quote color hashtags width label link_memo smooth.roundness smooth.enabled smooth.type link_id0")))
+    select(any_of(xc("from to id s.source_id statement_id s.question_id quote color hashtags width label link_memo smooth.roundness smooth.enabled smooth.type link_id")))
   if(nrow(nodes)>1){
     layout <- layout_with_sugiyama(make_igraph(nodes,edges))$layout*-scale
     colnames(layout) <- c("y", "x")
@@ -2803,22 +2803,22 @@ make_vn <- function(graf,scale=1,safe_limit=200){
       # # factor_click_name(),
       # "</br>",
       "</br>",
-      map(factor_id0,factor_click_delete),
+      map(factor_id,factor_click_delete),
       "</br>",
       paste0("Memo:", factor_memo)
     ))
   # browser()
   edges <-
     edges %>% mutate(title=paste0(
-      map(link_id0,link_click_edit),
+      map(link_id,link_click_edit),
       "</br>",
-      map(link_id0,link_click_delete),
+      map(link_id,link_click_delete),
       "</br><p class='link_tooltip'>",quote %>% str_wrap,"</p>",
       "</br><p class='link_tooltip'>Memo:", link_memo  %>% str_wrap,"</p>",
-      "</br><p class='link_tooltip'>Source ID:", s.source_id  %>% str_wrap,"</p>",
+      "</br><p class='link_tooltip'>Source ID:", source_id  %>% str_wrap,"</p>",
       "</br><p class='link_tooltip'>Statement ID:", statement_id  %>% str_wrap,"</p>",
       "</br><p class='link_tooltip'>Hashtags:", hashtags   %>% str_wrap,"</p>",
-      "</br><p class='link_tooltip'>Question ID:", s.question_id  %>% str_wrap,"</p>"
+      "</br><p class='link_tooltip'>Question ID:", question_id  %>% str_wrap,"</p>"
     ))
   visNetwork(nodes,edges,background="white")   %>%
     visNodes(
