@@ -52,8 +52,7 @@ get_map_from_excel <- function(path){
   readxl::excel_sheets(path) %>%
     keep(. %in% table_list) %>%
     set_names %>%
-    map(~readxl::read_excel(path,sheet = .)) %>%
-    add_class
+    map(~readxl::read_excel(path,sheet = .))
 }
 get_map_from_s3 <- function(path){
   # browser()
@@ -279,10 +278,8 @@ bind_rows_safe <- function(x,y,...){
 
 
 left_join_safe <- function(x,y,by=NULL,...){
-  # browser()
-  if(is.null(by))by=intersect(colnames(x),colnames(y))
-  # x <- as_tibble(x)
-  # y <- as_tibble(y)
+
+  if(is.null(by))by=intersect(colnames(x),colnames(y)) else y=y %>% select(-intersect(colnames(x),colnames(y)),by)
   for(i in seq_along(by)){
     y[,by[i]] <- coerceValue(unlist(y[,by[i]]),unlist(x[,by[i]]))
   }
@@ -507,40 +504,14 @@ update_map <- function(map,
                        ),
                        clean=T,
                        all=T){
-  # browser()
-  if(!is.null(tables)){
-    if(is.null(factors))       factors <- tables$factors
-    if(is.null(links))       links <- tables$links
-    if(is.null(statements))  statements <- tables$statements
-    if(is.null(sources))     sources <- tables$sources
-    if(is.null(questions))   questions <- tables$questions
-    if(is.null(settings))    settings <- tables$settings
-  }
-  if(is.null(factors) & !is.null(map))factors <- factors_table(map)
-  if(!all) {
-    if(".rn" %notin% colnames(factors)) return(map)
 
-    # factors <-
-    #   factors_table(map) %>%
-    #   update_join(factors)
-  }
-  if(is.null(factors))     factors <- map$factors
-  if(is.null(links))       links <- map$links
-  if(is.null(statements))  statements <- map$statements
-  if(is.null(sources))     sources <- map$sources
-  if(is.null(questions))   questions <- map$questions
-  if(is.null(settings))    settings <- map$settings
-
-  # browser()
-  assemble_map(
-    factors=factors,
-    links=links,
-    # links=links %>%  filter(from %in% (factors %>% row_index)) %>% filter(to %in% (factors %>% row_index)),
-    statements=statements,
-    sources=sources,
-    questions=questions,
-    settings=settings
-
+  list(
+    factors <- factors %>% replace_null(tables$factors) %>% replace_null(map$factors),
+    links <- links %>% replace_null(tables$links) %>% replace_null(map$links),
+    statements <- statements %>% replace_null(tables$statements) %>% replace_null(map$statements),
+    sources <- sources %>% replace_null(tables$sources) %>% replace_null(map$sources),
+    questions <- questions %>% replace_null(tables$questions) %>% replace_null(map$questions),
+    settings <- settings %>% replace_null(tables$settings) %>% replace_null(map$settings),
   )
 
 }
@@ -585,11 +556,11 @@ merge_map <- function(graf,graf2){
 #' @param settings
 #' @param clean
 #'
-#' @return A tidy map. If both factors and links are NULL, and empty map is returned.
+#' @return A table list.
 #' @export
 #'
 #' @examples
-load_map <- function(path=NULL,connection=conn){
+load_premap <- function(path=NULL,connection=conn){
   graf <- NULL
   factors <- NULL
   links <- NULL
@@ -647,10 +618,7 @@ load_map <- function(path=NULL,connection=conn){
   }
   # browser()
   notify("Loading map")
-  return(graf %>%
-           pipe_clean_map %>%
-           add_original_ids
-  )
+  return(graf )
 
 
 
@@ -671,7 +639,7 @@ add_original_ids <- function(graf){
 
 
 #' Assemble map
-#' It simply adds standard tables where any are missing
+#' It simply puts the tables in a list
 #' @param factors
 #' @param links
 #' @param statements
@@ -685,15 +653,14 @@ add_original_ids <- function(graf){
 #' @examples
 assemble_map <- function(factors=NULL,links=NULL,statements=NULL,sources=NULL,questions=NULL,settings=NULL){
 
-  list(factors %>% replace_null(standard_factors()),
-       links %>% replace_null(standard_links()),
-       statements %>% replace_null(standard_statements()),
-       sources %>% replace_null(standard_sources()),
-       questions %>% replace_null(standard_questions()),
-       settings %>% replace_null(standard_settings())
+  list(factors ,
+       links ,
+       statements ,
+       sources ,
+       questions ,
+       settings
   ) %>%
-    set_names(xc("factors links statements sources questions settings")) %>%
-    add_class
+    set_names(xc("factors links statements sources questions settings"))
 }
 
 ## this used to be assemble_map!!
@@ -792,7 +759,7 @@ pipe_clean_map <- function(tables=NULL){
 
 
   statements <- statements %>%
-    replace_null(empty_tibble) %>%
+    replace_null(standard_statements()) %>%
     add_column(.name_repair="minimal",!!!standard_statements()) %>%
     select(which(!duplicated(colnames(.)))) # %>% select(any_of(colnames(standard_statements())))
 
@@ -888,6 +855,133 @@ pipe_clean_map <- function(tables=NULL){
 
 
   assemble_map(factors,links,statements,sources,questions,settings)
+  # %>%
+  #   pipe_fix_columns()
+
+}
+
+#' Create mapfile
+#'
+#' @param tables
+#' we assume that the initial map has standard format
+#' @return A clean map in which all issues have been resolved.
+#' @export
+#'
+#' @examples
+create_mapfile <- function(tables){
+    factors <- tables$factors #%>% replace_null(standard_factors())
+    links <- tables$links #%>% replace_null(standard_links())
+    statements <- tables$statements #%>% replace_null(standard_statements())
+    sources <- tables$sources #%>% replace_null(standard_sources())
+    questions <- tables$questions #%>% replace_null(standard_questions())
+    settings <- tables$settings #%>% replace_null(standard_settings())
+
+flow <- attr(links,"flow")
+
+
+  if(is.null(links)) links <- standard_links() else {
+
+    if(is.null(links$link_id)) links <-  links %>%
+      mutate(link_id=row_number())
+
+    links <-  links %>%
+      select(-starts_with("color")) %>%
+      add_column(.name_repair="minimal",!!!standard_links())   %>%
+      select(which(!duplicated(colnames(.))))
+
+    links[,colnames(standard_links())] <- map(colnames(standard_links()),
+                                              ~coerceValue(links[[.]],standard_links()[[.]]))
+    links <- links %>%
+      filter(!is.na(from) & !is.na(to) & !is.na(statement_id) & !is.na(link_id))%>%
+      distinct(link_id,.keep_all = T)
+
+  }
+
+  if(is.null(factors)) factors <- standard_factors() else {
+
+    if(is.null(factors$factor_id)) factors <-  factors %>%
+      mutate(factor_id=row_number())
+
+    factors <-  factors %>%
+      select(-starts_with("color")) %>%
+      add_column(.name_repair="minimal",!!!standard_factors())   %>%
+      select(which(!duplicated(colnames(.))))
+
+    factors[,colnames(standard_factors())] <- map(colnames(standard_factors()),
+                                              ~coerceValue(factors[[.]],standard_factors()[[.]]))
+    factors <- factors %>%
+      filter(!is.na(label) & !is.na(factor_id))%>%
+      distinct(factor_id,.keep_all = T) %>%
+      distinct(label,.keep_all = T)
+
+  }
+
+  if(is.null(statements)) statements <- standard_statements() else {
+
+    if(is.null(statements$statement_id)) statements <-  statements %>%
+      mutate(statement_id=row_number())
+
+    statements <-  statements %>%
+      select(-starts_with("color")) %>%
+      add_column(.name_repair="minimal",!!!standard_statements())   %>%
+      select(which(!duplicated(colnames(.))))
+
+    statements[,colnames(standard_statements())] <- map(colnames(standard_statements()),
+                                              ~coerceValue(statements[[.]],standard_statements()[[.]]))
+    statements <- statements %>%
+      filter(!is.na(statement_id))%>%
+      distinct(statement_id,.keep_all = T)
+
+  }
+
+
+
+  # browser()  ################### needs completing as above
+  sources <- sources %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_sources()) %>% select(which(!duplicated(colnames(.)))) #%>% select(any_of(colnames(standard_sources())))
+  questions <- questions %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_questions()) %>% select(which(!duplicated(colnames(.))))#%>% select(any_of(colnames(standard_questions())))
+  settings <- settings %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_settings()) %>% select(any_of(colnames(standard_settings())))
+  settings <- settings %>% mutate_all(as.character)
+
+  sources[,colnames(standard_sources())] <- map(colnames(standard_sources()),
+                                                ~coerceValue(sources[[.]],standard_sources()[[.]])
+  )
+  questions[,colnames(standard_questions())] <- map(colnames(standard_questions()),
+                                                    ~coerceValue(questions[[.]],standard_questions()[[.]])
+  )
+
+  # browser()
+  sources$source_id <- coerceValue(sources$source_id,statements$source_id)
+  questions$question_id <- coerceValue(questions$question_id,statements$question_id)
+  links$statement_id <- coerceValue(links$statement_id,statements$statement_id)
+
+  statements <- statements %>%
+    left_join_safe(sources,by="source_id") %>% suppressMessages %>%
+    left_join_safe(questions,by="question_id") %>% suppressMessages
+
+  links <- links %>%
+    left_join_safe(statements, by="statement_id") %>%
+    suppressMessages
+
+  links <-
+    links %>% mutate(from_label= recode(from,!!!factors$label %>% set_names(factors$factor_id))) %>%
+    mutate(to_label= recode(to,!!!factors$label %>% set_names(factors$factor_id))) %>%
+    unite(bundle,from_label,to_label,remove = F,sep = " / ") %>%
+    select(from_label,to_label,statement_id,quote,everything())
+
+  ig <- make_igraph(factors,links)
+  # ig <- make_igraph_from_links(links)
+
+  factors$betweenness <- igraph::centr_betw(ig)$res %>% round(2)
+  factors$betweenness_rank <- factors$betweenness %>% rank
+  factors$in_degree=ig %>% igraph::degree(mode = "in")
+  factors$out_degree=ig %>% igraph::degree(mode = "out")
+  factors$frequency <- factors$in_degree+factors$out_degree
+
+  attr(links,"flow") <- flow
+
+
+  assemble_map(factors,links,statements,sources,questions,settings) %>%
+    add_class()
   # %>%
   #   pipe_fix_columns()
 
@@ -1047,7 +1141,9 @@ add_attribute <- function(graf,value,attr="flow"){
 
 
 standard_factors <- function(links=standard_links()){if(is.null(links$from) | is.null(links$to))stop("Wrong links")
-  tibble(label=c(links$from,links$to) %>% unique %>% as.character,factor_memo="",factor_map_id=1L,size=1L,factor_id=as.numeric(label))
+  tibble(label="factor1",#c(links$from,links$to) %>% unique %>% as.character,
+         factor_memo="",
+         factor_map_id=1L,size=1L,factor_id=1L)
 }
 standard_links <- function(){tibble(
   link_id=1L,
