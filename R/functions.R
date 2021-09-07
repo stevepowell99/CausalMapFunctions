@@ -731,6 +731,7 @@ pipe_clean_map <- function(tables=NULL){
       select(which(!duplicated(colnames(.)))) %>%
       select(-starts_with("color")) %>%
       mutate(link_id=row_number())%>%
+      mutate(link_id0=row_number())%>%
       filter(!is.na(from) & !is.na(to))
 
     links[,colnames(standard_links())] <- map(colnames(standard_links()),
@@ -758,6 +759,7 @@ pipe_clean_map <- function(tables=NULL){
       ~coerceValue(factors[[.]],standard_factors()[[.]])
     )
     if(!is.null(factors$size))factors$size <- factors$size %>% replace_na(1)
+    factors$factor_id0 <- factors$factor_id
 
   }
   if(!is.null(factors) & is.null(links)){
