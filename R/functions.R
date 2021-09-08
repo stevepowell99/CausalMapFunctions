@@ -353,7 +353,9 @@ create_colors <- function(vec,lo="#FCFDBF",hi="#5F187F",mid="#D3436E",type,field
 }
 create_sizes <- function(vec,type,field="frequency",fun=NULL){
   # browser()
-  res <- scales::rescale(as.numeric(vec),to=c(0.5,1))
+  mn <- min(vec,na.rm=T)
+  mx <- max(vec,na.rm=T)
+  res <- scales::rescale(as.numeric(vec),from = {if(mn>0) c(0,mx) else c(mn,mx)},to=c(0.1,1))
   attr(res,type) <-   list(table=tibble(vec,res) %>% unique,field=field,fun=fun)
   res
 }
@@ -2672,7 +2674,6 @@ make_vn <- function(graf,scale=1,safe_limit=200){
   edges <- graf$links %>% select(-any_of("label")) %>% rename(label=link_label) %>%
     fix_columns_links()
 
-  # browser()
 
   if(is_grouped_df(edges))edges <- edges %>% summarise_all(collapse_unique) %>%
     ungroup
@@ -2718,6 +2719,7 @@ make_vn <- function(graf,scale=1,safe_limit=200){
       "</br><p class='link_tooltip'>Hashtags:", hashtags   %>% str_wrap,"</p>",
       "</br><p class='link_tooltip'>Question ID:", s.question_id  %>% str_wrap,"</p>"
     ))
+  # browser()
   visNetwork(nodes,edges,background="white")   %>%
     visNodes(
       shadow = list(enabled = T, size = 10),
