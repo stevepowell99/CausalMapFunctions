@@ -49,6 +49,8 @@ s3readRDS <- function(object,bucket,version=NULL,s3confun=s3){
 #'
 #' @examples
 get_map_from_excel <- function(path){
+
+  # browser()
   readxl::excel_sheets(path) %>%
     keep(. %in% table_list) %>%
     set_names %>%
@@ -56,7 +58,6 @@ get_map_from_excel <- function(path){
     add_class
 }
 get_map_from_s3 <- function(path){
-  # browser()
   notify("Trying cm2 file")
   if(!s3file_exists(object=basename(path),buck=dirname(path))) return()
   notify("Loaded cm2 file")
@@ -806,7 +807,7 @@ pipe_clean_map <- function(tables=NULL){
   )
 
 
-
+# browser()
 
   tmp <- compact_factors_links(factors,links)
   factors <- tmp$factors
