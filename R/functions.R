@@ -973,7 +973,7 @@ collapse_unique <- function(vec){
   paste0(unique(vec),collapse="; ")# %>% as_numeric_if_all
 }
 collapse_unique_5 <- function(vec){
-  if(length(vec)<6)paste0(unique(vec),collapse="; ") else actionLink("link_quotes","Multiple quotes",class="linky") %>% as.character # %>% as_numeric_if_all
+  if(length(vec)<6)paste0(unique(vec),collapse="; ") else p("link_quotes","Multiple quotes") %>% as.character # %>% as_numeric_if_all
 }
 compact_factors_links <- function(factors,links){
   if(factors$label %>% table %>% max %>% `>`(1)){
