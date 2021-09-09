@@ -972,6 +972,9 @@ compact_map <- function(graf){
 collapse_unique <- function(vec){
   paste0(unique(vec),collapse="; ")# %>% as_numeric_if_all
 }
+collapse_unique_5 <- function(vec){
+  if(length(vec)<6)paste0(unique(vec),collapse="; ") else actionLink("link_quotes","Multiple quotes",class="linky") %>% as.character # %>% as_numeric_if_all
+}
 compact_factors_links <- function(factors,links){
   if(factors$label %>% table %>% max %>% `>`(1)){
     notify("Some factor labels are duplicates; compacting")
@@ -2656,7 +2659,7 @@ make_vn <- function(graf,scale=1,safe_limit=200){
   # browser()
   # graf <- prepare_visual_bundles(graf)
 
-  if(nrow(links_table(graf))>replace_null(safe_limit,200)){
+  if(!is_grouped_df(graf$links) & nrow(links_table(graf))>replace_null(safe_limit,200)){
     notify("Map larger than 'safe limit'; bundling and labelling links")
     graf <- graf %>%
       pipe_bundle_links(group = "bundle") %>%
@@ -2676,7 +2679,7 @@ make_vn <- function(graf,scale=1,safe_limit=200){
 
 
   # browser()
-  if(is_grouped_df(edges))edges <- edges %>% summarise(across(quote,~"Multiple quotes"),across(everything(),collapse_unique)) %>%
+  if(is_grouped_df(edges))edges <- edges %>% summarise(across(quote,collapse_unique_5),across(everything(),collapse_unique)) %>%
     ungroup
 
   edges$width <- as.numeric(edges$width)
@@ -2942,7 +2945,7 @@ make_grviz <- function(
   if(nrow(graf$factors)==0)return()
   # graf <- graf %>% pipe_fix_columns()
 
-  if(!is.null(safe_limit) & nrow(links_table(graf))>replace_null(safe_limit,200)){
+  if(!is_grouped_df(graf$links) & !is.null(safe_limit) & nrow(links_table(graf))>replace_null(safe_limit,200)){
     notify("Map larger than 'safe limit'; bundling and labelling links")
     graf <- graf %>%
       update_map(factors=fix_columns_factors(graf$factors),links=fix_columns_links(graf$links)) %>%
