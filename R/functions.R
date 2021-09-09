@@ -2527,10 +2527,10 @@ factor_click_name <- function(val){
 #                                 label = NULL,value=val,onclick= 'Shiny.onInputChange("factor_click_name", Math.random()'))
 # }
 link_click_delete <- function(id){
-  as.character(shiny::actionLink(inputId = paste0('link_click_delete_',id), label = "Delete link",class="linky"))
+  if(str_detect(id,";"))"" else as.character(shiny::actionLink(inputId = paste0('link_click_delete_',id), label = "Delete link",class="linky"))
 }
 link_click_edit <- function(id){
-  as.character(shiny::actionLink(inputId = paste0('link_click_edit_',id), label = "Edit link",class="linky"))
+  if(str_detect(id,";"))as.character(div("This bundle consists of multiple original links"))else as.character(shiny::actionLink(inputId = paste0('link_click_edit_',id), label = "Edit link",class="linky"))
 }
 
 
@@ -2675,7 +2675,8 @@ make_vn <- function(graf,scale=1,safe_limit=200){
     fix_columns_links()
 
 
-  if(is_grouped_df(edges))edges <- edges %>% summarise_all(collapse_unique) %>%
+  # browser()
+  if(is_grouped_df(edges))edges <- edges %>% summarise(across(quote,~"Multiple quotes"),across(everything(),collapse_unique)) %>%
     ungroup
 
   edges$width <- as.numeric(edges$width)
@@ -2706,18 +2707,18 @@ make_vn <- function(graf,scale=1,safe_limit=200){
       "</br>",
       paste0("Memo:", factor_memo)
     ))
-  # browser()
   edges <-
     edges %>% mutate(title=paste0(
       map(link_id0,link_click_edit),
       "</br>",
-      map(link_id0,link_click_delete),
+      map(link_id0,link_click_delete)
+      ,
       "</br><p class='link_tooltip'>",quote %>% str_wrap,"</p>",
-      "</br><p class='link_tooltip'>Memo:", link_memo  %>% str_wrap,"</p>",
-      "</br><p class='link_tooltip'>Source ID:", s.source_id  %>% str_wrap,"</p>",
-      "</br><p class='link_tooltip'>Statement ID:", statement_id  %>% str_wrap,"</p>",
-      "</br><p class='link_tooltip'>Hashtags:", hashtags   %>% str_wrap,"</p>",
-      "</br><p class='link_tooltip'>Question ID:", s.question_id  %>% str_wrap,"</p>"
+      "<p class='link_tooltip'>Memo:", link_memo  %>% str_wrap,"</p>",
+      "<p class='link_tooltip'>Source ID:", s.source_id  %>% str_wrap,"</p>",
+      "<p class='link_tooltip'>Statement ID:", statement_id  %>% str_wrap,"</p>",
+      "<p class='link_tooltip'>Hashtags:", hashtags   %>% str_wrap,"</p>",
+      "<p class='link_tooltip'>Question ID:", s.question_id  %>% str_wrap,"</p>"
     ))
   # browser()
   visNetwork(nodes,edges,background="white")   %>%
