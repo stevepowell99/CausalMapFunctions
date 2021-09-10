@@ -50,7 +50,6 @@ s3readRDS <- function(object,bucket,version=NULL,s3confun=s3){
 #' @examples
 get_map_from_excel <- function(path){
 
-  # browser()
   readxl::excel_sheets(path) %>%
     keep(. %in% table_list) %>%
     set_names %>%
@@ -2207,11 +2206,12 @@ pipe_merge_map <- function(graf,path){
 #'
 #' @examples
 pipe_scale_factors <- function(graf,field="frequency"){
+  # browser()
   if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
   class <- graf %>% factors_table %>% pull(UQ(sym(field))) %>% class
   if(class =="character"){warning("No such column");return(graf)}
   graf %>%
-    update_map(factors=graf$factors %>% mutate(size=create_sizes(UQ(sym(field)),type="scale_factors")))
+    update_map(factors=graf$factors %>% mutate(size=create_sizes(UQ(sym(field)),field=field,type="scale_factors")))
 
 }
 #' Scale factors
