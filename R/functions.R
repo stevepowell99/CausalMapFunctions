@@ -279,15 +279,22 @@ bind_rows_safe <- function(x,y,...){
 
 
 left_join_safe <- function(x,y,by=NULL,...){
-  # browser()
-  if(is.null(by))by=intersect(colnames(x),colnames(y))
-  # x <- as_tibble(x)
-  # y <- as_tibble(y)
+
+  if(is.null(by))by=intersect(colnames(x),colnames(y)) else y=y %>% select(-intersect(colnames(x),colnames(y)),by)
   for(i in seq_along(by)){
     y[,by[i]] <- coerceValue(unlist(y[,by[i]]),unlist(x[,by[i]]))
   }
   left_join(x,y,by,...)
-}
+}# left_join_safe <- function(x,y,by=NULL,...){
+#   # browser()
+#   if(is.null(by))by=intersect(colnames(x),colnames(y))
+#   # x <- as_tibble(x)
+#   # y <- as_tibble(y)
+#   for(i in seq_along(by)){
+#     y[,by[i]] <- coerceValue(unlist(y[,by[i]]),unlist(x[,by[i]]))
+#   }
+#   left_join(x,y,by,...)
+# }
 # left_join_safe <- left_join
 
 
@@ -854,19 +861,18 @@ pipe_clean_map <- function(tables=NULL){
   questions$question_id <- coerceValue(questions$question_id,statements$question_id)
   links$statement_id <- coerceValue(links$statement_id,statements$statement_id)
 
-  statements <- statements %>%
-    left_join_safe(sources %>% rename_with(~paste0("r.",.),!matches("source_id"))) %>% suppressMessages %>%
-    left_join_safe(questions %>% rename_with(~paste0("q.",.),!matches("question_id"))) %>% suppressMessages
   # statements <- statements %>%
   #     safely(~left_join_safe(sources %>% rename_with(~paste0("r.",.),!matches("source_id"))),otherwise=.)() %>% pluck("result") %>%
   #     safely(~left_join_safe(questions %>% rename_with(~paste0("q.",.),!matches("question_id"))),otherwise=.)() %>% pluck("result")
 
   # browser()
+  statements <- statements %>%
+    left_join_safe(sources,by="source_id") %>% suppressMessages %>%
+    left_join_safe(questions,by="question_id") %>% suppressMessages
+
   links <- links %>%
-    left_join_safe(statements %>% rename_with(~paste0("s.",.),!matches("statement_id"))) %>%
+    left_join_safe(statements, by="statement_id") %>%
     suppressMessages
-  # links <- links %>%
-  #   safely(~left_join_safe(statements %>% rename_with(~paste0("s.",.),!matches("statement_id"))),otherwise=.)() %>% pluck("result")  # ,by="statement_id") %>% otherwise when this is repeated, you get loads of cols
 
   if(nrow(links)==0 | nrow(factors)==0){
     links <-
