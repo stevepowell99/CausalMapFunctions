@@ -7,9 +7,9 @@
 pipe_color_borders(
   graf,
   field = "frequency",
-  lo = "green",
-  hi = "blue",
-  mid = "gray",
+  lo = "#FCFDBF",
+  hi = "#5F187F",
+  mid = "#D3436E",
   fixed = NULL
 )
 }
