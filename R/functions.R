@@ -790,7 +790,9 @@ pipe_clean_map <- function(tables=NULL){
   missing_links <-
     c(links$from,links$to) %>%
     unique %>%
-    keep(. %notin% factors$factor_id)
+    keep(. %notin% factors$factor_id) %>%
+    keep(!is.na(.))
+
 
   if(length(missing_links)>0){
     notify("missing factor ids")
@@ -802,7 +804,7 @@ pipe_clean_map <- function(tables=NULL){
     #   bind_rows(tibble(factor_id=missing_links,label=as.character(missing_links)))
   }
   # browser()
-  if(!identical(factors$factor_id,row_index(factors))){
+  if(F & !identical(factors$factor_id,row_index(factors))){
     res <- normalise_id(factors,links,"factor_id","from","to")
     factors <- res$main
     links <- res$referring
@@ -825,7 +827,7 @@ pipe_clean_map <- function(tables=NULL){
 
 
 # browser()
-  if(T){
+  if(F){
   tmp <- compact_factors_links(factors,links)
   factors <- tmp$factors
   links <- tmp$links
@@ -856,7 +858,7 @@ pipe_clean_map <- function(tables=NULL){
     notify("multiple IDs")
   }
 
-  if(T){if(!is.null(statements)){if(!identical(statements$statement_id,row_index(statements))){
+  if(F){if(!is.null(statements)){if(!identical(statements$statement_id,row_index(statements))){
     statements <- filter(statements,!is.na(statement_id))
     res <- normalise_id(statements,links,"statement_id")
     statements <- res$main
@@ -2706,7 +2708,7 @@ make_vn <- function(graf,scale=1,safe_limit=200){
   edges <-  edges %>% vn_fan_edges()
   if(is.list(edges$width))edges$width=2 else edges$width=edges$width*10
   edges <-  edges  %>%
-    select(any_of(xc("from to id s.source_id statement_id s.question_id quote color hashtags width label link_memo smooth.roundness smooth.enabled smooth.type link_id0")))
+    select(any_of(xc("from to id source_id statement_id question_id quote color hashtags width label link_memo smooth.roundness smooth.enabled smooth.type link_id0")))
   if(nrow(nodes)>1){
     layout <- layout_with_sugiyama(make_igraph(nodes,edges))$layout*-scale
     colnames(layout) <- c("y", "x")
@@ -2736,10 +2738,10 @@ make_vn <- function(graf,scale=1,safe_limit=200){
       ,
       "</br><p class='link_tooltip'>",quote %>% str_wrap,"</p>",
       "<p class='link_tooltip'>Memo:", link_memo  %>% str_wrap,"</p>",
-      "<p class='link_tooltip'>Source ID:", s.source_id  %>% str_wrap,"</p>",
+      "<p class='link_tooltip'>Source ID:", source_id  %>% str_wrap,"</p>",
       "<p class='link_tooltip'>Statement ID:", statement_id  %>% str_wrap,"</p>",
       "<p class='link_tooltip'>Hashtags:", hashtags   %>% str_wrap,"</p>",
-      "<p class='link_tooltip'>Question ID:", s.question_id  %>% str_wrap,"</p>"
+      "<p class='link_tooltip'>Question ID:", question_id  %>% str_wrap,"</p>"
     ))
   # browser()
   visNetwork(nodes,edges,background="white")   %>%
