@@ -2520,7 +2520,7 @@ factor_click_edit <- function(id){
   as.character(shiny::actionButton(inputId = paste0('factor_click_edit_',id), label = "Rename",class="linky"))
 }
 factor_click_delete <- function(id){
-  as.character(shiny::actionButton(inputId = paste0('factor_click_delete_',id), label = "Delete factor",class="linky"))
+  as.character(shiny::actionButton(inputId = paste0('factor_click_delete_',id), label = "Delete factor from entire map",class="linky"))
 }
 factor_click_name <- function(val){
   as.character(shiny::textInput(inputId = paste0('factor_click_name'),
@@ -3032,7 +3032,7 @@ make_grviz <- function(
     add_global_graph_attrs("width", "0", "node") %>%
     add_global_graph_attrs("height", "0", "node")  %>%
 
-    add_global_graph_attrs("fontsize", 63, "edge") %>%
+    add_global_graph_attrs("fontsize", 100, "edge") %>%
     add_global_graph_attrs("fontcolor", "#666666", "edge")
 
   return(
