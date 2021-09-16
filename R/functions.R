@@ -827,7 +827,7 @@ pipe_clean_map <- function(tables=NULL){
 
 
 # browser()
-  if(F){
+  if(T){
   tmp <- compact_factors_links(factors,links)
   factors <- tmp$factors
   links <- tmp$links
@@ -858,7 +858,7 @@ pipe_clean_map <- function(tables=NULL){
     notify("multiple IDs")
   }
 
-  if(F){if(!is.null(statements)){if(!identical(statements$statement_id,row_index(statements))){
+  if(T){if(!is.null(statements)){if(!identical(statements$statement_id,row_index(statements))){
     statements <- filter(statements,!is.na(statement_id))
     res <- normalise_id(statements,links,"statement_id")
     statements <- res$main
