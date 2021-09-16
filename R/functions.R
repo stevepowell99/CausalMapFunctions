@@ -825,11 +825,11 @@ pipe_clean_map <- function(tables=NULL){
 
 
 # browser()
-
+  if(T){
   tmp <- compact_factors_links(factors,links)
   factors <- tmp$factors
   links <- tmp$links
-
+}
   # browser()
   sources <- sources %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_sources()) %>% select(which(!duplicated(colnames(.)))) #%>% select(any_of(colnames(standard_sources())))
   questions <- questions %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_questions()) %>% select(which(!duplicated(colnames(.))))#%>% select(any_of(colnames(standard_questions())))
@@ -856,14 +856,14 @@ pipe_clean_map <- function(tables=NULL){
     notify("multiple IDs")
   }
 
-  if(!is.null(statements)){if(!identical(statements$statement_id,row_index(statements))){
+  if(T){if(!is.null(statements)){if(!identical(statements$statement_id,row_index(statements))){
     statements <- filter(statements,!is.na(statement_id))
     res <- normalise_id(statements,links,"statement_id")
     statements <- res$main
     links <- res$referring
     notify("Normalising statement ids")
   }}
-
+}
   if(is.character(links$statement_id))links <- links %>% mutate(statement_id=as.integer(statement_id))
   if(is.character(statements$statement_id))statements <- statements %>% mutate(statement_id=as.integer(statement_id))
 
