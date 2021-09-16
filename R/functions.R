@@ -278,6 +278,17 @@ bind_rows_safe <- function(x,y,...){
 }
 
 
+#' Left join safe
+#'
+#' @param x
+#' @param y
+#' @param by
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
 left_join_safe <- function(x,y,by=NULL,...){
 
   if(is.null(by))by=intersect(colnames(x),colnames(y)) else y=y %>% select(-intersect(colnames(x),colnames(y)),by)
