@@ -291,7 +291,8 @@ bind_rows_safe <- function(x,y,...){
 #' @examples
 left_join_safe <- function(x,y,by=NULL,...){
 
-  if(is.null(by))by=intersect(colnames(x),colnames(y)) else y=y %>% select(-intersect(colnames(x),colnames(y)),by)
+  if(is.null(by))by=intersect(colnames(x),colnames(y))
+  y=y %>% select(-intersect(colnames(x),colnames(y)),by)
   for(i in seq_along(by)){
     y[,by[i]] <- coerceValue(unlist(y[,by[i]]),unlist(x[,by[i]]))
   }
