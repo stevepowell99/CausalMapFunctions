@@ -1,0 +1,439 @@
+---
+title: "Causal Map Functions Vignette"
+author: "Steve Powell"
+date: "24/09/2021"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_collapsed: true
+    toc_depth: 3
+    number_sections: false
+    theme: lumen
+---
+
+
+```{r setup, include=FALSE}
+options(dplyr.summarise.inform = FALSE)
+knitr::opts_chunk$set(echo = TRUE)
+source("../R/functions.R")
+```
+
+## Loading example datasets
+
+(After loading CausalMapFunctions library)
+
+
+The package ships with some example datasets, at the moment just these:
+
+- example2
+- quip_example
+
+which you can also view in Causal Map on the web.
+
+You can load the files like this:
+
+```{r }
+
+example2 <- load_premap("example2") %>% coerce_mapfile()#### should not be necessary TODO 
+
+example2
+
+example2 %>% summary
+
+```
+
+Visualise them like this:
+
+```{r }
+example2 %>% make_interactive_map
+
+```
+
+You can also load up an Excel file:
+
+```{r }
+# system.file("extdata", "quip-lorem", package = "CausalMapFunctions") %>% 
+#   get_mapfile_from_excel()
+
+```
+
+The file should have the standard Causal Map [format](guide.causalmap.app/core-tables.html): you can see an example by downloading any of the files in Causal Map on the web.
+
+
+
+If you filter the factors of a mapfile, e.g. show only factors with labels beginning xyz,
+
+- also the links are filtered (removing links to removed factors)
+- the statements are not touched
+
+If you filter the links of a mapfile, e.g. show only links with hashtags containing xyz,
+
+- the factors are not filtered (but using a different command you can remove any factors which no longer have any links)
+- the statements are not touched
+
+If you filter the statements of a mapfile, e.g. show only statements with texts containing xyz,
+
+- also the links are filtered (removing links to removed statements)
+- the factors are filtered
+
+So your workflow is always:
+
+
+```{r }
+  # ll <- quip_example
+  # ee <- example2
+  ee <- load_premap("example2")%>% coerce_mapfile 
+  tt <- load_premap("cm1/tearfund-sl")%>% coerce_mapfile
+  ll <- load_premap("quip-coded")%>% coerce_mapfile
+```
+
+## Basic examples
+
+### Accessing the data 
+
+One column in one table
+
+```{r }  
+ll %>%
+    pipe_find_factors(value="economic") %>%
+    .$factors %>%
+    .$label %>% 
+  knitr::kable()
+```
+
+### Merging two maps 
+
+```{r }  
+merge_map(ee,tt %>% pipe_select_factors(top=8)) %>% 
+  pipe_color_factors(field="map_id") %>% 
+  pipe_color_links(field="map_id",fun="unique") %>% 
+  make_interactive_map
+
+```
+
+Note warning if factor labels are shared
+
+
+```{r }  
+load_premap("example2") %>%
+  coerce_mapfile %>% 
+  pipe_merge_map("example2") %>% 
+  pipe_color_factors(field="map_id") %>% 
+  pipe_color_links(field="map_id",fun="unique") %>% 
+  make_interactive_map
+
+```
+
+### Editing maps directly
+
+There is no guarantee that the resulting map is still a standard mapfile.
+
+```{r }  
+ee$factors$label[1] <- "Label changed"
+ee %>% make_interactive_map
+```
+
+### Editing maps with update_mapfile
+
+There is no guarantee that the resulting map is still a standard mapfile.
+
+```{r }  
+ee %>% 
+  update_mapfile(factors = ee$factors %>% mutate(label="one")) %>% 
+  make_interactive_map
+```
+
+Coercing to a standard mapfile:
+
+```{r }  
+ee %>% 
+  update_mapfile(factors = ee$factors %>% mutate(label="one")) %>% 
+  coerce_mapfile() %>% 
+  make_interactive_map
+```
+
+
+### Interactive and Print maps
+
+```{r }  
+  ee %>%
+    pipe_label_links("link_id") %>%
+    make_interactive_map
+  ee %>%
+    pipe_label_links("link_id") %>%
+    make_print_map()
+  ee %>%
+    pipe_set_print(grv_layout="circo") %>%
+    make_print_map()
+```
+
+### Selecting and finding 
+
+factors links and statements
+
+```{r }  
+ll %>%
+    pipe_select_factors(5) %>%
+    make_interactive_map
+
+```
+
+
+```{r }  
+ll %>%
+    pipe_select_links(5) %>%
+    make_interactive_map
+
+```
+
+```{r }  
+ll %>%
+    pipe_find_statements(field="statement_id",value=5,operator="equals") %>%
+    make_interactive_map
+```
+
+```{r }  
+ll %>%
+    pipe_find_factors(value="economic") %>%
+    make_interactive_map
+```
+
+
+
+```{r }  
+ll %>%
+    pipe_select_factors(5) %>%
+    pipe_find_factors(value="economic") %>%
+    make_interactive_map
+
+```
+
+No result
+
+```{r }  
+ll %>%
+    pipe_find_factors(value="asdfasdfasdf") %>%
+    make_interactive_map
+```
+
+
+
+```{r }  
+ll %>%
+    pipe_find_links(field="from_label",value="economic",operator="contains") %>%
+    make_interactive_map
+```
+
+### Numerical comparison
+
+```{r }  
+ll %>%
+    pipe_find_statements(field="statement_id",value=20,operator="less") %>%
+    make_interactive_map
+```
+
+No result
+
+```{r }  
+ll %>%
+    pipe_find_statements(field="statement_id",value=20000000,operator="greater") %>%
+    make_interactive_map
+```
+
+## Conditional formatting
+
+```{r }  
+ll %>%
+    pipe_select_factors(5) %>%
+    pipe_scale_factors(field="frequency") %>%
+    make_interactive_map
+```
+
+```{r }
+ll %>%
+    pipe_select_factors(5) %>%
+    pipe_color_factors(field="frequency") %>%
+    pipe_color_borders(field="betweenness") %>%
+    pipe_wrap_factors(5) %>%
+    make_interactive_map
+
+```
+
+```{r }  
+
+ee %>%
+    pipe_label_links("from_label",fun = "unique") %>%
+    pipe_wrap_links(6) %>%
+    make_interactive_map
+
+```
+
+## Remove brackets
+
+```{r }  
+ll %>%
+    pipe_select_factors(5) %>%
+    pipe_remove_brackets() %>%
+    make_interactive_map
+
+```
+
+## Bundle factors
+
+```{r }  
+ll %>%
+    pipe_bundle_factors(value = "IEA") %>%
+    pipe_select_factors(5) %>%
+    make_interactive_map
+
+
+
+```
+
+## Format links without bundling
+
+```{r }  
+ee %>%
+  pipe_color_links("link_id",fun = "mean") %>%
+  make_interactive_map
+ee %>%
+  pipe_scale_links("link_id",fun = "mean") %>%
+  make_interactive_map
+
+```
+
+
+## Bundling links
+
+
+```{r }  
+ll %>%
+    pipe_find_factors(value="economic") %>%
+    pipe_select_factors(5) %>%
+    pipe_bundle_links() %>%
+    pipe_label_links() %>%
+    make_interactive_map
+
+
+```
+
+```{r }  
+ll %>%
+    pipe_select_factors(5) %>%
+    pipe_bundle_links(group="simple_bundle") %>%
+    pipe_color_links("link_id",fun = "count") %>%
+    pipe_scale_links("link_id",fun = "count") %>%
+    pipe_label_links("link_id",fun = "count") %>%
+    make_interactive_map
+```
+
+
+## Nested maps
+
+```{r }  
+tt %>%
+    pipe_zoom_factors(1) %>%
+    pipe_select_factors(5) %>%
+    make_interactive_map
+
+```
+
+
+```{r }  
+tt %>%
+    pipe_zoom_factors(1) %>%
+    pipe_bundle_links() %>%
+    pipe_label_links() %>%
+    pipe_scale_links() %>%
+    make_print_map
+
+```
+
+```{r }  
+tt %>%
+    pipe_zoom_factors(1) %>%
+    make_print_map
+
+```
+
+
+## Nested maps with opposites
+
+Note colours are not provided in Interactive view
+
+```{r }  
+tt %>%
+    pipe_zoom_factors(1) %>%
+    pipe_flip_opposites() %>%
+    pipe_select_links(3) %>%
+    make_interactive_map
+
+```
+
+
+## Path tracing
+
+```{r }  
+
+cat("### Single\n")  
+
+ee %>%    
+  pipe_trace_paths(from = "Funds",to="area",length = 5) %>% 
+  make_interactive_map
+
+cat("### Failing; no paths\n")  
+
+ee %>%    
+  pipe_trace_paths(from = "xx",to="yy",length = 5) %>% 
+  make_interactive_map
+
+cat("### Multiple\n")  
+
+ee %>%    
+  pipe_trace_paths(from = "High",to="Damage",length = 5) %>% 
+  make_interactive_map
+
+tt %>%
+  pipe_trace_paths(from = "Capabilities",to="[OP3]",length = 2) %>% 
+  make_interactive_map
+
+ee %>%    
+  pipe_trace_paths(from = "Funds",to="area",length = 5) %>% 
+  make_print_map()
+
+tt %>%
+    pipe_zoom_factors(1) %>%
+    pipe_flip_opposites() %>%
+    make_print_map
+
+```
+
+### Robustness
+
+```{r }  
+
+ee %>%    
+  pipe_trace_robustness(from = "High",to="Damage",length = 5) %>% 
+  get_robustness
+
+tt %>%
+  pipe_trace_robustness(from = "Capabilities",to="[OP3]",length = 2) %>% 
+  get_robustness
+
+```
+
+Is the second one correct? 
+
+```{r }  
+if(F){
+graf <- tt1
+graf$factors %>% filter(factor_id %notin% graf$links$from & factor_id %notin% graf$links$to)  %>% nrow
+
+graf$links %>% filter(from %notin% graf$factors$factor_id & to %notin% graf$factors$factor_id)  %>% nrow
+
+graf$links %>% filter(statement_id %notin% graf$statements$statement_id) %>% nrow
+  }
+
+
+```
