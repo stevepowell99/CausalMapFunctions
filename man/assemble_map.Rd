@@ -2,8 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{assemble_map}
 \alias{assemble_map}
-\title{Assemble map
-It simply adds standard tables where any are missing}
+\title{Assemble map}
 \usage{
 assemble_map(
   factors = NULL,
@@ -14,13 +13,9 @@ assemble_map(
   settings = NULL
 )
 }
-\arguments{
-\item{settings}{}
-}
 \value{
 
 }
 \description{
-Assemble map
-It simply adds standard tables where any are missing
+The only difference between this and just creating a list is that it provides names
 }

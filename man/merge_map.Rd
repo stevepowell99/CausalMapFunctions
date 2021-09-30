@@ -4,13 +4,7 @@
 \alias{merge_map}
 \title{Merge map}
 \usage{
-merge_map(graf, graf2)
-}
-\arguments{
-\item{graf}{A tidymap representing a causal map.
-A tidymap is a tidygraph, which consists of a table of edges linked to a table of nodes,
-with an optional additional table of statements.
-In this package, nodes are called `factors` and edges are called `links.`}
+merge_map(map1, map2)
 }
 \value{
 A tidy map. The column *_map_id is set to reflect the id of the map.

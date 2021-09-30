@@ -4,7 +4,7 @@
 \alias{pipe_scale_links}
 \title{Scale factors}
 \usage{
-pipe_scale_links(graf, field = "frequency", fixed = NULL, fun = "length")
+pipe_scale_links(graf, field = "link_id", fixed = NULL, fun = "count")
 }
 \arguments{
 \item{graf}{A tidymap representing a causal map.

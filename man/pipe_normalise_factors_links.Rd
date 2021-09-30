@@ -12,7 +12,7 @@
 #'
 #' @examples
 pipe_fix_columns <- function(graf){
-  graf %>% update_map(
+  graf %>% update_mapfile(
     factors = graf$factors %>% fix_columns_factors(),
     links = graf$links %>% fix_columns_links()
   )
@@ -41,7 +41,7 @@ A tidymap with a additional columns.
 #'
 #' @examples
 pipe_fix_columns <- function(graf){
-  graf %>% update_map(
+  graf %>% update_mapfile(
     factors = graf$factors %>% fix_columns_factors(),
     links = graf$links %>% fix_columns_links()
   )
