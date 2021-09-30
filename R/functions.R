@@ -544,7 +544,6 @@ pipe_coerce_mapfile <- function(tables){
   if(is.null(sources)) sources <- standard_sources() else {
     if("source_id" %notin% colnames(sources)) sources <-  sources %>%
         mutate(source_id=row_number() %>% as.character)
-
     sources <-  sources %>%
       # select(-starts_with("color")) %>%
       add_column(.name_repair="minimal",!!!standard_sources()) %>%
@@ -605,6 +604,7 @@ pipe_coerce_mapfile <- function(tables){
   }
 
   # browser()
+# browser()
 
   statements <- statements %>%
     left_join_safe(sources,by="source_id") %>% suppressMessages %>%
@@ -1544,9 +1544,9 @@ standard_links <- function(){tibble(
   map_id=1L
 )
   }
-standard_statements <- function()tibble(statement_id=1,text="blank statement",statement_memo="",source_id="1",question_id="1",map_id=1)
-standard_sources <- function()tibble(source_id="1",source_memo="global source",map_id=1)
-standard_questions <- function()tibble(question_id="1",question_text="global question",question_memo="",map_id=1)
+standard_statements <- function()tibble(statement_id=1,text="blank statement",statement_memo="",source_id="1",question_id="1",statement_map_id=1)
+standard_sources <- function()tibble(source_id="1",source_memo="global source",source_map_id=1)
+standard_questions <- function()tibble(question_id="1",question_text="global question",question_memo="",question_map_id=1)
 standard_settings <- function()tibble(setting_id="background_colour",value="",map_id=1)
 
 #' Add class
