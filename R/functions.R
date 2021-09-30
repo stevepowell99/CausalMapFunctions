@@ -481,13 +481,13 @@ pipe_normalise_factors_links <- function(graf){
 proportion_false <- function(lis) lis %>% map(~sum(unlist(.))/length(.)) %>% unlist
 
 
-color_flipped_factors <- function(factors){
+color_combined_factors <- function(factors){
   factors %>%
     mutate(is_flipped=proportion_false(is_flipped)) %>%
     mutate(color.border= div_gradient_pal("#00ffaf","white","#ff8fb8")(is_flipped))
 
 }
-color_flipped_links <- function(links){
+color_combined_links <- function(links){
   links %>% mutate(
     from_color = case_when(
       from_flipped  ~  "#ff8fb8",
@@ -700,12 +700,32 @@ load_premap <- function(path=NULL,connection=conn){
 
 }
 
+add_metrics_to_factors <- function(factors,links){
+  ig <- make_igraph(factors,links)
 
+
+  factors$betweenness <- igraph::centr_betw(ig)$res %>% round(2)
+  factors$betweenness_rank <- factors$betweenness %>% rank
+  factors$in_degree=ig %>% igraph::degree(mode = "in")
+  factors$out_degree=ig %>% igraph::degree(mode = "out")
+  factors$frequency <- factors$in_degree+factors$out_degree
+
+  return(factors)
+
+}
 add_labels_to_links <- function(links,factors){
 links %>% mutate(from_label= recode(as.numeric(from),!!!factors$label %>% set_names(factors$factor_id))) %>%
   mutate(to_label= recode(as.numeric(to),!!!factors$label %>% set_names(factors$factor_id)))
 }
+factors_links_from_named_edgelist <- function(links){
+  tmp <- c(links$from_label,links$to_label) %>% unique
 
+  factors <- tibble(label=tmp,factor_id=seq_along(tmp))
+  links$from <- recode(links$from_label,!!!(factors$factor_id %>% set_names(factors$label)))
+  links$to <- recode(links$to_label,!!!(factors$factor_id %>% set_names(factors$label)))
+
+  return(list(factors=factors,links=links))
+}
 #' Create mapfile
 #'
 #' @param tables
@@ -722,6 +742,18 @@ coerce_mapfile <- function(tables){
   questions <- tables$questions #%>% replace_null(standard_questions())
   settings <- tables$settings #%>% replace_null(standard_settings())
 
+
+# preparation
+  if(is.null(factors) &
+     !is.null(links)){
+    if("from_label" %in% colnames(links) &
+       "to_label" %in% colnames(links)){
+    tmp <- factors_links_from_named_edgelist(links)
+    factors <- tmp$factors
+    links <- tmp$links
+  }
+  }
+
   flow <- attr(links,"flow")
 
   if(is.null(links)) links <- standard_links() else {
@@ -736,6 +768,7 @@ coerce_mapfile <- function(tables){
 
     links[,colnames(standard_links())] <- map(colnames(standard_links()),
                                               ~coerceValue(links[[.]],standard_links()[[.]]))
+    # browser()
     links <- links %>%
       filter(!is.na(from) & !is.na(to) & !is.na(statement_id) & !is.na(link_id))%>%
       distinct(link_id,.keep_all = T)
@@ -753,7 +786,10 @@ coerce_mapfile <- function(tables){
 
     factors[,colnames(standard_factors())] <- map(colnames(standard_factors()),
                                                   ~coerceValue(factors[[.]],standard_factors()[[.]]))
-# browser()
+
+    ## trim label-------------------------------------------------
+    factors$label <- str_trim(factors$label)
+# ensure distinct label and id-----------------------------------------------
     factors <- factors %>%
       filter(!is.na(label) & !is.na(factor_id))%>%
       distinct(factor_id,.keep_all = T) %>%
@@ -761,7 +797,6 @@ coerce_mapfile <- function(tables){
 
   }
 
-  # browser()
   if(is.null(statements)) statements <- standard_statements() else {
     if("statement_id" %notin% colnames(statements)) statements <-  statements %>%
         mutate(statement_id=row_number())
@@ -859,14 +894,7 @@ coerce_mapfile <- function(tables){
     unite(simple_bundle,from_label,to_label,remove = F,sep = " / ") %>%
     select(from_label,to_label,statement_id,quote,everything())
 
-  ig <- make_igraph(factors,links)
-
-
-  factors$betweenness <- igraph::centr_betw(ig)$res %>% round(2)
-  factors$betweenness_rank <- factors$betweenness %>% rank
-  factors$in_degree=ig %>% igraph::degree(mode = "in")
-  factors$out_degree=ig %>% igraph::degree(mode = "out")
-  factors$frequency <- factors$in_degree+factors$out_degree
+  factors <- add_metrics_to_factors(factors,links)
 
   attr(links,"flow") <- flow
 
@@ -968,11 +996,12 @@ merge_map <- function(map1,map2){
   maxfactorid <- max(as.numeric(map1$factors$factor_id))
   maxstatementid <- max(as.numeric(map1$statements$statement_id))
 
-  map1$factors$map_id <- map1$factors$map_id %>%  replace_na(1)
-  map1$links$map_id <- map1$links$map_id %>%  replace_na(1)
-  map1$statements$map_id <- map1$statements$map_id %>%  replace_na(1)
-  map1$sources$map_id <- map1$sources$map_id %>%  replace_na(1)
-  map1$questions$map_id <- map1$questions$map_id %>%  replace_na(1)
+  if("map_id" %notin% colnames(map1$factors))map1$factors$map_id <- 1
+  if("map_id" %notin% colnames(map1$links))map1$links$map_id <- 1
+  if("map_id" %notin% colnames(map1$statements))map1$statements$map_id <- 1
+  if("map_id" %notin% colnames(map1$sources))map1$sources$map_id <- 1
+  if("map_id" %notin% colnames(map1$questions))map1$questions$map_id <- 1
+
 
   maxmapid <- max(as.numeric(map1$factors$map_id))
 
@@ -990,8 +1019,8 @@ assemble_map(
       bind_rows_safe(map2$links %>%
                       mutate(map_id=maxmapid+1) %>%
                       mutate(from=from+maxfactorid,to=to+maxfactorid) %>%
-                      mutate(statement_id=statement_id+maxstatementid)
-                     ),
+                      mutate(statement_id=statement_id+maxstatementid) ) %>%
+  mutate(link_id=row_number()),
     statements=map1$statements  %>%
       bind_rows_safe(map2$statements %>%
                       mutate(map_id=maxmapid+1) %>%
@@ -1029,7 +1058,6 @@ assemble_map(
 
 
 #' Assemble map
-#' It simply adds standard tables where any are missing
 #' @param factors
 #' @param links
 #' @param statements
@@ -1613,7 +1641,7 @@ calculate_robustness_inner <- function(graf){
   # graf$factors  <- graf$factors %>%
   #   select(id,label,capacity)
 
-  # browser()
+  browser()
   graf$links  <- graf$links %>%
     filter(from!=to) %>%
     mutate(capacity=if_else(is.na(capacity),1,capacity))
@@ -2446,8 +2474,8 @@ pipe_calculate_robustness <- function(graf,field=NULL){
 
 
 
-pipe_flip_opposites <- function(graf,flipchar="~",add_colors=T){
-  if(add_colors)notify("Also adding colours; you can turn this off with 'flip opposites add_colors=FALSE'")
+pipe_combine_opposites <- function(graf,flipchar="~",add_colors=T){
+  if(add_colors)notify("Also adding colours; you can turn this off with 'combine opposites add_colors=FALSE'")
   factors <-
     graf$factors %>%
     mutate(
@@ -2455,7 +2483,7 @@ pipe_flip_opposites <- function(graf,flipchar="~",add_colors=T){
       label=if_else(is_flipped,flip_vector(label,flipchar = flipchar),label),
       label=flip_fix_vector(label)
     ) %>%
-    {if(add_colors)color_flipped_factors(.) else .}
+    {if(add_colors)color_combined_factors(.) else .}
 
   # browser()
   links <-
@@ -2463,7 +2491,7 @@ pipe_flip_opposites <- function(graf,flipchar="~",add_colors=T){
     mutate(from_flipped=factors$is_flipped[from] %>% as.logical) %>%
     mutate(to_flipped=factors$is_flipped[to] %>% as.logical) %>%
     unite("flipped_bundle",from_flipped,to_flipped,sep = "|",remove=F) %>%
-    {if(add_colors)color_flipped_links(.) else .}
+    {if(add_colors)color_combined_links(.) else .}
 
   graf %>%
     update_mapfile(factors=factors,links=links) %>%

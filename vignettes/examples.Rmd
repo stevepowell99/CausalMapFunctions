@@ -61,6 +61,79 @@ You can also load up an Excel file:
 The file should have the standard Causal Map [format](guide.causalmap.app/core-tables.html): you can see an example by downloading any of the files in Causal Map on the web.
 
 
+`coerce_mapfile` will also process a file with no factors and from_label and to_label columns as a named edgelist.
+
+```{r }
+tmp <- load_premap("excel/c:/Users/steve/My Drive (hello@causalmap.app)/Causal Map/Projects/example maps/Figure 2 Map of changes due to the driver training.xlsx") %>% 
+  coerce_mapfile() 
+
+tmp$links$quote <- "blank"
+tmp %>% 
+  save_cm2("fiona-fig2")
+
+tmp <- load_premap("excel/c:/Users/steve/My Drive (hello@causalmap.app)/Causal Map/Projects/example maps/Figure 3 Map of drivers leading to the outcome farm production increased.xlsx") %>% 
+  coerce_mapfile() 
+
+tmp$links$quote <- "blank"
+tmp %>% 
+  save_cm2("fiona-fig3")
+
+tmp <- load_premap("excel/c:/Users/steve/My Drive (hello@causalmap.app)/Causal Map/Projects/example maps/Figure 5 Map of change driven by receiving GMP dairy training.xlsx") %>% 
+  coerce_mapfile() 
+
+tmp$links$quote <- "blank"
+tmp %>% 
+  save_cm2("fiona-fig5")
+
+
+tmp <- load_premap("excel/c:/Users/steve/My Drive (hello@causalmap.app)/Causal Map/Projects/example maps/Figure 6 Maps of changes in pig farming in two district.xlsx") %>% 
+  coerce_mapfile() 
+
+tmp$links$quote <- "blank"
+tmp %>% 
+  save_cm2("fiona-fig6")
+
+
+tmp <- load_premap("excel/c:/Users/steve/My Drive (hello@causalmap.app)/Causal Map/Projects/example maps/Figure 6 plus.xlsx") %>% 
+  coerce_mapfile() 
+
+tmp$links$quote <- "blank"
+tmp %>% 
+  save_cm2("fiona-fig6plus")
+
+## more here
+
+tmp <- load_premap("excel/c:/Users/steve/My Drive (hello@causalmap.app)/Causal Map/Projects/example maps/Jeong and Lee- Edge to edge list.xlsx") %>% 
+  coerce_mapfile() 
+
+tmp$links$quote <- "blank"
+tmp %>% 
+  save_cm2("jeong-lee")
+
+
+tmp <- load_premap("excel/c:/Users/steve/My Drive (hello@causalmap.app)/Causal Map/Projects/example maps/example2 based on standalone causal map as an excel file.xlsx") %>% 
+  coerce_mapfile() 
+
+tmp %>% 
+  save_cm2("example3")
+
+
+tmp <- load_premap("excel/c:/Users/steve/My Drive (hello@causalmap.app)/Causal Map/Projects/example maps/Figure 7 Map of changes in agricultural practices for cropsvegs.xlsx") %>% 
+  coerce_mapfile() 
+
+tmp %>% 
+  save_cm2("fiona-fig7")
+
+tmp <- load_premap("excel/c:/Users/steve/My Drive (hello@causalmap.app)/Causal Map/Projects/example maps/Figure 8 Map of change in ginger farming.xlsx") %>% 
+  coerce_mapfile() 
+
+tmp %>% 
+  save_cm2("fiona-fig8")
+
+
+
+```
+
 
 If you filter the factors of a mapfile, e.g. show only factors with labels beginning xyz,
 
