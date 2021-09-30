@@ -271,25 +271,17 @@ bind_rows_safe <- function(x,y,...){
 #' @export
 #'
 #' @examples
-left_join_safe <- function(x,y,by=NULL,...){
-
+left_join_safe <- function(x,y,by=NULL,winner="y",...){
+# browser()h
   if(is.null(by))by=intersect(colnames(x),colnames(y))
-  y=y %>% select(-intersect(colnames(x),colnames(y)),by)
+  if(winner=="y")x=x %>% select(-intersect(colnames(x),colnames(y)),by) else  # so the second table takes precedence
+    y=y %>% select(-intersect(colnames(x),colnames(y)),by)  # so the second table takes precedence
   for(i in seq_along(by)){
     y[,by[i]] <- coerceValue(unlist(y[,by[i]]),unlist(x[,by[i]]))
   }
   left_join(x,y,by,...)
-}# left_join_safe <- function(x,y,by=NULL,...){
-#   # browser()
-#   if(is.null(by))by=intersect(colnames(x),colnames(y))
-#   # x <- as_tibble(x)
-#   # y <- as_tibble(y)
-#   for(i in seq_along(by)){
-#     y[,by[i]] <- coerceValue(unlist(y[,by[i]]),unlist(x[,by[i]]))
-#   }
-#   left_join(x,y,by,...)
-# }
-# left_join_safe <- left_join
+}
+
 
 
 replace_null <- function(x,replacement=0){
@@ -461,6 +453,15 @@ pipe_coerce_mapfile <- function(tables){
   questions <- tables$questions #%>% replace_null(standard_questions())
   settings <- tables$settings #%>% replace_null(standard_settings())
 
+  # if(!is.null(factors) &
+  #    !is.null(links)){
+  #   if("factor_id" %in% colnames(factors) &
+  #      "from" %in% colnames(links)&
+  #      "to" %in% colnames(links)
+  #      )
+  #     {
+  #
+  # }
 
   # preparation
   if(is.null(factors) &
@@ -483,7 +484,8 @@ pipe_coerce_mapfile <- function(tables){
     links <-  links %>%
       select(-starts_with("color")) %>%
       add_column(.name_repair="minimal",!!!standard_links())   %>%
-      select(which(!duplicated(colnames(.))))
+      select(which(!duplicated(colnames(.)))) %>%
+      select(-starts_with("..."))
 
     links[,colnames(standard_links())] <- map(colnames(standard_links()),
                                               ~coerceValue(links[[.]],standard_links()[[.]]))
@@ -501,7 +503,8 @@ pipe_coerce_mapfile <- function(tables){
     factors <-  factors %>%
       select(-starts_with("color")) %>%
       add_column(.name_repair="minimal",!!!standard_factors())   %>%
-      select(which(!duplicated(colnames(.))))
+      select(which(!duplicated(colnames(.)))) %>%
+      select(-starts_with("..."))
 
     factors[,colnames(standard_factors())] <- map(colnames(standard_factors()),
                                                   ~coerceValue(factors[[.]],standard_factors()[[.]]))
@@ -516,6 +519,10 @@ pipe_coerce_mapfile <- function(tables){
 
   }
 
+  # if(!identical(factors$factor_id,1:nrow(factors))){
+  #   browser()
+  #   tmp <- compact_factors_links(factors,links)
+  # }
   if(is.null(statements)) statements <- standard_statements() else {
     if("statement_id" %notin% colnames(statements)) statements <-  statements %>%
         mutate(statement_id=row_number())
@@ -523,7 +530,8 @@ pipe_coerce_mapfile <- function(tables){
     statements <-  statements %>%
       # select(-starts_with("color")) %>%
       add_column(.name_repair="minimal",!!!standard_statements()) %>%
-      select(which(!duplicated(colnames(.))))
+      select(which(!duplicated(colnames(.)))) %>%
+      select(-starts_with("..."))
 
     statements[,colnames(standard_statements())] <- map(colnames(standard_statements()),
                                                         ~coerceValue(statements[[.]],standard_statements()[[.]]))
@@ -540,7 +548,8 @@ pipe_coerce_mapfile <- function(tables){
     sources <-  sources %>%
       # select(-starts_with("color")) %>%
       add_column(.name_repair="minimal",!!!standard_sources()) %>%
-      select(which(!duplicated(colnames(.))))
+      select(which(!duplicated(colnames(.)))) %>%
+      select(-starts_with("..."))
 
     sources[,colnames(standard_sources())] <- map(colnames(standard_sources()),
                                                   ~coerceValue(sources[[.]],standard_sources()[[.]]))
@@ -557,7 +566,8 @@ pipe_coerce_mapfile <- function(tables){
     questions <-  questions %>%
       # select(-starts_with("color")) %>%
       add_column(.name_repair="minimal",!!!standard_questions()) %>%
-      select(which(!duplicated(colnames(.))))
+      select(which(!duplicated(colnames(.)))) %>%
+      select(-starts_with("..."))
 
     questions[,colnames(standard_questions())] <- map(colnames(standard_questions()),
                                                       ~coerceValue(questions[[.]],standard_questions()[[.]]))
@@ -619,6 +629,7 @@ pipe_coerce_mapfile <- function(tables){
 
 
   assemble_mapfile(factors,links,statements,sources,questions,settings) %>%
+    # pipe_normalise_factors_links() %>%
     add_class()
 
 }
@@ -1680,7 +1691,7 @@ calculate_robustness_inner <- function(graf){
   # graf$factors  <- graf$factors %>%
   #   select(id,label,capacity)
 
-  browser()
+  # browser()  FIND OUT WHAT IS GOING ON WITH TOTAL LOWER THAN INDIVIDUAL
   graf$links  <- graf$links %>%
     filter(from!=to) %>%
     mutate(capacity=if_else(is.na(capacity),1,capacity))
@@ -3072,7 +3083,7 @@ make_interactive_map <- function(graf,scale=1,safe_limit=200){
   }
 
 
-if(nrow(graf$factors)>0){  if(max(table(graf$factors$size))>1)graf <- graf %>% pipe_update_mapfile(factors=.$factors %>% arrange((size))) %>% pipe_normalise_factors_links()#because this is the way to get the most important ones in front
+if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- graf %>% pipe_update_mapfile(factors=.$factors %>% arrange((size))) %>% pipe_normalise_factors_links()#because this is the way to get the most important ones in front
 }
   nodes <- graf$factors %>% mutate(value=size*10) %>%
     select(any_of(xc("factor_id factor_memo  label color.background color.border title group value hidden size"))) %>% ### restrictive in attempt to reduce random freezes
@@ -3100,7 +3111,7 @@ if(nrow(graf$factors)>0){  if(max(table(graf$factors$size))>1)graf <- graf %>% p
   }
   nodes <- nodes %>%   mutate(id=row_number())
   edges <- edges %>%   mutate(id=NULL) # id would be necessary for getting ids from clicks etc, but seems to stop tooltip from working
-  nodes <-
+  if(F)nodes <-
     nodes %>% mutate(title=paste0(
       map(label,identity),
       # map(label,factor_click_name),
