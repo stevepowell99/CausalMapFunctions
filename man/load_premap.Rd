@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{load_premap}
 \alias{load_premap}
-\title{Update map}
+\title{Load premap}
 \usage{
 load_premap(path = NULL, connection = conn)
 }
@@ -10,43 +10,8 @@ load_premap(path = NULL, connection = conn)
 \item{clean}{}
 }
 \value{
-A tidy map. If both factors and links are NULL, and empty map is returned.
-
 A table list.
 }
 \description{
-Update map
-}
-\examples{
-
-#' Merge map
-#' @inheritParams parse_commands
-#' @param graf
-#' @param path
-#' @description This also has a wrapper, pipe_merge_map
-#' @return A tidy map. The column *_map_id is set to reflect the id of the map.
-#' @export
-#'
-#' @examples
-merge_map <- function(graf,graf2){
-  # browser()
-  map2 <- graf2 #\%>\% pipe_clean_map() #  clean map will put the important vars to integer.
-  graf <- graf #\%>\% pipe_clean_map() #
-
-  maxid <- max(as.numeric(graf$factors$factor_id))
-  maxmapid <- max(as.numeric(graf$factors$factor_map_id))
-
-  assemble_map(
-    factors=graf$factors \%>\% bind_rows_safe(map2$factors \%>\% mutate(factor_map_id=maxmapid+1) \%>\% mutate(factor_id=factor_id+maxid)),
-    links=graf$links  \%>\% bind_rows_safe(map2$links \%>\% mutate(link_map_id=maxmapid+1) \%>\% mutate(from=from+maxid,to=to+maxid)),
-    statements=graf$statements  \%>\% bind_rows_safe(map2$statements \%>\% mutate(statement_map_id=maxmapid+1)),
-    sources=graf$sources \%>\% bind_rows_safe(map2$sources \%>\% mutate(source_map_id=maxmapid+1)),
-    questions=graf$questions \%>\% bind_rows_safe(map2$questions \%>\% mutate(question_map_id=maxmapid+1)),
-    settings=graf$settings \%>\% bind_rows_safe(map2$settings \%>\% mutate(setting_map_id=maxmapid+1))
-  )
-  # \%>\%
-  #   pipe_clean_map(tables=.)
-
-}
-Load map
+Load premap
 }

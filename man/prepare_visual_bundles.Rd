@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{prepare_visual_bundles}
 \alias{prepare_visual_bundles}
-\title{Prepare visual bundles}
+\title{NOT USED Prepare visual bundles}
 \usage{
 prepare_visual_bundles(
   graf,
@@ -25,5 +25,5 @@ prepare_visual_bundles(
 
 }
 \description{
-Prepare visual bundles
+NOT USED Prepare visual bundles
 }

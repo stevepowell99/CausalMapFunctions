@@ -5,10 +5,27 @@
 # - merges tables according to the joins
 # - and has additional calculated columns
 # - note that some funs like zoom, bundle factor etc may have different ids from previous mapfile
-# - there should never be a need to apply coerce_mapfile twice
+# - there should never be a need to apply pipe_coerce_mapfile twice
 
+summary.tidymap <- function (graf){
+  list(colnames=graf %>% map(colnames) ,
+       "Number of rows"=graf %>% map(nrow) %>% as_tibble
+  )
+}
+print.tidymap <- function (graf, n=2,...)
+{
+  # browser()
+  cat("Factors: ");graf$factors %>% as_tibble  %>% print(n=n)
+  cat("Links: ");graf$links %>% as_tibble  %>% print(n=n)
+  cat("Statements: ");graf$statements %>% as_tibble  %>% print(n=n)
+  cat("Sources: ");graf$sources %>% as_tibble  %>% print(n=n)
+  cat("Questions: ");graf$questions %>% as_tibble  %>% print(n=n)
+  cat("Settings: ");graf$settings %>% as_tibble  %>% print(n=n)
 
-# tests -------------------------------------------------------------------
+}
+# these are not generics so must be called directly
+nrow.cm <- function (graf){graf %>% map(nrow)}
+colnames.cm <- function (graf){graf %>% map(colnames)}
 
 
 
@@ -71,7 +88,7 @@ get_mapfile_from_excel <- function(path){
     map(~readxl::read_excel(path,sheet = .)) %>%
     add_class
 }
-get_map_from_s3 <- function(path){
+get_mapfile_from_s3 <- function(path){
   notify("Trying cm2 file")
   if(!s3file_exists(object=basename(path),buck=dirname(path))) return()
   notify("Loaded cm2 file")
@@ -217,7 +234,7 @@ join_statements_to_meta <- function(statements,meta){
 
 
 
-# internal utilities-----------------------------------------------------------------------------
+# internal general utilities-----------------------------------------------------------------------------
 
 notify <- notify # alias
 # return_notify <- function(tex){
@@ -226,60 +243,6 @@ notify <- notify # alias
 # }
 
 
-#' Title
-#'
-#' @param vec
-#'
-#' @return
-#' @export
-#'
-#' @examples
-as_numeric_if_all <- function(vec){
-  if(!any(is.na(as.numeric(vec)))) as.numeric(vec) else
-    vec
-}
-
-
-# mode average / most frequent
-getmode <- function(v) {
-  uniqv <- unique(v)
-  uniqv[which.max(tabulate(match(v, uniqv)))]
-}
-getmean <- function(v) {mean(as.numeric(v),na.rm=T) %>% round(digits = 2)}
-getsum <- function(v) {sum(as.numeric(v),na.rm=T) %>% round(digits = 2)}
-getmedian <- function(v) {median(as.numeric(v),na.rm=T) %>% round(digits = 2)}
-
-## from DT package
-coerceValue <- function (val, old)
-{
-  # old=unlist(old)
-  if (is.integer(old))
-    return(as.integer(val))
-  if (is.numeric(old))
-    return(as.numeric(val))
-  if (is.character(old))
-    return(as.character(val))
-  if (inherits(old, "Date"))
-    return(as.Date(val))
-  if (inherits(old, c("POSIXlt", "POSIXct"))) {
-    val = strptime(val, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
-    if (inherits(old, "POSIXlt"))
-      return(val)
-    return(as.POSIXct(val))
-  }
-  if (is.factor(old)) {
-    i = val %in% levels(old)
-    if (all(i))
-      return(val)
-    warning("New value(s) \"", paste(val[!i], collapse = ", "),
-            "\" not in the original factor levels: \"",
-            paste(levels(old), collapse = ", "), "\"; will be coerced to NA.")
-    val[!i] = NA
-    return(val)
-  }
-  # warning("The data type is not supported: ", classes(old))
-  val
-}
 
 bind_rows_safe <- function(x,y,...){
 
@@ -369,36 +332,344 @@ escapeRegex <- function(string){ #from hmisc
        string)
 }
 
-div_pal_n <- function(vec,lo,hi,mid){
-  div_gradient_pal(low=lo,high=hi,mid=mid)(rescale(vec)) %>% alpha(.95)
-}
-viridis_pal_n <- function(vec){
-  vec <- vec %>% as.factor %>% as.numeric
-  viridis_pal()(length(unique(vec)))[vec] %>% alpha(.95)
-}
-brewer_pal_n <- function(vec){
-  vec <- vec %>% as.factor %>% as.numeric
-  scales::brewer_pal("qual")(length(unique(vec)))[vec] %>% alpha(.95)
-}
-create_colors <- function(vec,lo="#FCFDBF",hi="#5F187F",mid="#D3436E",type,field="frequency",fun=NULL){
-  # browser()
-  vec <- as_numeric_if_all(vec)
-  if(class(vec)=="character") res <- brewer_pal_n(vec) else
-    if(lo %in% xc("white gray lightgray")) res <- colour_ramp(c(lo,hi))(rescale(vec)) else
-      res <- div_pal_n(vec,lo=lo,hi=hi,mid=mid)
-    attr(res,type) <-   list(table=tibble(vec,res) %>% unique,field=field,fun=fun)
-    res
-}
-create_sizes <- function(vec,type,field="frequency",fun=NULL){
-  # browser()
-  mn <- min(vec,na.rm=T)
-  mx <- max(vec,na.rm=T)
-  res <- scales::rescale(as.numeric(vec),from = {if(mn>0) c(0,mx) else c(mn,mx)},to=c(0.1,1))
-  attr(res,type) <-   list(table=tibble(vec,res) %>% unique,field=field,fun=fun)
-  res
-}
+
 
 # major functions and pipes but not for use with parser -------------------------------------------------------------
+
+
+#' Assemble map
+#' @param factors
+#' @param links
+#' @param statements
+#' @param sources
+#' @param questions
+#' @param settings
+#' @description The only difference between this and just creating a list is that it provides names
+#' @return
+#' @export
+#'
+#' @examples
+assemble_mapfile <- function(factors=NULL,links=NULL,statements=NULL,sources=NULL,questions=NULL,settings=NULL){
+
+  list(factors ,
+       links ,
+       statements ,
+       sources ,
+       questions ,
+       settings
+  ) %>%
+    set_names(xc("factors links statements sources questions settings"))
+}
+
+
+#' Load premap
+#' @inheritParams parse_commands
+#' @param factors
+#' @param links
+#' @param statements
+#' @param sources
+#' @param questions
+#' @param settings
+#' @param clean
+#'
+#' @return A table list.
+#' @export
+#'
+#' @examples
+load_premap <- function(path=NULL,connection=conn){
+  graf <- NULL
+  factors <- NULL
+  links <- NULL
+  newtables <- NULL
+  # browser()
+  if(!is.null(path)){
+    if(!(str_detect(path,"/"))){
+      type <- "unknown"
+
+    } else {
+      type <- path %>% str_match("^.*?/") %>% str_remove("/")
+      path <- path %>% str_remove("^.*?/")
+    }#
+  } else type <- "individual"
+  if(type=="file") graf <- readRDS(path) else
+    if(type=="standard"){
+      tmp <- safely(get)(path)
+      if(tmp$result %>% is.null) return(NULL) else graf <- tmp$result
+      notify("Loaded standard file")
+
+    } else if(type=="excel"){
+      graf <- get_mapfile_from_excel(path = path)
+      if(is.null(graf)) return(NULL)
+      notify("Loaded sql file")
+    } else if(type=="sql"){
+      newtables <- get_map_tables_from_sql(path,connection=connection)
+      if(is.null(newtables)) return(NULL)
+      notify("Loaded sql file")
+    } else  if(type=="cm2"){
+      graf <- get_mapfile_from_s3(path %>% paste0("cm2data/",.)) %>% as.list  #as list because of tidygraph format
+      if(is.null(graf)) return(NULL)
+      if(is.null(graf$factors) & !is.null(graf$nodes)) graf$factors <- graf$nodes
+      if(is.null(graf$links) & !is.null(graf$edges)) graf$links <- graf$edges
+    } else if(type=="cm1"){
+      # browser()
+      graf <- get_map_tables_from_s3_pieces(path %>% paste0("causalmap/app-sync/",.))
+      if(is.null(graf))return(NULL)
+    } else if(type=="unknown"){
+      notify("Trying to load file, guessing origin")
+      # browser()
+
+      graf <- get_mapfile_from_s3(path %>% paste0("cm2data/",.))
+      if(is.null(graf)) {
+        graf <- get_map_tables_from_s3_pieces(path %>% paste0("causalmap/app-sync/",.))
+
+      }
+
+    }
+
+  if(is.null(graf) & is.null(factors) & is.null(links)) {
+
+
+
+    graf <- assemble_mapfile()
+    notify("creating blank map");
+
+  }
+
+  graf$links <- graf$links %>% select(-any_of(c("link_id.1","statement_id.2","from.2","to.2","quote.2","frequency.1","weight.2","actualisation.2","strength.2","certainty.2","from_flipped.1","to_flipped.1","link_label.1","from_label.1","to_label.1","hashtags.2","link_memo.1","link_map_id.1","link_id.2","statement_id.3","from.3","to.3","quote.3","frequency.2","weight.3","actualisation.3","strength.3","certainty.3","from_flipped.2","to_flipped.2","link_label.2","from_label.2","to_label.2","hashtags.3","link_memo.2","link_map_id.2","statement_id.1","from.1","to.1","quote.1","weight.1","actualisation.1","strength.1","certainty.1","hashtags.1")))#FIXME TODO  this is just legacy/transition
+  # browser()
+  notify("Loading map")
+  return(graf )
+
+
+
+
+}
+
+#' Coerce mapfile
+#'
+#' @param tables
+#' we assume that the initial map has standard format
+#' @return A clean map in which all issues have been resolved.
+#' @export
+#'
+#' @examples
+pipe_coerce_mapfile <- function(tables){
+  factors <- tables$factors #%>% replace_null(standard_factors())
+  links <- tables$links #%>% replace_null(standard_links())
+  statements <- tables$statements #%>% replace_null(standard_statements())
+  sources <- tables$sources #%>% replace_null(standard_sources())
+  questions <- tables$questions #%>% replace_null(standard_questions())
+  settings <- tables$settings #%>% replace_null(standard_settings())
+
+
+  # preparation
+  if(is.null(factors) &
+     !is.null(links)){
+    if("from_label" %in% colnames(links) &
+       "to_label" %in% colnames(links)){
+      tmp <- factors_links_from_named_edgelist(links)
+      factors <- tmp$factors
+      links <- tmp$links
+    }
+  }
+
+  flow <- attr(links,"flow")
+
+  if(is.null(links)) links <- standard_links() else {
+
+    if("link_id" %notin% colnames(links)) links <-  links %>%
+        mutate(link_id=row_number())
+
+    links <-  links %>%
+      select(-starts_with("color")) %>%
+      add_column(.name_repair="minimal",!!!standard_links())   %>%
+      select(which(!duplicated(colnames(.))))
+
+    links[,colnames(standard_links())] <- map(colnames(standard_links()),
+                                              ~coerceValue(links[[.]],standard_links()[[.]]))
+    # browser()
+    links <- links %>%
+      filter(!is.na(from) & !is.na(to) & !is.na(statement_id) & !is.na(link_id))%>%
+      distinct(link_id,.keep_all = T)
+
+  }
+  if(is.null(factors)) factors <- standard_factors() else {
+
+    if("factor_id" %notin% colnames(factors))  factors <-  factors %>%
+        mutate(factor_id=row_number())
+
+    factors <-  factors %>%
+      select(-starts_with("color")) %>%
+      add_column(.name_repair="minimal",!!!standard_factors())   %>%
+      select(which(!duplicated(colnames(.))))
+
+    factors[,colnames(standard_factors())] <- map(colnames(standard_factors()),
+                                                  ~coerceValue(factors[[.]],standard_factors()[[.]]))
+
+    ## trim label-------------------------------------------------
+    factors$label <- str_trim(factors$label)
+    # ensure distinct label and id-----------------------------------------------
+    factors <- factors %>%
+      filter(!is.na(label) & !is.na(factor_id))%>%
+      distinct(factor_id,.keep_all = T) %>%
+      distinct(label,.keep_all = T)
+
+  }
+
+  if(is.null(statements)) statements <- standard_statements() else {
+    if("statement_id" %notin% colnames(statements)) statements <-  statements %>%
+        mutate(statement_id=row_number())
+
+    statements <-  statements %>%
+      # select(-starts_with("color")) %>%
+      add_column(.name_repair="minimal",!!!standard_statements()) %>%
+      select(which(!duplicated(colnames(.))))
+
+    statements[,colnames(standard_statements())] <- map(colnames(standard_statements()),
+                                                        ~coerceValue(statements[[.]],standard_statements()[[.]]))
+    statements <- statements %>%
+      filter(!is.na(statement_id))%>%
+      distinct(statement_id,.keep_all = T)
+
+  }
+
+  if(is.null(sources)) sources <- standard_sources() else {
+    if("source_id" %notin% colnames(sources)) sources <-  sources %>%
+        mutate(source_id=row_number() %>% as.character)
+
+    sources <-  sources %>%
+      # select(-starts_with("color")) %>%
+      add_column(.name_repair="minimal",!!!standard_sources()) %>%
+      select(which(!duplicated(colnames(.))))
+
+    sources[,colnames(standard_sources())] <- map(colnames(standard_sources()),
+                                                  ~coerceValue(sources[[.]],standard_sources()[[.]]))
+    sources <- sources %>%
+      filter(!is.na(source_id))%>%
+      distinct(source_id,.keep_all = T)
+
+  }
+
+  if(is.null(questions)) questions <- standard_questions() else {
+    if("question_id" %notin% colnames(questions)) questions <-  questions %>%
+        mutate(question_id=row_number() %>% as.character)
+
+    questions <-  questions %>%
+      # select(-starts_with("color")) %>%
+      add_column(.name_repair="minimal",!!!standard_questions()) %>%
+      select(which(!duplicated(colnames(.))))
+
+    questions[,colnames(standard_questions())] <- map(colnames(standard_questions()),
+                                                      ~coerceValue(questions[[.]],standard_questions()[[.]]))
+    questions <- questions %>%
+      filter(!is.na(question_id))%>%
+      distinct(question_id,.keep_all = T)
+
+  }
+
+
+
+  ################### needs completing as above
+  settings <- settings %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_settings()) %>% select(any_of(colnames(standard_settings())))
+  settings <- settings %>% mutate_all(as.character)
+
+  # sources[,colnames(standard_sources())] <- map(colnames(standard_sources()),
+  #                                               ~coerceValue(sources[[.]],standard_sources()[[.]])
+  # )
+  # questions[,colnames(standard_questions())] <- map(colnames(standard_questions()),
+  #                                                   ~coerceValue(questions[[.]],standard_questions()[[.]])
+  # )
+  #
+  # sources$source_id <- coerceValue(sources$source_id,statements$source_id)
+  # questions$question_id <- coerceValue(questions$question_id,statements$question_id)
+  # links$statement_id <- coerceValue(links$statement_id,statements$statement_id)
+
+
+
+
+
+  ## add missing statements
+
+  if(!all(links$statement_id %in% statements$statement_id)){
+
+  }
+
+  # browser()
+
+  statements <- statements %>%
+    left_join_safe(sources,by="source_id") %>% suppressMessages %>%
+    left_join_safe(questions,by="question_id") %>% suppressMessages
+
+  links <- links %>%
+    left_join_safe(statements, by="statement_id") %>%
+    suppressMessages
+
+  # browser()
+
+
+  links <- add_labels_to_links(links,factors)
+
+  links <- links %>%
+    unite(simple_bundle,from_label,to_label,remove = F,sep = " / ") %>%
+    select(from_label,to_label,statement_id,quote,everything())
+
+  factors <- add_metrics_to_factors(factors,links)
+
+  attr(links,"flow") <- flow
+
+
+  assemble_mapfile(factors,links,statements,sources,questions,settings) %>%
+    add_class()
+
+}
+
+
+#' Update mapfile
+#' @inheritParams parse_commands
+#' @param factors
+#' @param links
+#' @param statements
+#' @param sources
+#' @param questions
+#' @param settings
+#' @param clean
+#'
+#' @return A tidy map. If both factors and links are NULL, and empty map is returned.
+#' @export
+#'
+#' @examples
+pipe_update_mapfile <- function(map,
+                           tables=NULL,
+                           factors=NULL,
+                           links=NULL,
+                           statements=NULL,
+                           sources=NULL,
+                           questions=NULL,
+                           settings=NULL,
+                           clean=T,
+                           all=T){
+  # browser()
+  if(!is.null(tables)){
+    factors <- tables$factors
+    links <- tables$links
+    statements <- tables$statements
+    sources <- tables$sources
+    questions <- tables$questions
+    settings <- tables$settings
+  }
+
+  list(
+    factors = factors %>% replace_null(map$factors) ,
+    links = links %>% replace_null(map$links) ,
+    statements = statements %>% replace_null(map$statements) ,
+    sources = sources %>% replace_null(map$sources) ,
+    questions = questions %>% replace_null(map$questions) ,
+    settings = settings %>% replace_null(map$settings)
+  )
+  # %>%
+  #   pipe_coerce_mapfile
+
+}
 
 
 #' Fix factors columns
@@ -459,52 +730,6 @@ fix_columns_links <- function(links){
 #'     links = graf$links %>% fix_columns_links()
 #'   )
 #' }
-
-#' Normalise factors and links
-#'
-#' @inheritParams parse_commands
-#'
-#' @return A tidymap with a additional columns.
-#' @export
-#'
-#'
-#' @examples
-pipe_normalise_factors_links <- function(graf){
-  tmp <- normalise_id(graf$factors,graf$links,"factor_id","from","to")
-  factors=tmp$main;
-  links=tmp$referring
-
-  graf %>%
-    update_mapfile(factors=tmp$main,links=tmp$referring)
-}
-
-proportion_false <- function(lis) lis %>% map(~sum(unlist(.))/length(.)) %>% unlist
-
-
-color_combined_factors <- function(factors){
-  factors %>%
-    mutate(is_flipped=proportion_false(is_flipped)) %>%
-    mutate(color.border= div_gradient_pal("#00ffaf","white","#ff8fb8")(is_flipped))
-
-}
-color_combined_links <- function(links){
-  links %>% mutate(
-    from_color = case_when(
-      from_flipped  ~  "#ff8fb8",
-      T ~  "#00ffaf"
-    )) %>%
-    mutate(
-      to_color = case_when(
-        to_flipped  ~  "#ff8fb8",
-        T ~  "#00ffaf"
-      )) %>%
-    mutate(
-      color=paste0(from_color,";0.5:",to_color)
-    )
-
-
-}
-
 
 
 update_join <- function(old,new){
@@ -573,7 +798,7 @@ update_join <- function(old,new){
 #   if(is.null(settings))    settings <- map$settings
 #
 #   # browser()
-#   assemble_map(
+#   assemble_mapfile(
 #     factors=factors,
 #     links=links,
 #     # links=links %>%  filter(from %in% (factors %>% row_index)) %>% filter(to %in% (factors %>% row_index)),
@@ -591,12 +816,12 @@ update_join <- function(old,new){
 #' #' @inheritParams parse_commands
 #' #' @param graf
 #' #' @param path
-#' #' @description This also has a wrapper, pipe_merge_map
+#' #' @description This also has a wrapper, pipe_merge_mapfile
 #' #' @return A tidy map. The column *_map_id is set to reflect the id of the map.
 #' #' @export
 #' #'
 #' #' @examples
-#' merge_map <- function(graf,graf2){
+#' merge_mapfile <- function(graf,graf2){
 #'   # browser()
 #'   map2 <- graf2 #%>% pipe_clean_map() #  clean map will put the important vars to integer.
 #'   graf <- graf #%>% pipe_clean_map() #
@@ -604,7 +829,7 @@ update_join <- function(old,new){
 #'   maxid <- max(as.numeric(graf$factors$factor_id))
 #'   maxmapid <- max(as.numeric(graf$factors$factor_map_id))
 #'
-#'   assemble_map(
+#'   assemble_mapfile(
 #'     factors=graf$factors %>% bind_rows_safe(map2$factors %>% mutate(factor_map_id=maxmapid+1) %>% mutate(factor_id=factor_id+maxid)),
 #'     links=graf$links  %>% bind_rows_safe(map2$links %>% mutate(link_map_id=maxmapid+1) %>% mutate(from=from+maxid,to=to+maxid)),
 #'     statements=graf$statements  %>% bind_rows_safe(map2$statements %>% mutate(statement_map_id=maxmapid+1)),
@@ -616,90 +841,6 @@ update_join <- function(old,new){
 #'   #   pipe_clean_map(tables=.)
 #'
 #' }
-
-#' Load map
-#' @inheritParams parse_commands
-#' @param factors
-#' @param links
-#' @param statements
-#' @param sources
-#' @param questions
-#' @param settings
-#' @param clean
-#'
-#' @return A table list.
-#' @export
-#'
-#' @examples
-load_premap <- function(path=NULL,connection=conn){
-  graf <- NULL
-  factors <- NULL
-  links <- NULL
-  newtables <- NULL
-  # browser()
-  if(!is.null(path)){
-    if(!(str_detect(path,"/"))){
-      type <- "unknown"
-
-    } else {
-      type <- path %>% str_match("^.*?/") %>% str_remove("/")
-      path <- path %>% str_remove("^.*?/")
-    }#
-  } else type <- "individual"
-  if(type=="file") graf <- readRDS(path) else
-    if(type=="standard"){
-      tmp <- safely(get)(path)
-      if(tmp$result %>% is.null) return(NULL) else graf <- tmp$result
-      notify("Loaded standard file")
-
-    } else if(type=="excel"){
-      graf <- get_mapfile_from_excel(path = path)
-      if(is.null(graf)) return(NULL)
-      notify("Loaded sql file")
-    } else if(type=="sql"){
-      newtables <- get_map_tables_from_sql(path,connection=connection)
-      if(is.null(newtables)) return(NULL)
-      notify("Loaded sql file")
-    } else  if(type=="cm2"){
-      graf <- get_map_from_s3(path %>% paste0("cm2data/",.)) %>% as.list  #as list because of tidygraph format
-      if(is.null(graf)) return(NULL)
-      if(is.null(graf$factors) & !is.null(graf$nodes)) graf$factors <- graf$nodes
-      if(is.null(graf$links) & !is.null(graf$edges)) graf$links <- graf$edges
-    } else if(type=="cm1"){
-      # browser()
-      graf <- get_map_tables_from_s3_pieces(path %>% paste0("causalmap/app-sync/",.))
-      if(is.null(graf))return(NULL)
-    } else if(type=="unknown"){
-      notify("Trying to load file, guessing origin")
-      # browser()
-
-      graf <- get_map_from_s3(path %>% paste0("cm2data/",.))
-      if(is.null(graf)) {
-        graf <- get_map_tables_from_s3_pieces(path %>% paste0("causalmap/app-sync/",.))
-
-      }
-
-    }
-
-  if(is.null(graf) & is.null(factors) & is.null(links)) {
-
-
-
-    graf <- assemble_map()
-    notify("creating blank map");
-
-  }
-
-  graf$links <- graf$links %>% select(-any_of(c("link_id.1","statement_id.2","from.2","to.2","quote.2","frequency.1","weight.2","actualisation.2","strength.2","certainty.2","from_flipped.1","to_flipped.1","link_label.1","from_label.1","to_label.1","hashtags.2","link_memo.1","link_map_id.1","link_id.2","statement_id.3","from.3","to.3","quote.3","frequency.2","weight.3","actualisation.3","strength.3","certainty.3","from_flipped.2","to_flipped.2","link_label.2","from_label.2","to_label.2","hashtags.3","link_memo.2","link_map_id.2","statement_id.1","from.1","to.1","quote.1","weight.1","actualisation.1","strength.1","certainty.1","hashtags.1")))#FIXME TODO  this is just legacy/transition
-  # browser()
-  notify("Loading map")
-  return(graf )
-
-
-
-
-}
-
 add_metrics_to_factors <- function(factors,links){
   ig <- make_igraph(factors,links)
 
@@ -726,237 +867,12 @@ factors_links_from_named_edgelist <- function(links){
 
   return(list(factors=factors,links=links))
 }
-#' Create mapfile
-#'
-#' @param tables
-#' we assume that the initial map has standard format
-#' @return A clean map in which all issues have been resolved.
-#' @export
-#'
-#' @examples
-coerce_mapfile <- function(tables){
-  factors <- tables$factors #%>% replace_null(standard_factors())
-  links <- tables$links #%>% replace_null(standard_links())
-  statements <- tables$statements #%>% replace_null(standard_statements())
-  sources <- tables$sources #%>% replace_null(standard_sources())
-  questions <- tables$questions #%>% replace_null(standard_questions())
-  settings <- tables$settings #%>% replace_null(standard_settings())
-
-
-# preparation
-  if(is.null(factors) &
-     !is.null(links)){
-    if("from_label" %in% colnames(links) &
-       "to_label" %in% colnames(links)){
-    tmp <- factors_links_from_named_edgelist(links)
-    factors <- tmp$factors
-    links <- tmp$links
-  }
-  }
-
-  flow <- attr(links,"flow")
-
-  if(is.null(links)) links <- standard_links() else {
-
-    if("link_id" %notin% colnames(links)) links <-  links %>%
-        mutate(link_id=row_number())
-
-    links <-  links %>%
-      select(-starts_with("color")) %>%
-      add_column(.name_repair="minimal",!!!standard_links())   %>%
-      select(which(!duplicated(colnames(.))))
-
-    links[,colnames(standard_links())] <- map(colnames(standard_links()),
-                                              ~coerceValue(links[[.]],standard_links()[[.]]))
-    # browser()
-    links <- links %>%
-      filter(!is.na(from) & !is.na(to) & !is.na(statement_id) & !is.na(link_id))%>%
-      distinct(link_id,.keep_all = T)
-
-  }
-  if(is.null(factors)) factors <- standard_factors() else {
-
-    if("factor_id" %notin% colnames(factors))  factors <-  factors %>%
-        mutate(factor_id=row_number())
-
-    factors <-  factors %>%
-      select(-starts_with("color")) %>%
-      add_column(.name_repair="minimal",!!!standard_factors())   %>%
-      select(which(!duplicated(colnames(.))))
-
-    factors[,colnames(standard_factors())] <- map(colnames(standard_factors()),
-                                                  ~coerceValue(factors[[.]],standard_factors()[[.]]))
-
-    ## trim label-------------------------------------------------
-    factors$label <- str_trim(factors$label)
-# ensure distinct label and id-----------------------------------------------
-    factors <- factors %>%
-      filter(!is.na(label) & !is.na(factor_id))%>%
-      distinct(factor_id,.keep_all = T) %>%
-      distinct(label,.keep_all = T)
-
-  }
-
-  if(is.null(statements)) statements <- standard_statements() else {
-    if("statement_id" %notin% colnames(statements)) statements <-  statements %>%
-        mutate(statement_id=row_number())
-
-    statements <-  statements %>%
-      # select(-starts_with("color")) %>%
-      add_column(.name_repair="minimal",!!!standard_statements()) %>%
-      select(which(!duplicated(colnames(.))))
-
-    statements[,colnames(standard_statements())] <- map(colnames(standard_statements()),
-                                                        ~coerceValue(statements[[.]],standard_statements()[[.]]))
-    statements <- statements %>%
-      filter(!is.na(statement_id))%>%
-      distinct(statement_id,.keep_all = T)
-
-  }
-
-  if(is.null(sources)) sources <- standard_sources() else {
-    if("source_id" %notin% colnames(sources)) sources <-  sources %>%
-        mutate(source_id=row_number() %>% as.character)
-
-    sources <-  sources %>%
-      # select(-starts_with("color")) %>%
-      add_column(.name_repair="minimal",!!!standard_sources()) %>%
-      select(which(!duplicated(colnames(.))))
-
-    sources[,colnames(standard_sources())] <- map(colnames(standard_sources()),
-                                                        ~coerceValue(sources[[.]],standard_sources()[[.]]))
-    sources <- sources %>%
-      filter(!is.na(source_id))%>%
-      distinct(source_id,.keep_all = T)
-
-  }
-
-  if(is.null(questions)) questions <- standard_questions() else {
-    if("question_id" %notin% colnames(questions)) questions <-  questions %>%
-        mutate(question_id=row_number() %>% as.character)
-
-    questions <-  questions %>%
-      # select(-starts_with("color")) %>%
-      add_column(.name_repair="minimal",!!!standard_questions()) %>%
-      select(which(!duplicated(colnames(.))))
-
-    questions[,colnames(standard_questions())] <- map(colnames(standard_questions()),
-                                                        ~coerceValue(questions[[.]],standard_questions()[[.]]))
-    questions <- questions %>%
-      filter(!is.na(question_id))%>%
-      distinct(question_id,.keep_all = T)
-
-  }
-
-
-
-  ################### needs completing as above
-  settings <- settings %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_settings()) %>% select(any_of(colnames(standard_settings())))
-  settings <- settings %>% mutate_all(as.character)
-
-  # sources[,colnames(standard_sources())] <- map(colnames(standard_sources()),
-  #                                               ~coerceValue(sources[[.]],standard_sources()[[.]])
-  # )
-  # questions[,colnames(standard_questions())] <- map(colnames(standard_questions()),
-  #                                                   ~coerceValue(questions[[.]],standard_questions()[[.]])
-  # )
-  #
-  # sources$source_id <- coerceValue(sources$source_id,statements$source_id)
-  # questions$question_id <- coerceValue(questions$question_id,statements$question_id)
-  # links$statement_id <- coerceValue(links$statement_id,statements$statement_id)
-
-
-
-
-
-  ## add missing statements
-
-  if(!all(links$statement_id %in% statements$statement_id)){
-
-  }
-
-  # browser()
-
-  statements <- statements %>%
-    left_join_safe(sources,by="source_id") %>% suppressMessages %>%
-    left_join_safe(questions,by="question_id") %>% suppressMessages
-
-  links <- links %>%
-    left_join_safe(statements, by="statement_id") %>%
-    suppressMessages
-
-  # browser()
-
-
-  links <- add_labels_to_links(links,factors)
-
-  links <- links %>%
-    unite(simple_bundle,from_label,to_label,remove = F,sep = " / ") %>%
-    select(from_label,to_label,statement_id,quote,everything())
-
-  factors <- add_metrics_to_factors(factors,links)
-
-  attr(links,"flow") <- flow
-
-
-  assemble_map(factors,links,statements,sources,questions,settings) %>%
-    add_class()
-
-}
-
-
-#' Update mapfile
-#' @inheritParams parse_commands
-#' @param factors
-#' @param links
-#' @param statements
-#' @param sources
-#' @param questions
-#' @param settings
-#' @param clean
-#'
-#' @return A tidy map. If both factors and links are NULL, and empty map is returned.
-#' @export
-#'
-#' @examples
-update_mapfile <- function(map,
-                           tables=NULL,
-                           factors=NULL,
-                           links=NULL,
-                           statements=NULL,
-                           sources=NULL,
-                           questions=NULL,
-                           settings=NULL,
-                           clean=T,
-                           all=T){
-  # browser()
-  if(!is.null(tables)){
-    factors <- tables$factors
-    links <- tables$links
-    statements <- tables$statements
-    sources <- tables$sources
-    questions <- tables$questions
-    settings <- tables$settings
-  }
-
-  list(
-    factors = factors %>% replace_null(map$factors) ,
-    links = links %>% replace_null(map$links) ,
-    statements = statements %>% replace_null(map$statements) ,
-    sources = sources %>% replace_null(map$sources) ,
-    questions = questions %>% replace_null(map$questions) ,
-    settings = settings %>% replace_null(map$settings)
-  )
-  # %>%
-  #   coerce_mapfile
-
-}
 
 # just for the cases when calculating robustness where map2 only has factors and links
 merge_factors_links <- function(map1,map2){
   maxfactorid <- max(as.numeric(map1$factors$factor_id))
 
-assemble_map(
+assemble_mapfile(
 
     factors=map1$factors %>%
       bind_rows_safe(map2$factors %>%
@@ -970,7 +886,7 @@ assemble_map(
     sources=map1$sources ,
     questions=map1$questions,
     settings=map1$settings
-) %>% pipe_compact_factors_links()
+) %>% pipe_compact_mapfile()
 
 
 
@@ -982,12 +898,12 @@ assemble_map(
 #' @inheritParams parse_commands
 #' @param graf
 #' @param path
-#' @description This also has a wrapper, pipe_merge_map
+#' @description This also has a wrapper, pipe_merge_mapfile
 #' @return A tidy map. The column *_map_id is set to reflect the id of the map.
 #' @export
 #'
 #' @examples
-merge_map <- function(map1,map2){
+merge_mapfile <- function(map1,map2){
   # map1 <- map1# %>% pipe_clean_map() #
   # map2 <- graf2# %>% pipe_clean_map() #  clean map will put the important vars to integer.
 
@@ -1008,7 +924,7 @@ merge_map <- function(map1,map2){
   if(any(map1$factors$label %in% map2$factors$label)    |
      any(map2$factors$label %in% map1$factors$label)) warning("Factor labels are shared!")
 
-assemble_map(
+assemble_mapfile(
 
     factors=map1$factors %>%
       bind_rows_safe(map2$factors %>%
@@ -1036,7 +952,7 @@ assemble_map(
                      ),
     settings=map1$settings %>%
       bind_rows_safe(map2$settings)
-) %>% pipe_compact_factors_links()
+) %>% pipe_compact_mapfile()
 
 
 
@@ -1057,31 +973,7 @@ assemble_map(
 # }
 
 
-#' Assemble map
-#' @param factors
-#' @param links
-#' @param statements
-#' @param sources
-#' @param questions
-#' @param settings
-#' @description The only difference between this and just creating a list is that it provides names
-#' @return
-#' @export
-#'
-#' @examples
-assemble_map <- function(factors=NULL,links=NULL,statements=NULL,sources=NULL,questions=NULL,settings=NULL){
-
-  list(factors ,
-       links ,
-       statements ,
-       sources ,
-       questions ,
-       settings
-  ) %>%
-    set_names(xc("factors links statements sources questions settings"))
-}
-
-## this used to be assemble_map!!
+## this used to be assemble_mapfile!!
 #' Clean map
 #'
 #' @param factors
@@ -1275,24 +1167,13 @@ assemble_map <- function(factors=NULL,links=NULL,statements=NULL,sources=NULL,qu
 #   attr(links,"flow") <- flow
 #
 #
-#   assemble_map(factors,links,statements,sources,questions,settings)
+#   assemble_mapfile(factors,links,statements,sources,questions,settings)
 #   # %>%
 #   #   pipe_fix_columns()
 #
 # }
 
 
-pipe_compact_factors_links <- function(mapfile){
-tmp <-
-  compact_factors_links(mapfile$factors,mapfile$links)
-  assemble_map(
-    tmp$factors,
-    tmp$links,
-    mapfile$statements,
-    mapfile$sources,
-    mapfile$questions
-  )
-}
 
 
 make_igraph_from_links <- function(links){
@@ -1327,6 +1208,27 @@ make_igraph <- function(factors,links,use_labels=F){
 
 }
 
+#' Normalise factors and links
+#'
+#' @inheritParams parse_commands
+#'
+#' @return A tidymap with a additional columns.
+#' @export
+#'
+#'
+#' @examples
+pipe_normalise_factors_links <- function(graf){
+  tmp <- normalise_id(graf$factors,graf$links,"factor_id","from","to")
+  factors=tmp$main;
+  links=tmp$referring
+
+  graf %>%
+    pipe_update_mapfile(factors=tmp$main,links=tmp$referring)
+}
+
+
+
+
 normalise_id <- function(main,referring,keyname,referring_keyname1=keyname,referring_keyname2=NULL){
   if(nrow(main)==0)return(list(main=main,referring=referring))
   if(is.null(main[,keyname])){notify("keyname not in main table")}
@@ -1356,19 +1258,6 @@ normalise_id <- function(main,referring,keyname,referring_keyname1=keyname,refer
 }
 
 
-compact_map <- function(graf){
-  factors <- graf$factors
-  links <- graf$links
-  tmp <- compact_factors_links(factors,links)
-  update_mapfile(graf,factors=tmp$factors,links=tmp$links)
-
-}
-collapse_unique <- function(vec){
-  paste0(unique(vec),collapse="; ")# %>% as_numeric_if_all
-}
-collapse_unique_5 <- function(vec){
-  if(length(vec)<6)paste0(unique(vec),collapse="; ") else p("link_quotes","Multiple quotes") %>% as.character # %>% as_numeric_if_all
-}
 compact_factors_links <- function(factors,links){
   if(factors$label %>% table %>% max %>% `>`(1)){
     notify("Some factor labels are duplicates; compacting")
@@ -1400,9 +1289,150 @@ compact_factors_links <- function(factors,links){
   }
   return(list(factors=factors,links=links))
 }
+#using compact map instead
+# pipe_compact_factors_links <- function(mapfile){
+#   tmp <-
+#     compact_factors_links(mapfile$factors,mapfile$links)
+#   assemble_mapfile(
+#     tmp$factors,
+#     tmp$links,
+#     mapfile$statements,
+#     mapfile$sources,
+#     mapfile$questions
+#   )
+# }
+
+pipe_compact_mapfile <- function(graf){
+  factors <- graf$factors
+  links <- graf$links
+  tmp <- compact_factors_links(factors,links)
+  pipe_update_mapfile(graf,factors=tmp$factors,links=tmp$links)
+
+}
 
 
 # minor functions ----------------------------------------------------
+
+## Formatting and calculations ------------------------------------------
+
+
+#' Title
+#'
+#' @param vec
+#'
+#' @return
+#' @export
+#'
+#' @examples
+as_numeric_if_all <- function(vec){
+  if(!any(is.na(as.numeric(vec)))) as.numeric(vec) else
+    vec
+}
+
+full_function_name <- function(df,nam){
+
+  if(is_grouped_df(df) & nam=="unique") "collapse_unique"
+  else if(!is_grouped_df(df) & (nam=="unique" | nam=="literal")) "identity"
+  else if(nam=="mean")"getmean"
+  else if(nam=="sum")"getsum"
+  else if(nam=="median")"getmedian"
+  else if(nam=="mode")"getmode"
+  else if(nam=="count")"count_unique"
+  else nam
+
+}
+
+collapse_unique <- function(vec){
+  paste0(unique(vec),collapse="; ")# %>% as_numeric_if_all
+}
+collapse_unique_5 <- function(vec){
+  if(length(vec)<6)paste0(unique(vec),collapse="; ") else p("link_quotes","Multiple quotes") %>% as.character # %>% as_numeric_if_all
+}
+
+# fun_map <- function(vec,fun){
+#   map(vec,~exec(fun,.)) %>% unlist
+#
+# }
+first_map <- function(vec,fun){
+
+  map(vec,first) %>% unlist
+
+}
+
+
+literal <- function(lis){
+  paste0(lis,collapse = "; ")
+}
+
+
+# mode average / most frequent
+getmode <- function(v) {
+  uniqv <- unique(v)
+  uniqv[which.max(tabulate(match(v, uniqv)))]
+}
+getmean <- function(v) {mean(as.numeric(v),na.rm=T) %>% round(digits = 2)}
+getsum <- function(v) {sum(as.numeric(v),na.rm=T) %>% round(digits = 2)}
+getmedian <- function(v) {median(as.numeric(v),na.rm=T) %>% round(digits = 2)}
+
+## from DT package
+coerceValue <- function (val, old)
+{
+  # old=unlist(old)
+  if (is.integer(old))
+    return(as.integer(val))
+  if (is.numeric(old))
+    return(as.numeric(val))
+  if (is.character(old))
+    return(as.character(val))
+  if (inherits(old, "Date"))
+    return(as.Date(val))
+  if (inherits(old, c("POSIXlt", "POSIXct"))) {
+    val = strptime(val, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+    if (inherits(old, "POSIXlt"))
+      return(val)
+    return(as.POSIXct(val))
+  }
+  if (is.factor(old)) {
+    i = val %in% levels(old)
+    if (all(i))
+      return(val)
+    warning("New value(s) \"", paste(val[!i], collapse = ", "),
+            "\" not in the original factor levels: \"",
+            paste(levels(old), collapse = ", "), "\"; will be coerced to NA.")
+    val[!i] = NA
+    return(val)
+  }
+  # warning("The data type is not supported: ", classes(old))
+  val
+}
+div_pal_n <- function(vec,lo,hi,mid){
+  div_gradient_pal(low=lo,high=hi,mid=mid)(rescale(vec)) %>% alpha(.95)
+}
+viridis_pal_n <- function(vec){
+  vec <- vec %>% as.factor %>% as.numeric
+  viridis_pal()(length(unique(vec)))[vec] %>% alpha(.95)
+}
+brewer_pal_n <- function(vec){
+  vec <- vec %>% as.factor %>% as.numeric
+  scales::brewer_pal("qual")(length(unique(vec)))[vec] %>% alpha(.95)
+}
+create_colors <- function(vec,lo="#FCFDBF",hi="#5F187F",mid="#D3436E",type,field="frequency",fun=NULL){
+  # browser()
+  vec <- as_numeric_if_all(vec)
+  if(class(vec)=="character") res <- brewer_pal_n(vec) else
+    if(lo %in% xc("white gray lightgray")) res <- colour_ramp(c(lo,hi))(rescale(vec)) else
+      res <- div_pal_n(vec,lo=lo,hi=hi,mid=mid)
+    attr(res,type) <-   list(table=tibble(vec,res) %>% unique,field=field,fun=fun)
+    res
+}
+create_sizes <- function(vec,type,field="frequency",fun=NULL){
+  # browser()
+  mn <- min(vec,na.rm=T)
+  mx <- max(vec,na.rm=T)
+  res <- scales::rescale(as.numeric(vec),from = {if(mn>0) c(0,mx) else c(mn,mx)},to=c(0.1,1))
+  attr(res,type) <-   list(table=tibble(vec,res) %>% unique,field=field,fun=fun)
+  res
+}
 
 #' Count unique
 #'
@@ -1415,6 +1445,36 @@ compact_factors_links <- function(factors,links){
 count_unique <- function(vec){
   length(unique(vec))
 }
+
+proportion_false <- function(lis) lis %>% map(~sum(unlist(.))/length(.)) %>% unlist
+
+
+color_combined_factors <- function(factors){
+  factors %>%
+    mutate(is_flipped=proportion_false(is_flipped)) %>%
+    mutate(color.border= div_gradient_pal("#00ffaf","white","#ff8fb8")(is_flipped))
+
+}
+color_combined_links <- function(links){
+  links %>% mutate(
+    from_color = case_when(
+      from_flipped  ~  "#ff8fb8",
+      T ~  "#00ffaf"
+    )) %>%
+    mutate(
+      to_color = case_when(
+        to_flipped  ~  "#ff8fb8",
+        T ~  "#00ffaf"
+      )) %>%
+    mutate(
+      color=paste0(from_color,";0.5:",to_color)
+    )
+
+
+}
+
+## Others ------------------------------------------------------------------
+
 
 has_statements <- function(graf){
   !is.null(graf %>% statements_table)
@@ -1516,27 +1576,6 @@ empty_tibble <- tibble(nothing=0)
 
 
 
-summary.tidymap <- function (graf){
-  list(colnames=graf %>% map(colnames) ,
-  "Number of rows"=graf %>% map(nrow) %>% as_tibble
-  )
-}
-print.tidymap <- function (graf, n=2,...)
-{
-  # browser()
-  cat("Factors: ");graf$factors %>% as_tibble  %>% print(n=n)
-  cat("Links: ");graf$links %>% as_tibble  %>% print(n=n)
-  cat("Statements: ");graf$statements %>% as_tibble  %>% print(n=n)
-  cat("Sources: ");graf$sources %>% as_tibble  %>% print(n=n)
-  cat("Questions: ");graf$questions %>% as_tibble  %>% print(n=n)
-  cat("Settings: ");graf$settings %>% as_tibble  %>% print(n=n)
-
-}
-# these are not generics so must be called directly
-nrow.cm <- function (graf)graf %>% map(nrow)
-colnames.cm <- function (graf)graf %>% map(colnames)
-
-
 
 factor_colnames <- function(graf)graf %>% factors_table %>% colnames
 link_colnames <- function(graf)graf %>% links_table %>%  colnames
@@ -1611,7 +1650,7 @@ calculate_robustness_inner <- function(graf){
     capacity=Inf
   )
 # browser()
-  newgraf <- assemble_map(newnodes,newedges) %>%
+  newgraf <- assemble_mapfile(newnodes,newedges) %>%
     pipe_normalise_factors_links()
 
 
@@ -1625,11 +1664,11 @@ calculate_robustness_inner <- function(graf){
     from=to_vec,
     capacity=Inf
   )
-    newgraf <- assemble_map(newnodes,newedges) %>%
+    newgraf <- assemble_mapfile(newnodes,newedges) %>%
     pipe_normalise_factors_links()
   graf <-
     graf %>% merge_factors_links(newgraf) %>%
-    compact_map
+    pipe_compact_mapfile
 
 
   graf$factors$capacity  <- graf$factors$capacity %>% replace_null(1)
@@ -2019,7 +2058,7 @@ parse_commands <- function(graf=NULL,tex){
 }
 
 
-# main graph functions ----------------------------------------------------
+# main pipe functions ----------------------------------------------------
 
 # pipe_page_factors <- function(...)pipe_find_factors(pager=T,...)
 # pipe_page_statements <- function(...)pipe_find_statements(pager=T,...)
@@ -2061,16 +2100,16 @@ pipe_find_factors <- function(graf,field="label",value,operator="contains",up=1,
   df <- graf$factors %>% find_fun(field,value,operator)
   # pager <- df %>% attr("pager")
 
-  if(df$found %>% sum %>% `==`(0)) return(update_mapfile(graf,factors=graf$factors %>% filter(F),links=graf$links %>% filter(F)))
+  if(df$found %>% sum %>% `==`(0)) return(pipe_update_mapfile(graf,factors=graf$factors %>% filter(F),links=graf$links %>% filter(F)))
 
-  graf <- update_mapfile(graf,factors=df) #%>% add_attribute(pager,"pager")
+  graf <- pipe_update_mapfile(graf,factors=df) #%>% add_attribute(pager,"pager")
 
   ig <- make_igraph(graf$factors,graf$links)
   downvec <- ig %>% igraph::distances(to=graf %>% factors_table %>% pull(found),mode="in") %>% apply(1,min) %>% `<=`(down)
   upvec <- ig %>% igraph::distances(to=graf %>% factors_table %>% pull(found),mode="out") %>% apply(1,min) %>% `<=`(up)
   # browser()
   if(any(upvec)|any(downvec))
-    graf %>% update_mapfile(factors=factors_table(graf) %>% filter(found|upvec|downvec)) %>%
+    graf %>% pipe_update_mapfile(factors=factors_table(graf) %>% filter(found|upvec|downvec)) %>%
     # pipe_normalise_factors_links %>%
     pipe_remove_isolated_links() %>%
     {if(remove_isolated) pipe_remove_isolated(.) else .} else
@@ -2113,7 +2152,7 @@ pipe_find_statements <- function(graf,field,value,operator="=",remove_isolated=T
   links <- graf$links %>%  filter(statement_id %in% statements$statement_id)
 
   return(graf %>%
-           update_mapfile(
+           pipe_update_mapfile(
              links=links,
              statements=statements
            ) %>%
@@ -2157,7 +2196,7 @@ pipe_select_links <- function(graf,top=NULL,bottom=NULL){
   #     {if(!is.null(top))slice(.,1:top) else slice(.,(nrow_links_table(graf)+1-bottom):nrow_links_table(graf))} %>%
   #     select(from,to,frequency,everything())
 
-  update_mapfile(graf,links=links) %>%
+  pipe_update_mapfile(graf,links=links) %>%
     pipe_remove_isolated
 }
 
@@ -2211,7 +2250,7 @@ pipe_remove_isolated <- function(graf){
   tmp <- normalise_id(factors,graf$links,"factor_id","from","to")
 
   graf %>%
-    update_mapfile(factors=tmp$main,links=tmp$referring) %>%
+    pipe_update_mapfile(factors=tmp$main,links=tmp$referring) %>%
     pipe_remove_isolated_links()
 
 }
@@ -2219,9 +2258,9 @@ pipe_remove_isolated <- function(graf){
 pipe_remove_isolated_links <- function(graf,labels=F){
   # browser()
 
-  if(labels)graf %>% update_mapfile(factors=graf$factors,
+  if(labels)graf %>% pipe_update_mapfile(factors=graf$factors,
                                 links=graf$links %>% filter(from_label %in% graf$factors$label & to_label %in% graf$factors$label)) else
-                                  graf %>% update_mapfile(factors=graf$factors,
+                                  graf %>% pipe_update_mapfile(factors=graf$factors,
                                                       links=graf$links %>% filter(from %in% graf$factors$factor_id & to %in% graf$factors$factor_id))
 
 }
@@ -2254,14 +2293,14 @@ pipe_zoom_factors <- function(graf,level=1,separator=";",hide=T){
 
   # browser()
   graf %>%
-    update_mapfile(
+    pipe_update_mapfile(
       factors = graf$factors %>%
         mutate(old_label=label,label=if_else(str_detect(old_label,separator),
                                              zoom_inner(old_label,level,separator),old_label),
                frequency=sum(frequency)) %>%
         select(-old_label)
       ) %>%
-    compact_map
+    pipe_compact_mapfile
 
 
 }
@@ -2278,14 +2317,14 @@ pipe_zoom_factors <- function(graf,level=1,separator=";",hide=T){
 #' @examples
 pipe_bundle_factors <- function(graf,value=""){
   value <- value %>% make_search %>% paste0(collapse="|")
-  update_mapfile(graf,factors = graf$factors %>%
+  pipe_update_mapfile(graf,factors = graf$factors %>%
                mutate(
                  label=if(value[1]=="")
                    str_match(label,"^[^ ]*") %>% `[`(,1)
                  else if_else(str_detect(label,value),str_match(label,paste0(value)),label)
                )
   ) %>%
-    compact_map()
+    pipe_compact_mapfile()
 }
 
 
@@ -2348,7 +2387,7 @@ pipe_trace_paths <- function(graf,from,to,length=4){
 
   # browser()
 
-  if(!any(factors %>% pull(found_any))) return(graf %>% update_mapfile(factors=graf$factors %>% filter(F)))
+  if(!any(factors %>% pull(found_any))) return(graf %>% pipe_update_mapfile(factors=graf$factors %>% filter(F)))
 
 
 
@@ -2381,11 +2420,11 @@ pipe_trace_paths <- function(graf,from,to,length=4){
     filter(label!="_super_sink_" & label!="_super_source_")
 
 
-  update_mapfile(graf,factors=factors,links=links) %>%
+  pipe_update_mapfile(graf,factors=factors,links=links) %>%
     pipe_normalise_factors_links %>%
     pipe_remove_isolated_links()
   # browser()
-  # update_mapfile(graf,factors=factors_table(graf %>% filter(label!="_super_sink_" & label!="_super_source_")))  %>%
+  # pipe_update_mapfile(graf,factors=factors_table(graf %>% filter(label!="_super_sink_" & label!="_super_source_")))  %>%
   #   pipe_clean_map
 
 
@@ -2467,7 +2506,7 @@ pipe_calculate_robustness <- function(graf,field=NULL){
 
   }
   # browser()
-  graf %>% update_mapfile(.,links=add_attribute(graf$links,res,"flow"))
+  graf %>% pipe_update_mapfile(.,links=add_attribute(graf$links,res,"flow"))
 
 }
 
@@ -2494,8 +2533,8 @@ pipe_combine_opposites <- function(graf,flipchar="~",add_colors=T){
     {if(add_colors)color_combined_links(.) else .}
 
   graf %>%
-    update_mapfile(factors=factors,links=links) %>%
-    compact_map()
+    pipe_update_mapfile(factors=factors,links=links) %>%
+    pipe_compact_mapfile()
 
 
 }
@@ -2522,7 +2561,7 @@ pipe_merge_statements <- function(graf){
     left_join_safe(statements) %>% suppressMessages # ,by="statement_id") %>% otherwise when this is repeated, you get loads of cols
 
   # browser()
-  update_mapfile(graf,links=links,statements=statements )
+  pipe_update_mapfile(graf,links=links,statements=statements )
 
 }
 
@@ -2530,16 +2569,16 @@ pipe_merge_statements <- function(graf){
 #' @inheritParams parse_commands
 #' @param graf
 #' @param path
-#' @description A wrapper around merge_map to make it work in the app.
+#' @description A wrapper around merge_mapfile to make it work in the app.
 #' @return A tidy map. The column *_map_id is set to reflect the id of the map.
 #' @export
 #'
 #' @examples
-pipe_merge_map <- function(graf,path){
+pipe_merge_mapfile <- function(graf,path){
   # browser()
   map2 <- load_premap(path=path)
   graf <- graf
-  merge_map(graf,map2)
+  merge_mapfile(graf,map2)
 
 
 }
@@ -2556,9 +2595,9 @@ pipe_merge_map <- function(graf,path){
 #'
 #' @examples
 pipe_remove_brackets <- function(graf,value="["){
-  if(value=="[")graf %>% update_mapfile(factors=graf$factors %>%
+  if(value=="[")graf %>% pipe_update_mapfile(factors=graf$factors %>%
                                       mutate(label=str_remove_all(label,"\\[.*?\\]")))
-  else if(value=="(")graf %>% update_mapfile(factors=graf$factors %>%
+  else if(value=="(")graf %>% pipe_update_mapfile(factors=graf$factors %>%
                                            mutate(label=str_remove_all(label,"\\(.*?\\)")))
 }
 # zero_to_one <- function(vec)(vec-min(vec,na.rm=T))/(max(vec,na.rm=T)-min(vec,na.rm=T))
@@ -2591,7 +2630,7 @@ pipe_bundle_links <- function(graf,group=NULL){
 
     # browser()
 
-    return(update_mapfile(graf,
+    return(pipe_update_mapfile(graf,
                           links=links %>%
                         {if(is.null(group))group_by(.,from,to) else group_by(.,from,to,!!(sym(group)))} %>%
                         add_attribute(group,attr = "group")))
@@ -2618,7 +2657,7 @@ pipe_scale_factors <- function(graf,field="frequency"){
   class <- graf %>% factors_table %>% pull(UQ(sym(field))) %>% class
   if(class =="character"){warning("No such column");return(graf)}
   graf %>%
-    update_mapfile(factors=graf$factors %>% mutate(size=create_sizes(UQ(sym(field)),field=field,type="scale_factors")))
+    pipe_update_mapfile(factors=graf$factors %>% mutate(size=create_sizes(UQ(sym(field)),field=field,type="scale_factors")))
 
 }
 #' Scale factors
@@ -2635,7 +2674,7 @@ pipe_scale_links <- function(graf,field="link_id",fixed=NULL,fun="count"){
   fun <- full_function_name(links,fun)
 
 
-  if(!is.null(fixed))return(graf  %>% update_mapfile(links=links %>%  mutate(width=fixed)))
+  if(!is.null(fixed))return(graf  %>% pipe_update_mapfile(links=links %>%  mutate(width=fixed)))
   if(!is_grouped_df(links)) {
     did_group <- T
     links <- links %>% group_by(from,to)
@@ -2652,17 +2691,7 @@ pipe_scale_links <- function(graf,field="link_id",fixed=NULL,fun="count"){
     links <- links %>% ungroup
   }
 
-  graf  %>% update_mapfile(links=links)
-
-}
-
-fun_map <- function(vec,fun){
-  map(vec,~exec(fun,.)) %>% unlist
-
-}
-first_map <- function(vec,fun){
-
-  map(vec,first) %>% unlist
+  graf  %>% pipe_update_mapfile(links=links)
 
 }
 
@@ -2693,7 +2722,7 @@ pipe_label_factors <- function(graf,field="frequency",clear=F){
   if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
 
   graf %>%
-    update_mapfile(factors=graf$factors %>%
+    pipe_update_mapfile(factors=graf$factors %>%
                  mutate(label=paste0((if(clear)NULL else paste0(label,". ")) %>% keep(.!=""),field,": ",UQ(sym(field)),". ")))
 }
 
@@ -2737,7 +2766,7 @@ pipe_label_links <- function(graf,field="link_id",fun="count",field_label=F){
     links <- links %>% ungroup
   }
 
-  graf %>% update_mapfile(links=links)
+  graf %>% pipe_update_mapfile(links=links)
 }
 
 #' Color factors (background color)
@@ -2760,7 +2789,7 @@ pipe_color_factors <- function(graf,field="frequency",lo="#FCFDBF",hi="#5F187F",
   if(!is.null(fixed)) factors <- graf$factors %>%
       mutate(color.background=fixed) else  factors <- graf$factors %>%
           mutate(color.background=create_colors(UQ(sym(field)),lo=lo,hi=hi,mid=mid,type="color_factors",field=field))
-      graf %>% update_mapfile(factors=factors)
+      graf %>% pipe_update_mapfile(factors=factors)
 }
 #' Color factors (border color)
 #'
@@ -2784,7 +2813,7 @@ pipe_color_borders <- function(graf,field="frequency",lo="#FCFDBF",hi="#5F187F",
   if(!is.null(fixed)) factors <- graf$factors %>% mutate(color.border=fixed) else
     factors <- graf$factors %>%
       mutate(color.border=create_colors(UQ(sym(field)),lo=lo,hi=hi,mid=mid,type="color_borders",field=field))
-  graf %>% update_mapfile(factors=factors)
+  graf %>% pipe_update_mapfile(factors=factors)
 }
 
 #' Color links
@@ -2824,7 +2853,7 @@ pipe_color_links <- function(graf,field="frequency",lo="#FCFDBF",hi="#5F187F",mi
 
 
 
-  graf  %>% update_mapfile(links=links)
+  graf  %>% pipe_update_mapfile(links=links)
 
 }
 
@@ -2857,7 +2886,7 @@ pipe_cluster_factors <- function(graf,clusters=NULL){
     nodes <- nodes %>%
       mutate(cluster=ifelse(cluster=="",NA,cluster))    %>%
       mutate(cluster=str_remove_all(cluster,"\\\\"))
-    graf %>% update_mapfile(factors=graf$factors %>% mutate(cluster = nodes$cluster))
+    graf %>% pipe_update_mapfile(factors=graf$factors %>% mutate(cluster = nodes$cluster))
   }
 }
 
@@ -2874,7 +2903,7 @@ pipe_cluster_factors <- function(graf,clusters=NULL){
 #' @examples
 pipe_wrap_factors <- function(graf,length=20){
   graf %>%
-    update_mapfile(
+    pipe_update_mapfile(
       factors=graf$factors %>%
         mutate(label=str_remove_all(label,"\n")) %>%
         mutate(label=str_wrap(label,length))
@@ -2893,7 +2922,7 @@ pipe_wrap_factors <- function(graf,length=20){
 pipe_wrap_links <- function(graf,length=20){
   # browser()
   graf %>%
-    update_mapfile(links=
+    pipe_update_mapfile(links=
                  graf$links %>%
                  mutate(label=str_remove_all(label,"\n")) %>%
                  mutate(label=str_wrap(label,length)) %>%
@@ -2928,28 +2957,11 @@ link_click_edit <- function(id){
 }
 
 
-literal <- function(lis){
-  paste0(lis,collapse = "; ")
-}
-
-full_function_name <- function(df,nam){
-
-  if(is_grouped_df(df) & nam=="unique") "collapse_unique"
-  else if(!is_grouped_df(df) & (nam=="unique" | nam=="literal")) "identity"
-  else if(nam=="mean")"getmean"
-  else if(nam=="sum")"getsum"
-  else if(nam=="median")"getmedian"
-  else if(nam=="mode")"getmode"
-  else if(nam=="count")"count_unique"
-  else nam
-
-}
-
 
 fixed <- function(...) 2L
 fixed_string <- function(...)""
 
-#' Prepare visual bundles
+#' NOT USED Prepare visual bundles
 #'
 #' @param graf
 #' @param group
@@ -3028,7 +3040,7 @@ prepare_visual_bundles <- function(graf,
   # if("size_fun"!="fixed"){
 
   # }
-  update_mapfile(graf,links=links)
+  pipe_update_mapfile(graf,links=links)
 
 }
 
@@ -3060,7 +3072,7 @@ make_interactive_map <- function(graf,scale=1,safe_limit=200){
   }
 
 
-if(nrow(graf$factors)>0){  if(max(table(graf$factors$size))>1)graf <- graf %>% update_mapfile(factors=.$factors %>% arrange((size))) %>% pipe_normalise_factors_links()#because this is the way to get the most important ones in front
+if(nrow(graf$factors)>0){  if(max(table(graf$factors$size))>1)graf <- graf %>% pipe_update_mapfile(factors=.$factors %>% arrange((size))) %>% pipe_normalise_factors_links()#because this is the way to get the most important ones in front
 }
   nodes <- graf$factors %>% mutate(value=size*10) %>%
     select(any_of(xc("factor_id factor_memo  label color.background color.border title group value hidden size"))) %>% ### restrictive in attempt to reduce random freezes
@@ -3339,7 +3351,7 @@ make_print_map <- function(
   if(!is_grouped_df(graf$links) & !is.null(safe_limit) & nrow(links_table(graf))>replace_null(safe_limit,200)){
     notify("Map larger than 'safe limit'; bundling and labelling links")
     graf <- graf %>%
-      update_mapfile(factors=fix_columns_factors(graf$factors),links=fix_columns_links(graf$links)) %>%
+      pipe_update_mapfile(factors=fix_columns_factors(graf$factors),links=fix_columns_links(graf$links)) %>%
       pipe_bundle_links() %>%
       pipe_label_links(field = "link_id",fun="count") %>%
       pipe_scale_links(field = "link_id",fun="count")
