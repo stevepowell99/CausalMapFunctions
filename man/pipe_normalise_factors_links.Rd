@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{pipe_normalise_factors_links}
 \alias{pipe_normalise_factors_links}
-\title{Normalise factors and links}
+\title{Normalise factors and links, i.e. if}
 \usage{
 pipe_normalise_factors_links(graf)
 }
@@ -16,5 +16,5 @@ In this package, nodes are called `factors` and edges are called `links.`}
 A tidymap with a additional columns.
 }
 \description{
-Normalise factors and links
+Normalise factors and links, i.e. if
 }

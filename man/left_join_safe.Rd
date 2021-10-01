@@ -4,7 +4,7 @@
 \alias{left_join_safe}
 \title{Left join safe}
 \usage{
-left_join_safe(x, y, by = NULL, ...)
+left_join_safe(x, y, by = NULL, winner = "y", ...)
 }
 \arguments{
 \item{...}{}

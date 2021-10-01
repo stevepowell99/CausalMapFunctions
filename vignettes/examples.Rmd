@@ -15,6 +15,7 @@ output:
 
 ```{r setup, include=FALSE}
 options(dplyr.summarise.inform = FALSE)
+library(CausalMapFunctions)
 knitr::opts_chunk$set(echo = TRUE)
 source("../R/functions.R")
 ```
@@ -307,6 +308,7 @@ ee %>%
 
 ## Bundling links
 
+Note the defaults for `bundle_links` and `label_links`:
 
 ```{r }  
 ll %>%
@@ -321,8 +323,55 @@ ll %>%
 
 ```{r }  
 ll %>%
+    pipe_find_factors(value="economic") %>%
+    pipe_select_factors(5) %>%
+    pipe_bundle_links() %>%
+    pipe_label_links() %>%
+    make_interactive_map
+
+
+```
+
+Note the default for `bundle_links` is equivalent to simple_bundle:
+
+```{r }  
+ll %>%
+    pipe_find_factors(value="economic") %>%
     pipe_select_factors(5) %>%
     pipe_bundle_links(group="simple_bundle") %>%
+    pipe_label_links() %>%
+    make_interactive_map
+
+
+```
+
+Group and label by sex and scale by count:
+
+```{r }  
+ll %>%
+    pipe_select_factors(5) %>%
+    pipe_bundle_links(group="1. Sex") %>%
+    pipe_scale_links("link_id",fun = "count") %>%
+    pipe_label_links("1. Sex",fun = "unique") %>%
+    pipe_color_links("1. Sex",fun = "unique") %>%
+    make_interactive_map
+```
+
+```{r }  
+ll %>%
+    pipe_select_links(16) %>%
+    pipe_bundle_links(group="1. Sex") %>%
+    pipe_label_links("link_id",fun = "count") %>%
+    make_interactive_map
+```
+
+
+Group by sex and scale and colour by count:
+
+```{r }  
+ll %>%
+    pipe_select_factors(5) %>%
+    pipe_bundle_links(group="1. Sex") %>%
     pipe_color_links("link_id",fun = "count") %>%
     pipe_scale_links("link_id",fun = "count") %>%
     pipe_label_links("link_id",fun = "count") %>%

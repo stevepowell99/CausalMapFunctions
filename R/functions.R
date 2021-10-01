@@ -34,6 +34,63 @@ notify <- function(text){
   safely(~showNotification(ui=text))()$result
 
 }
+#' Add attribute
+#'
+#' @param graf
+#' @param value
+#' @param attr
+#'
+#' @return
+#' @export
+#'
+#' @examples
+add_attribute <- function(graf,value,attr="flow"){
+  attr(graf,attr) <- value
+  graf
+}
+
+
+
+standard_factors <- function(){
+  tibble(label="blank factor",
+         factor_memo="",map_id=1L,size=1L,factor_id=1L)
+}
+standard_links <- function(){tibble(
+  link_id=1L,
+  statement_id=1L,
+  from=1L,
+  to=1L,
+  quote="",
+  frequency=1L,
+  capacity=1,
+  weight=1L,
+  actualisation=1L,
+  strength=1L,
+  certainty=1L,
+  from_flipped=F,
+  to_flipped=F,
+  link_label="",
+  from_label="",
+  to_label="",
+  hashtags="",
+  link_memo="",
+  map_id=1L
+)
+}
+standard_statements <- function()tibble(statement_id=1,text="blank statement",statement_memo="",source_id="1",question_id="1",statement_map_id=1)
+standard_sources <- function()tibble(source_id="1",source_memo="global source",source_map_id=1)
+standard_questions <- function()tibble(question_id="1",question_text="global question",question_memo="",question_map_id=1)
+standard_settings <- function()tibble(setting_id="background_colour",value="",map_id=1)
+
+#' Add class
+#'
+#' @export
+#'
+#' @examples
+add_class <- function(x,cls="tidymap"){
+  class(x) <- c(cls,class(x)) %>% unique
+  x
+}
 
 # constants ---------------------------------------------------------
 
@@ -453,15 +510,9 @@ pipe_coerce_mapfile <- function(tables){
   questions <- tables$questions #%>% replace_null(standard_questions())
   settings <- tables$settings #%>% replace_null(standard_settings())
 
-  # if(!is.null(factors) &
-  #    !is.null(links)){
-  #   if("factor_id" %in% colnames(factors) &
-  #      "from" %in% colnames(links)&
-  #      "to" %in% colnames(links)
-  #      )
-  #     {
-  #
-  # }
+  tmp <- pipe_normalise_factors_links(list(factors=factors,links=links))
+  factors <- tmp$factors
+  links <- tmp$links
 
   # preparation
   if(is.null(factors) &
@@ -500,6 +551,7 @@ pipe_coerce_mapfile <- function(tables){
     if("factor_id" %notin% colnames(factors))  factors <-  factors %>%
         mutate(factor_id=row_number())
 
+    # browser()
     factors <-  factors %>%
       select(-starts_with("color")) %>%
       add_column(.name_repair="minimal",!!!standard_factors())   %>%
@@ -511,6 +563,7 @@ pipe_coerce_mapfile <- function(tables){
 
     ## trim label-------------------------------------------------
     factors$label <- str_trim(factors$label)
+    factors$size <- replace_na(factors$size,1)
     # ensure distinct label and id-----------------------------------------------
     factors <- factors %>%
       filter(!is.na(label) & !is.na(factor_id))%>%
@@ -1219,7 +1272,7 @@ make_igraph <- function(factors,links,use_labels=F){
 
 }
 
-#' Normalise factors and links
+#' Normalise factors and links, i.e. if
 #'
 #' @inheritParams parse_commands
 #'
@@ -1229,12 +1282,48 @@ make_igraph <- function(factors,links,use_labels=F){
 #'
 #' @examples
 pipe_normalise_factors_links <- function(graf){
-  tmp <- normalise_id(graf$factors,graf$links,"factor_id","from","to")
-  factors=tmp$main;
-  links=tmp$referring
+
+
+
+
+  factors <- graf$factors
+  links <- graf$links
+  if(is.null(factors))return(graf)
+  if(is.null(links))return(graf)
+  if("factor_id" %notin% colnames(factors))return(graf)
+  if("from" %notin% colnames(links))return(graf)
+  if("to" %notin% colnames(links))return(graf)
+
+  # browser()
+
+  links <- links %>% filter(from %in% factors$factor_id & to %in% factors$factor_id)
+
+  ############ !!!!!!!!!!!!!!!!!!!
+  graf <- graf %>%
+    pipe_update_mapfile(factors=factors,links=links)
+  return(graf)
+
+
+  if(identical(factors$factor_id,seq_along(factors$factor_id)))return(graf)
+
+
+  factors <- factors %>% mutate(oldid__=factor_id,factor_id=1:nrow(factors))
+  recodes <- factors$factor_id %>% set_names(factors$oldid__)
+  links <- links %>% mutate(from=recode(from,!!!recodes))
+  links <- links %>% mutate(to=recode(to,!!!recodes))
+
+  factors <- factors %>% select(-oldid__)
 
   graf %>%
-    pipe_update_mapfile(factors=tmp$main,links=tmp$referring)
+    pipe_update_mapfile(factors=factors,links=links)
+
+
+  # tmp <- normalise_id(graf$factors,graf$links,"factor_id","from","to")
+  # factors=tmp$main;
+  # links=tmp$referring
+  #
+  # graf %>%
+  #   pipe_update_mapfile(factors=tmp$main,links=tmp$referring)
 }
 
 
@@ -1501,63 +1590,6 @@ add_statements <- function(graf,statements){
   graf
 }
 
-#' Add attribute
-#'
-#' @param graf
-#' @param value
-#' @param attr
-#'
-#' @return
-#' @export
-#'
-#' @examples
-add_attribute <- function(graf,value,attr="flow"){
-  attr(graf,attr) <- value
-  graf
-}
-
-
-
-standard_factors <- function(){
-  tibble(label="blank factor",
-         factor_memo="",map_id=1L,size=1L,factor_id=1L)
-}
-standard_links <- function(){tibble(
-  link_id=1L,
-  statement_id=1L,
-  from=1L,
-  to=1L,
-  quote="",
-  frequency=1L,
-  capacity=1,
-  weight=1L,
-  actualisation=1L,
-  strength=1L,
-  certainty=1L,
-  from_flipped=F,
-  to_flipped=F,
-  link_label="",
-  from_label="",
-  to_label="",
-  hashtags="",
-  link_memo="",
-  map_id=1L
-)
-  }
-standard_statements <- function()tibble(statement_id=1,text="blank statement",statement_memo="",source_id="1",question_id="1",statement_map_id=1)
-standard_sources <- function()tibble(source_id="1",source_memo="global source",source_map_id=1)
-standard_questions <- function()tibble(question_id="1",question_text="global question",question_memo="",question_map_id=1)
-standard_settings <- function()tibble(setting_id="background_colour",value="",map_id=1)
-
-#' Add class
-#'
-#' @export
-#'
-#' @examples
-add_class <- function(x,cls="tidymap"){
-  class(x) <- c(cls,class(x)) %>% unique
-  x
-}
 
 #' Row index
 #'
@@ -3109,9 +3141,10 @@ if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- gr
     nodes <- data.frame(nodes, layout)
     ############## don't get tempted to use the internal visnetwork layout functions - problems with fitting to screen, and they are slower ....
   }
-  nodes <- nodes %>%   mutate(id=row_number())
+  nodes <- nodes %>%   mutate(id=factor_id)
   edges <- edges %>%   mutate(id=NULL) # id would be necessary for getting ids from clicks etc, but seems to stop tooltip from working
-  if(F)nodes <-
+ # browser()
+ if(T)nodes <-
     nodes %>% mutate(title=paste0(
       map(label,identity),
       # map(label,factor_click_name),
@@ -3122,7 +3155,8 @@ if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- gr
       "</br>",
       map(factor_id,factor_click_delete),
       "</br>",
-      paste0("Memo:", factor_memo)
+      paste0("Memo:", factor_memo),
+      paste0("ID:", factor_id)
     ))
   edges <-
     edges %>% mutate(title=paste0(
@@ -3386,8 +3420,9 @@ make_print_map <- function(
     mutate(penwidth=if_else(color.border %>% unique %>% length %>% `==`(1),0,14)) %>% # if borders are all same colour, don't print border
     mutate(fontsize=(size+4)*25) %>%
     mutate(fontcolor="black") %>%
-    select(any_of(xc("label size tooltip fillcolor color fontsize fontcolor cluster penwidth"))) %>%
-    mutate(factor_id=row_number())
+    select(any_of(xc("label size tooltip fillcolor color fontsize fontcolor cluster penwidth")))
+  # %>%
+  #   mutate(factor_id=factor_id)
 
   if(is.null(factors$cluster))factors$cluster <- ""
 
@@ -3419,7 +3454,7 @@ make_print_map <- function(
 
   grv <-
     DiagrammeR::create_graph() %>%
-    add_nodes_from_table(factors  %>% mutate(id=factor_id),label_col="label") %>%
+    add_nodes_from_table(factors  %>% mutate(id=row_number()),label_col="label") %>%
     add_edges_from_table(links,from_col="from",to_col="to",from_to_map = id_external) %>%
 
     add_global_graph_attrs("layout", grv_layout, "graph") %>%
