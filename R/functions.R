@@ -509,7 +509,7 @@ pipe_coerce_mapfile <- function(tables){
   sources <- tables$sources #%>% replace_null(standard_sources())
   questions <- tables$questions #%>% replace_null(standard_questions())
   settings <- tables$settings #%>% replace_null(standard_settings())
-
+# browser()
   tmp <- pipe_normalise_factors_links(list(factors=factors,links=links))
   factors <- tmp$factors
   links <- tmp$links
@@ -566,6 +566,7 @@ pipe_coerce_mapfile <- function(tables){
     factors$size <- replace_na(factors$size,1)
     # ensure distinct label and id-----------------------------------------------
     factors <- factors %>%
+      mutate(factor_id=if_else(is.na(factor_id),max(factors$factor_id,na.rm=T)+row_number(),factor_id)) %>%
       filter(!is.na(label) & !is.na(factor_id))%>%
       distinct(factor_id,.keep_all = T) %>%
       distinct(label,.keep_all = T)
