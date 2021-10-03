@@ -510,7 +510,7 @@ pipe_coerce_mapfile <- function(tables){
   questions <- tables$questions #%>% replace_null(standard_questions())
   settings <- tables$settings #%>% replace_null(standard_settings())
 # browser()
-  tmp <- pipe_normalise_factors_links(list(factors=factors,links=links))
+  tmp <- pipe_remove_orphaned_links(list(factors=factors,links=links))
   factors <- tmp$factors
   links <- tmp$links
 
@@ -564,8 +564,10 @@ pipe_coerce_mapfile <- function(tables){
     ## trim label-------------------------------------------------
     factors$label <- str_trim(factors$label)
     factors$size <- replace_na(factors$size,1)
+
+    # browser()
     # ensure distinct label and id-----------------------------------------------
-    factors <- factors %>%
+    if(nrow(factors)>0)factors <- factors %>%
       mutate(factor_id=if_else(is.na(factor_id),max(factors$factor_id,na.rm=T)+row_number(),factor_id)) %>%
       filter(!is.na(label) & !is.na(factor_id))%>%
       distinct(factor_id,.keep_all = T) %>%
@@ -671,19 +673,19 @@ pipe_coerce_mapfile <- function(tables){
   # browser()
 
 
-  links <- add_labels_to_links(links,factors)
+  if(nrow(factors)>0){links <- add_labels_to_links(links,factors)
 
   links <- links %>%
     unite(simple_bundle,from_label,to_label,remove = F,sep = " / ") %>%
     select(from_label,to_label,statement_id,quote,everything())
 
   factors <- add_metrics_to_factors(factors,links)
-
+}
   attr(links,"flow") <- flow
 
 
   assemble_mapfile(factors,links,statements,sources,questions,settings) %>%
-    # pipe_normalise_factors_links() %>%
+    # pipe_remove_orphaned_links() %>%
     add_class()
 
 }
@@ -936,7 +938,7 @@ factors_links_from_named_edgelist <- function(links){
 # just for the cases when calculating robustness where map2 only has factors and links
 merge_factors_links <- function(map1,map2){
   maxfactorid <- max(as.numeric(map1$factors$factor_id))
-
+# browser()
 assemble_mapfile(
 
     factors=map1$factors %>%
@@ -1273,7 +1275,6 @@ make_igraph <- function(factors,links,use_labels=F){
 
 }
 
-#' Normalise factors and links, i.e. if
 #'
 #' @inheritParams parse_commands
 #'
@@ -1282,7 +1283,7 @@ make_igraph <- function(factors,links,use_labels=F){
 #'
 #'
 #' @examples
-pipe_normalise_factors_links <- function(graf){
+pipe_remove_orphaned_links <- function(graf){
 
 
 
@@ -1303,7 +1304,18 @@ pipe_normalise_factors_links <- function(graf){
   graf <- graf %>%
     pipe_update_mapfile(factors=factors,links=links)
   return(graf)
+}
 
+
+pipe_normalise_factors_links <- function(graf){
+
+  factors <- graf$factors
+  links <- graf$links
+  if(is.null(factors))return(graf)
+  if(is.null(links))return(graf)
+  if("factor_id" %notin% colnames(factors))return(graf)
+  if("from" %notin% colnames(links))return(graf)
+  if("to" %notin% colnames(links))return(graf)
 
   if(identical(factors$factor_id,seq_along(factors$factor_id)))return(graf)
 
@@ -1318,13 +1330,6 @@ pipe_normalise_factors_links <- function(graf){
   graf %>%
     pipe_update_mapfile(factors=factors,links=links)
 
-
-  # tmp <- normalise_id(graf$factors,graf$links,"factor_id","from","to")
-  # factors=tmp$main;
-  # links=tmp$referring
-  #
-  # graf %>%
-  #   pipe_update_mapfile(factors=tmp$main,links=tmp$referring)
 }
 
 
@@ -1676,67 +1681,81 @@ calculate_robustness_inner <- function(graf){
   if("found_to" %notin% factor_colnames(graf)) {warning("No found_to column");return(NA)}
 
   if(nrow(factors_table(graf))==0) {warning("No paths");return(NA)}
-  graf <- graf %>% pipe_bundle_links() #%>% pipe_clean_map()
+  # graf <- graf %>% pipe_bundle_links() #%>% pipe_clean_map()
 
-
-  links <- graf$links %>%
-    mutate(frequency=if_else(is.na(frequency),1L,as.integer(frequency)))
+# browser()
+  graf$links <- graf$links %>%
+    group_by(from_label,to_label) %>%
+    summarise(capacity=n())
 
 
   from_vec <- factors_table(graf) %>% filter(found_from) %>% pull(label)
   to_vec <- factors_table(graf) %>% filter(found_to) %>% pull(label)
-  newnodes <- tibble(
-    factor_id=c(from_vec,"_super_source_"))
 
-  newedges <- tibble(
-    from="_super_source_",
-    to=from_vec,
+  # newnodes <- tibble(
+  #   factor_id=c(from_vec,"_super_origin_"))
+
+  fromnewedges <- tibble(
+    from_label="_super_origin_",
+    to_label=from_vec,
+    capacity=Inf
+  )
+  # newgraf <- assemble_mapfile(newnodes,newedges) %>%
+  #   pipe_remove_orphaned_links()
+
+
+
+  tonewedges <- tibble(
+    to_label="_super_sink_",
+    from_label=to_vec,
     capacity=Inf
   )
 # browser()
-  newgraf <- assemble_mapfile(newnodes,newedges) %>%
-    pipe_normalise_factors_links()
+
+  new <-
+    graf$links %>% select(from_label,to_label,capacity) %>%
+    bind_rows(fromnewedges) %>%
+    bind_rows(tonewedges) %>%
+    factors_links_from_named_edgelist()
+
+  ## need to go back and fetch found_from and to
+  graf$factors <-
+    new$factors %>% left_join(graf$factors %>% select(label,found_from,found_to)) %>%
+    mutate(capacity=+Inf)
 
 
-  graf <- graf %>% merge_factors_links(newgraf)# %>% pipe_clean_map
-
-  newnodes <- tibble(
-    factor_id=c(to_vec,"_super_sink_"))
-
-  newedges <- tibble(
-    to="_super_sink_",
-    from=to_vec,
-    capacity=Inf
-  )
-    newgraf <- assemble_mapfile(newnodes,newedges) %>%
-    pipe_normalise_factors_links()
-  graf <-
-    graf %>% merge_factors_links(newgraf) %>%
-    pipe_compact_mapfile
-
-
-  graf$factors$capacity  <- graf$factors$capacity %>% replace_null(1)
-  graf$factors  <- graf$factors %>%
-    mutate(capacity=if_else(is.na(capacity),1,capacity)) %>%
-    mutate(capacity=pmax(frequency,capacity,na.rm=T)) %>%
-    mutate(id=factor_id)
-
-  # graf$factors  <- graf$factors %>%
-  #   select(id,label,capacity)
-
-  # browser()  FIND OUT WHAT IS GOING ON WITH TOTAL LOWER THAN INDIVIDUAL
-  graf$links  <- graf$links %>%
-    filter(from!=to) %>%
-    mutate(capacity=if_else(is.na(capacity),1,capacity))
-  graf$links  <- add_labels_to_links(graf$links,graf$factors) %>% select(from_label,to_label,capacity)
+  # graf <- factors_links_from_named_edgelist(graf$links)
+  #
+  # newgraf <- factors_links_from_named_edgelist(bind_rows(fromnewedges,tonewedges))
+  #
+  # graf <-
+  #   graf %>%
+  #   pipe_merge_mapfile(newgraf)
+  #
+  #
+  #
+  # graf$factors$capacity  <- +Inf#1L
+  # # graf$factors  <- graf$factors %>%
+  # #   mutate(capacity=if_else(is.na(capacity),1,capacity)) %>%
+  # #   mutate(capacity=pmax(frequency,capacity,na.rm=T)) %>%
+  # #   mutate(id=factor_id)
+  #
+  # # graf$factors  <- graf$factors %>%
+  # #   select(id,label,capacity)
+  #
+  # # browser()  FIND OUT WHAT IS GOING ON WITH TOTAL LOWER THAN INDIVIDUAL
+  # graf$links  <- graf$links %>%
+  #   filter(from!=to) %>%
+  #   mutate(capacity=if_else(is.na(capacity),1L,capacity))
+  # graf$links  <- add_labels_to_links(graf$links,graf$factors) %>% select(from_label,to_label,capacity)
 
   ig <- make_igraph(graf$factors,graf$links,use_labels = T)
 
-  source <- V(ig)[graf$factors$label=="_super_source_"]
+  origin <- V(ig)[graf$factors$label=="_super_origin_"]
   sink <- V(ig)[graf$factors$label=="_super_sink_"]
   res <- ig %>%
-    max_flow(source=source, target=sink)
-  sources <- V(ig)[graf$factors$found_from %>% replace_na(F)]
+    max_flow(source=origin, target=sink)
+  origins <- V(ig)[graf$factors$found_from %>% replace_na(F)]
   sinks <- V(ig)[graf$factors$found_to %>% replace_na(F)]
 
   if(length(sinks)>1){
@@ -1747,14 +1766,14 @@ calculate_robustness_inner <- function(graf){
     sinkvec <- sinks
     rn <- graf %>% factors_table %>% filter(found_to) %>% pull(label)
   }
-  if(length(sources)>1){
-    sourcevec <- c(source,sources)
-    cn <- (graf %>% factors_table %>% filter(found_from) %>% pull(label)) %>% c("All sources",.)
+  if(length(origins)>1){
+    originvec <- c(origin,origins)
+    cn <- (graf %>% factors_table %>% filter(found_from) %>% pull(label)) %>% c("All origins",.)
 
   }
   else {
     cn <- (graf %>% factors_table %>% filter(found_from) %>% pull(label))
-    sourcevec <- sources
+    originvec <- origins
   }
   # graf %>% distance_table()
   ## actually this is stupid because you don't need to calculate flow, you can just
@@ -1763,7 +1782,7 @@ calculate_robustness_inner <- function(graf){
   #   if(quick){
   # # browser()
   #   all_flows <-
-  #     sinkvec %>% map(function(y)(sourcevec %>% map(function(x) if(x %in% sinks) Inf else shortest_paths(graf,x,y,mode="out")$vpath %>% pluck(1) %>% length %>% `>`(1))) %>% unlist) %>%
+  #     sinkvec %>% map(function(y)(originvec %>% map(function(x) if(x %in% sinks) Inf else shortest_paths(graf,x,y,mode="out")$vpath %>% pluck(1) %>% length %>% `>`(1))) %>% unlist) %>%
   #     do.call("rbind",.) %>%
   #     as_tibble %>%
   #     mutate_all(as.numeric)
@@ -1772,7 +1791,7 @@ calculate_robustness_inner <- function(graf){
 
     all_flows <-
     sinkvec %>% map(function(y)(
-      sourcevec %>% map(function(x) if(x %in% sinks) Inf else max_flow(ig,x,y)$value)) %>% unlist) %>%
+      originvec %>% map(function(x) if(x %in% sinks) Inf else max_flow(ig,x,y)$value)) %>% unlist) %>%
     do.call("rbind",.) %>%
     as_tibble
 
@@ -2154,7 +2173,7 @@ pipe_find_factors <- function(graf,field="label",value,operator="contains",up=1,
   # browser()
   if(any(upvec)|any(downvec))
     graf %>% pipe_update_mapfile(factors=factors_table(graf) %>% filter(found|upvec|downvec)) %>%
-    # pipe_normalise_factors_links %>%
+    # pipe_remove_orphaned_links %>%
     pipe_remove_isolated_links() %>%
     {if(remove_isolated) pipe_remove_isolated(.) else .} else
       graf %>% filter(F)
@@ -2270,7 +2289,7 @@ pipe_select_factors <- function(graf,top=NULL,bottom=NULL,all=F){
     {if(!is.null(top))slice(.,1:top) else slice(.,(nrow_factors_table(graf)+1-bottom):nrow_factors_table(graf))} %>%
     arrange(factor_id)
 
-  graf %>% pipe_remove_isolated_links() %>% pipe_normalise_factors_links()
+  graf %>% pipe_remove_isolated_links() %>% pipe_remove_orphaned_links()
 
 
 
@@ -2461,14 +2480,14 @@ pipe_trace_paths <- function(graf,from,to,length=4){
 
   # notify(glue("Number of cuts is {res$cut %>% length}"))
   factors <- factors %>%
-    filter(label!="_super_sink_" & label!="_super_source_")
+    filter(label!="_super_sink_" & label!="_super_origin_")
 
 
   pipe_update_mapfile(graf,factors=factors,links=links) %>%
-    pipe_normalise_factors_links %>%
+    pipe_remove_orphaned_links %>%
     pipe_remove_isolated_links()
   # browser()
-  # pipe_update_mapfile(graf,factors=factors_table(graf %>% filter(label!="_super_sink_" & label!="_super_source_")))  %>%
+  # pipe_update_mapfile(graf,factors=factors_table(graf %>% filter(label!="_super_sink_" & label!="_super_origin_")))  %>%
   #   pipe_clean_map
 
 
@@ -3116,7 +3135,7 @@ make_interactive_map <- function(graf,scale=1,safe_limit=200){
   }
 
 
-if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- graf %>% pipe_update_mapfile(factors=.$factors %>% arrange((size))) %>% pipe_normalise_factors_links()#because this is the way to get the most important ones in front
+if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- graf %>% pipe_update_mapfile(factors=.$factors %>% arrange((size))) %>% pipe_remove_orphaned_links()#because this is the way to get the most important ones in front
 }
   nodes <- graf$factors %>% mutate(value=size*10) %>%
     select(any_of(xc("factor_id factor_memo  label color.background color.border title group value hidden size"))) %>% ### restrictive in attempt to reduce random freezes
@@ -3366,10 +3385,8 @@ make_print_map <- function(
   safe_limit=NULL
 
 ){
-  # graf b
-  # if(is.null(grv_layout))
+  graf <- pipe_normalise_factors_links(graf)
 
-  # graf <- prepare_visual_bundles(graf)
 
   # browser()
   safe_limit <- replace_null(safe_limit,graf %>% attr("set_print") %>% .$safe_limit %>% replace_null(200))
@@ -3453,7 +3470,7 @@ make_print_map <- function(
     # mutate(color="blue") %>%
     mutate(arrowhead="vee")
 
-
+# browser()
   grv <-
     DiagrammeR::create_graph() %>%
     add_nodes_from_table(factors  %>% mutate(id=row_number()),label_col="label") %>%

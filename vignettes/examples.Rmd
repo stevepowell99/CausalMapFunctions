@@ -465,11 +465,34 @@ tt %>%
 
 ee %>%    
   pipe_trace_robustness(from = "High",to="Damage",length = 5) %>% 
-  get_robustness
+  pipe_wrap_factors() %>% 
+  make_print_map()
 
 tt %>%
   pipe_trace_robustness(from = "Capabilities",to="[OP3]",length = 2) %>% 
-  get_robustness
+  pipe_wrap_factors() %>% 
+  make_print_map()
+
+tt %>%
+  pipe_trace_robustness(from = "Capabilities",to="[OP3",length = 2) %>% 
+  pipe_wrap_factors() %>% 
+  make_print_map()
+
+ee %>%    
+  pipe_trace_robustness(from = "High",to="Damage",length = 5) %>% 
+  get_robustness()
+
+tt %>%
+  pipe_trace_robustness(from = "Capabilities",to="[OP3]",length = 2) %>% 
+  get_robustness()
+
+tt %>%
+  pipe_trace_robustness(from = "Capabilities",to="[OP3",length = 2) %>% 
+  get_robustness()
+
+tt %>%
+  pipe_trace_robustness(from = "Capabilities; [P13",to="[OP3]",length = 2) %>% 
+  get_robustness()
 
 ```
 
