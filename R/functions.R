@@ -564,8 +564,10 @@ pipe_coerce_mapfile <- function(tables){
     ## trim label-------------------------------------------------
     factors$label <- str_trim(factors$label)
     factors$size <- replace_na(factors$size,1)
+
+    # browser()
     # ensure distinct label and id-----------------------------------------------
-    factors <- factors %>%
+    if(nrow(factors)>0)factors <- factors %>%
       mutate(factor_id=if_else(is.na(factor_id),max(factors$factor_id,na.rm=T)+row_number(),factor_id)) %>%
       filter(!is.na(label) & !is.na(factor_id))%>%
       distinct(factor_id,.keep_all = T) %>%
@@ -671,14 +673,14 @@ pipe_coerce_mapfile <- function(tables){
   # browser()
 
 
-  links <- add_labels_to_links(links,factors)
+  if(nrow(factors)>0){links <- add_labels_to_links(links,factors)
 
   links <- links %>%
     unite(simple_bundle,from_label,to_label,remove = F,sep = " / ") %>%
     select(from_label,to_label,statement_id,quote,everything())
 
   factors <- add_metrics_to_factors(factors,links)
-
+}
   attr(links,"flow") <- flow
 
 
@@ -1686,10 +1688,10 @@ calculate_robustness_inner <- function(graf){
   from_vec <- factors_table(graf) %>% filter(found_from) %>% pull(label)
   to_vec <- factors_table(graf) %>% filter(found_to) %>% pull(label)
   newnodes <- tibble(
-    factor_id=c(from_vec,"_super_source_"))
+    factor_id=c(from_vec,"_super_origin_"))
 
   newedges <- tibble(
-    from="_super_source_",
+    from="_super_origin_",
     to=from_vec,
     capacity=Inf
   )
@@ -1732,11 +1734,11 @@ calculate_robustness_inner <- function(graf){
 
   ig <- make_igraph(graf$factors,graf$links,use_labels = T)
 
-  source <- V(ig)[graf$factors$label=="_super_source_"]
+  origin <- V(ig)[graf$factors$label=="_super_origin_"]
   sink <- V(ig)[graf$factors$label=="_super_sink_"]
   res <- ig %>%
-    max_flow(source=source, target=sink)
-  sources <- V(ig)[graf$factors$found_from %>% replace_na(F)]
+    max_flow(origin=origin, target=sink)
+  origins <- V(ig)[graf$factors$found_from %>% replace_na(F)]
   sinks <- V(ig)[graf$factors$found_to %>% replace_na(F)]
 
   if(length(sinks)>1){
@@ -1747,14 +1749,14 @@ calculate_robustness_inner <- function(graf){
     sinkvec <- sinks
     rn <- graf %>% factors_table %>% filter(found_to) %>% pull(label)
   }
-  if(length(sources)>1){
-    sourcevec <- c(source,sources)
-    cn <- (graf %>% factors_table %>% filter(found_from) %>% pull(label)) %>% c("All sources",.)
+  if(length(origins)>1){
+    originvec <- c(origin,origins)
+    cn <- (graf %>% factors_table %>% filter(found_from) %>% pull(label)) %>% c("All origins",.)
 
   }
   else {
     cn <- (graf %>% factors_table %>% filter(found_from) %>% pull(label))
-    sourcevec <- sources
+    originvec <- origins
   }
   # graf %>% distance_table()
   ## actually this is stupid because you don't need to calculate flow, you can just
@@ -1763,7 +1765,7 @@ calculate_robustness_inner <- function(graf){
   #   if(quick){
   # # browser()
   #   all_flows <-
-  #     sinkvec %>% map(function(y)(sourcevec %>% map(function(x) if(x %in% sinks) Inf else shortest_paths(graf,x,y,mode="out")$vpath %>% pluck(1) %>% length %>% `>`(1))) %>% unlist) %>%
+  #     sinkvec %>% map(function(y)(originvec %>% map(function(x) if(x %in% sinks) Inf else shortest_paths(graf,x,y,mode="out")$vpath %>% pluck(1) %>% length %>% `>`(1))) %>% unlist) %>%
   #     do.call("rbind",.) %>%
   #     as_tibble %>%
   #     mutate_all(as.numeric)
@@ -1772,7 +1774,7 @@ calculate_robustness_inner <- function(graf){
 
     all_flows <-
     sinkvec %>% map(function(y)(
-      sourcevec %>% map(function(x) if(x %in% sinks) Inf else max_flow(ig,x,y)$value)) %>% unlist) %>%
+      originvec %>% map(function(x) if(x %in% sinks) Inf else max_flow(ig,x,y)$value)) %>% unlist) %>%
     do.call("rbind",.) %>%
     as_tibble
 
@@ -2461,14 +2463,14 @@ pipe_trace_paths <- function(graf,from,to,length=4){
 
   # notify(glue("Number of cuts is {res$cut %>% length}"))
   factors <- factors %>%
-    filter(label!="_super_sink_" & label!="_super_source_")
+    filter(label!="_super_sink_" & label!="_super_origin_")
 
 
   pipe_update_mapfile(graf,factors=factors,links=links) %>%
     pipe_normalise_factors_links %>%
     pipe_remove_isolated_links()
   # browser()
-  # pipe_update_mapfile(graf,factors=factors_table(graf %>% filter(label!="_super_sink_" & label!="_super_source_")))  %>%
+  # pipe_update_mapfile(graf,factors=factors_table(graf %>% filter(label!="_super_sink_" & label!="_super_origin_")))  %>%
   #   pipe_clean_map
 
 
