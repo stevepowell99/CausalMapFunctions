@@ -88,6 +88,7 @@ If you filter the statements of a mapfile, e.g. show only statements with texts 
   ee <- load_premap("example2")%>% pipe_coerce_mapfile 
   tt <- load_premap("cm1/tearfund-sl")%>% pipe_coerce_mapfile
   ll <- load_premap("quip-coded")%>% pipe_coerce_mapfile
+  e3 <- load_premap("example3-spcheck")%>% pipe_coerce_mapfile
 ```
 
 ## Basic examples
@@ -495,6 +496,14 @@ tt %>%
   get_robustness()
 
 ```
+
+
+```{r}
+e3  %>%
+  pipe_trace_robustness(from = "High",to="People moving",length = 5) %>% 
+  get_robustness()
+```
+
 
 Is the second one correct? 
 

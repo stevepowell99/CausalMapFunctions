@@ -1695,7 +1695,7 @@ calculate_robustness_inner <- function(graf){
   if(nrow(factors_table(graf))==0) {warning("No paths");return(NA)}
   # graf <- graf %>% pipe_bundle_links() #%>% pipe_clean_map()
 
-# browser()
+browser()
   graf$links <- graf$links %>%
     group_by(from_label,to_label) %>%
     summarise(capacity=n())
@@ -1736,30 +1736,6 @@ calculate_robustness_inner <- function(graf){
     mutate(capacity=+Inf)
 
 
-  # graf <- factors_links_from_named_edgelist(graf$links)
-  #
-  # newgraf <- factors_links_from_named_edgelist(bind_rows(fromnewedges,tonewedges))
-  #
-  # graf <-
-  #   graf %>%
-  #   pipe_merge_mapfile(newgraf)
-  #
-  #
-  #
-  # graf$factors$capacity  <- +Inf#1L
-  # # graf$factors  <- graf$factors %>%
-  # #   mutate(capacity=if_else(is.na(capacity),1,capacity)) %>%
-  # #   mutate(capacity=pmax(frequency,capacity,na.rm=T)) %>%
-  # #   mutate(id=factor_id)
-  #
-  # # graf$factors  <- graf$factors %>%
-  # #   select(id,label,capacity)
-  #
-  # # browser()  FIND OUT WHAT IS GOING ON WITH TOTAL LOWER THAN INDIVIDUAL
-  # graf$links  <- graf$links %>%
-  #   filter(from!=to) %>%
-  #   mutate(capacity=if_else(is.na(capacity),1L,capacity))
-  # graf$links  <- add_labels_to_links(graf$links,graf$factors) %>% select(from_label,to_label,capacity)
 
   ig <- make_igraph(graf$factors,graf$links,use_labels = T)
 
@@ -3450,7 +3426,7 @@ make_print_map <- function(
     mutate(tooltip=label)%>%
     mutate(fillcolor=color.background) %>%
     mutate(color=color.border) %>%
-    mutate(penwidth=if_else(color.border %>% unique %>% length %>% `==`(1),0,14)) %>% # if borders are all same colour, don't print border
+    mutate(penwidth=14) %>% #if_else(color.border %>% unique %>% length %>% `==`(1),0,14)) %>% # if borders are all same colour, don't print border
     mutate(fontsize=(size+4)*25) %>%
     mutate(fontcolor="black") %>%
     select(any_of(xc("label size tooltip fillcolor color fontsize fontcolor cluster penwidth")))
