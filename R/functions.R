@@ -917,6 +917,18 @@ add_metrics_to_factors <- function(factors,links){
   factors$in_degree=ig %>% igraph::degree(mode = "in")
   factors$out_degree=ig %>% igraph::degree(mode = "out")
   factors$frequency <- factors$in_degree+factors$out_degree
+  factors$driver_score=factors$out_degree-factors$in_degree*2
+  factors$outcome_score=factors$in_degree-factors$out_degree*2
+  factors$driver_rank=(max(factors$driver_score,na.rm=T)-factors$driver_score) %>% rank(ties.method = "min")
+  factors$outcome_rank=(max(factors$outcome_score,na.rm=T)-factors$outcome_score) %>% rank(ties.method = "min")
+  factors$is_opposable=str_detect(factors$label,"^~")
+  factors$top_level_label=zoom_inner(factors$label)
+# browser()
+  factors <- factors %>%
+    group_by(top_level_label) %>%
+    mutate(top_level_frequency=sum(frequency)) %>%
+    ungroup
+
 
   return(factors)
 
@@ -1637,7 +1649,7 @@ link_colnames <- function(graf)graf %>% links_table %>%  colnames
 
 
 
-zoom_inner <- function(string,n,char){
+zoom_inner <- function(string,n=1,char=";"){
   string %>% map(~str_split(.,char) %>% `[[`(1) %>% `[`(1:n) %>% keep(!is.na(.)) %>% paste0(collapse=char)) %>% unlist
 }
 
@@ -2282,12 +2294,14 @@ nrow_links_table <- function(graf)
 #' @export
 #'
 #' @examples
-pipe_select_factors <- function(graf,top=NULL,bottom=NULL,all=F){
-
-  graf$factors <- factors_table(graf) %>%
-    arrange(desc(frequency)) %>%
+pipe_select_factors <- function(graf,top=10,bottom=NULL,all=F,field="frequency"){
+# browser()
+  graf$factors <-
+    factors_table(graf) %>%
+    arrange(desc({{field}})) %>%
     {if(!is.null(top))slice(.,1:top) else slice(.,(nrow_factors_table(graf)+1-bottom):nrow_factors_table(graf))} %>%
     arrange(factor_id)
+
 
   graf %>% pipe_remove_isolated_links() %>% pipe_remove_orphaned_links()
 

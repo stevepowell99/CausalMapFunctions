@@ -17,7 +17,7 @@ output:
 options(dplyr.summarise.inform = FALSE)
 library(CausalMapFunctions)
 knitr::opts_chunk$set(echo = TRUE)
-source("../R/functions.R")
+source("../R/functions.R")################################
 ```
 
 ## Loading example datasets
