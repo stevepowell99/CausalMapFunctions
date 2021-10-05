@@ -1695,7 +1695,7 @@ calculate_robustness_inner <- function(graf){
   if(nrow(factors_table(graf))==0) {warning("No paths");return(NA)}
   # graf <- graf %>% pipe_bundle_links() #%>% pipe_clean_map()
 
-browser()
+# browser()
   graf$links <- graf$links %>%
     group_by(from_label,to_label) %>%
     summarise(capacity=n())
@@ -1737,12 +1737,12 @@ browser()
 
 
 
-  ig <- make_igraph(graf$factors,graf$links,use_labels = T)
+  ig <- make_igraph(graf$factors,new$links,use_labels = T)
 
   origin <- V(ig)[graf$factors$label=="_super_origin_"]
   sink <- V(ig)[graf$factors$label=="_super_sink_"]
   res <- ig %>%
-    max_flow(source=origin, target=sink)
+    max_flow(source=origin, target=sink,capacity=new$links$capacity)
   origins <- V(ig)[graf$factors$found_from %>% replace_na(F)]
   sinks <- V(ig)[graf$factors$found_to %>% replace_na(F)]
 
@@ -1779,7 +1779,7 @@ browser()
 
     all_flows <-
     sinkvec %>% map(function(y)(
-      originvec %>% map(function(x) if(x %in% sinks) Inf else max_flow(ig,x,y)$value)) %>% unlist) %>%
+      originvec %>% map(function(x) if(x %in% sinks) Inf else max_flow(ig,x,y,capacity=new$links$capacity)$value)) %>% unlist) %>%
     do.call("rbind",.) %>%
     as_tibble
 
