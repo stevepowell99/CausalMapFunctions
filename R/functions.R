@@ -2274,7 +2274,7 @@ pipe_select_factors <- function(graf,top=10,bottom=NULL,all=F,field="frequency")
 # browser()
   graf$factors <-
     factors_table(graf) %>%
-    arrange(desc({{field}})) %>%
+    arrange(desc(UQ(sym(field)))) %>%
     {if(!is.null(top))slice(.,1:top) else slice(.,(nrow_factors_table(graf)+1-bottom):nrow_factors_table(graf))} %>%
     arrange(factor_id)
 
