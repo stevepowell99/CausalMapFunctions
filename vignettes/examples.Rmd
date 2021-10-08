@@ -402,6 +402,8 @@ tt %>%
 
 ```
 
+## Zooming out and showing source count
+
 ```{r }  
 oo %>%
     pipe_zoom_factors(1) %>%
