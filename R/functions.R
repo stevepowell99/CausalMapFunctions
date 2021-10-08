@@ -2159,13 +2159,13 @@ pipe_find_factors <- function(graf,field="label",value,operator="contains",up=1,
   downvec <- ig %>% igraph::distances(to=graf %>% factors_table %>% pull(found),mode="in") %>% apply(1,min) %>% `<=`(down)
   upvec <- ig %>% igraph::distances(to=graf %>% factors_table %>% pull(found),mode="out") %>% apply(1,min) %>% `<=`(up)
   # browser()
-  if(any(upvec)|any(downvec))
+  {if(any(upvec)|any(downvec)){
     graf %>% pipe_update_mapfile(factors=factors_table(graf) %>% filter(found|upvec|downvec)) %>%
     # pipe_remove_orphaned_links %>%
     pipe_remove_isolated_links() %>%
-    {if(remove_isolated) pipe_remove_isolated(.) else .} else
+    {if(remove_isolated) pipe_remove_isolated(.) else .}} else{
       graf %>% filter(F)
-  # if we don't clean the map here, the factor and link ids get out of sync
+  }} %>% pipe_coerce_mapfile()
 
 }
 
@@ -2353,7 +2353,8 @@ pipe_zoom_factors <- function(graf,level=1,separator=";",hide=T){
                frequency=sum(frequency)) %>%
         select(-old_label)
       ) %>%
-    pipe_compact_mapfile
+    pipe_compact_mapfile %>%
+    pipe_coerce_mapfile()
 
 
 }

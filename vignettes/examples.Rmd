@@ -88,6 +88,7 @@ If you filter the statements of a mapfile, e.g. show only statements with texts 
   ee <- load_premap("example2")%>% pipe_coerce_mapfile 
   tt <- load_premap("cm1/tearfund-sl")%>% pipe_coerce_mapfile
   ll <- load_premap("quip-coded")%>% pipe_coerce_mapfile
+  oo <- load_premap("organisation1coded")%>% pipe_coerce_mapfile
   e3 <- load_premap("example3-spcheck")%>% pipe_coerce_mapfile
 ```
 
@@ -402,9 +403,13 @@ tt %>%
 ```
 
 ```{r }  
-tt %>%
+oo %>%
     pipe_zoom_factors(1) %>%
-    make_print_map
+    pipe_find_factors(value="Improved health and hygiene practices") %>%
+  pipe_bundle_links(group="simple_bundle") %>% 
+  pipe_label_links(field="source_id",fun = "count") %>% 
+  pipe_wrap_factors() %>% 
+    make_print_map 
 
 ```
 
