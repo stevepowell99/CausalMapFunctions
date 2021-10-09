@@ -2989,6 +2989,10 @@ pipe_wrap_links <- function(graf,length=20){
 
 
 
+factor_click_focus <- function(id){
+  as.character(shiny::actionButton(inputId = paste0('factor_click_focus_',id), label = "Focus",class="linky"))
+}
+
 factor_click_edit <- function(id){
   as.character(shiny::actionButton(inputId = paste0('factor_click_edit_',id), label = "Rename",class="linky"))
 }
@@ -3164,9 +3168,12 @@ if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- gr
       # # factor_click_name(),
       # "</br>",
       "</br>",
+      map(factor_id,factor_click_focus),
+      "</br>",
       map(factor_id,factor_click_delete),
       "</br>",
       paste0("Memo:", factor_memo),
+      "</br>",
       paste0("ID:", factor_id)
     ))
   edges <-
