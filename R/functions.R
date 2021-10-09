@@ -2999,6 +2999,9 @@ factor_click_edit <- function(id){
 factor_click_delete <- function(id){
   as.character(shiny::actionButton(inputId = paste0('factor_click_delete_',id), label = "Delete factor from entire map",class="linky"))
 }
+factor_click_edit <- function(id){
+  as.character(shiny::actionButton(inputId = paste0('factor_click_edit_',id), label = "Edit factor",class="linky"))
+}
 factor_click_name <- function(val){
   as.character(shiny::textInput(inputId = paste0('factor_click_name'),
                                 label = NULL,value=val))
@@ -3169,6 +3172,8 @@ if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- gr
       # "</br>",
       "</br>",
       map(factor_id,factor_click_focus),
+      "</br>",
+      map(factor_id,factor_click_edit),
       "</br>",
       map(factor_id,factor_click_delete),
       "</br>",
