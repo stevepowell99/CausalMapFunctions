@@ -2300,10 +2300,10 @@ pipe_remove_isolated <- function(graf){
   factors <- graf$factors %>%
     filter(factor_id %in% get_all_link_ids(graf$links))
 
-  tmp <- normalise_id(factors,graf$links,"factor_id","from","to")
+  # tmp <- normalise_id(factors,graf$links,"factor_id","from","to")
 
   graf %>%
-    pipe_update_mapfile(factors=tmp$main,links=tmp$referring) %>%
+    pipe_update_mapfile(factors=factors,links=graf$links) %>%
     pipe_remove_isolated_links()
 
 }

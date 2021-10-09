@@ -207,8 +207,8 @@ ll %>%
 
 ```{r }  
 ll %>%
-    pipe_select_factors(5) %>%
     pipe_find_factors(value="economic") %>%
+    pipe_select_factors(5) %>%
     make_interactive_map
 
 ```
