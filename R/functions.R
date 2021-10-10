@@ -3138,6 +3138,8 @@ if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- gr
   nodes <- graf$factors %>% mutate(value=size*10) %>%
     select(any_of(xc("factor_id factor_memo  label color.background color.border title group value hidden size"))) %>% ### restrictive in attempt to reduce random freezes
     fix_columns_factors()
+  nodes <- nodes %>%     mutate(label=add_default_wrap(label) )
+
   edges <- graf$links %>% select(-any_of("label")) %>% rename(label=link_label) %>%
     fix_columns_links()
 
@@ -3356,6 +3358,10 @@ pipe_set_print <- function(
     )
 }
 
+add_default_wrap <- function(labelvec){
+  # browser()
+  if(!any(str_detect(labelvec,"\n"))) str_wrap(labelvec,22) else labelvec
+}
 
 #' Make a Graphviz map
 #' @description Make a Graphviz map: https://graphviz.org/documentation/
@@ -3435,6 +3441,7 @@ make_print_map <- function(
     graf$factors %>%
     fix_columns_factors() %>%
     mutate(label=clean_grv(label) )%>%
+    mutate(label=add_default_wrap(label) )%>%
     # mutate(cluster=if_else(is.na(cluster),"",cluster) )%>%
     mutate(tooltip=label)%>%
     mutate(fillcolor=color.background) %>%
@@ -3460,17 +3467,18 @@ make_print_map <- function(
 
   # mutate_all(first_map)%>%
   links <- links %>%
-    select(any_of(xc("from to color width link_label width from_label to_label"))) %>%
+    select(any_of(xc("from to color simple_bundle width link_label width from_label to_label"))) %>%
     rename(label=link_label) %>%
     mutate(from=as.numeric(from))%>%
     mutate(to=as.numeric(to))%>%
-    mutate(label=if_else(label=="",".",as.character(label)))%>%
+    mutate(label=if_else(label=="","     .     ",as.character(label)))%>%
     mutate(label=clean_grv(label) )%>%
-    mutate(label=replace_na(label,"."))%>% # obscure! if all are =="", error
+    mutate(label=replace_na(label,"     .     "))%>% # obscure! if all are =="", error
     mutate(width=as.numeric(width))%>%
     mutate(penwidth=width*48)%>%
     mutate(arrowsize=(width*9)) %>%
-    # mutate(color="blue") %>%
+    mutate(tooltip=simple_bundle) %>%
+    # mutate(title="blue") %>%
     mutate(arrowhead="vee")
 
 # browser()
@@ -3495,6 +3503,7 @@ make_print_map <- function(
     add_global_graph_attrs("fillcolor", color, "graph") %>%
 
     add_global_graph_attrs("shape", "box", "node") %>%
+    # add_global_graph_attrs("class", "linky_grviz", "node") %>%
     add_global_graph_attrs("style", "rounded, filled", "node") %>%
     add_global_graph_attrs("fixedsize", "false", "node") %>%
     add_global_graph_attrs("fontcolor", "black", "node") %>%
