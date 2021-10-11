@@ -922,6 +922,7 @@ add_metrics_to_factors <- function(factors,links){
   factors$driver_rank=(max(factors$driver_score,na.rm=T)-factors$driver_score) %>% rank(ties.method = "min")
   factors$outcome_rank=(max(factors$outcome_score,na.rm=T)-factors$outcome_score) %>% rank(ties.method = "min")
   factors$is_opposable=str_detect(factors$label,"^~")
+  factors$zoom_level=str_count(factors$label,";")+1
   factors$top_level_label=zoom_inner(factors$label)
 # browser()
   factors <- factors %>%
@@ -1649,8 +1650,15 @@ link_colnames <- function(graf)graf %>% links_table %>%  colnames
 
 
 
-zoom_inner <- function(string,n=1,char=";"){
-  string %>% map(~str_split(.,char) %>% `[[`(1) %>% `[`(1:n) %>% keep(!is.na(.)) %>% paste0(collapse=char)) %>% unlist
+zoom_inner <- function(string,lev=1,char=";"){
+  # return(string
+  # browser()
+  string %>%
+    map(~str_split(.,char) %>%
+                   `[[`(1) %>%
+                   `[`(1:lev) %>%
+                   keep(!is.na(.)) %>%
+                   paste0(collapse=char)) %>% unlist
 }
 
 relocation_index <- function(vec){
@@ -3274,7 +3282,7 @@ if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- gr
         # hideColor = "green",
         algorithm = "hierarchical"
       ),
-      nodesIdSelection = T
+      nodesIdSelection = list(enabled=T,values=nodes %>% arrange(label) %>% pull(id))
     )
   # # %>%
   #     visIgraphLayout(layout = "layout_with_sugiyama", randomSeed = 123, type = "full")
