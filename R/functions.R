@@ -2357,7 +2357,7 @@ pipe_zoom_factors <- function(graf,level=1,separator=";",hide=T){
     pipe_update_mapfile(
       factors = graf$factors %>%
         mutate(old_label=label,label=if_else(str_detect(old_label,separator),
-                                             zoom_inner(old_label,level,separator),old_label),
+                                             zoom_inner(old_label,{{level}},separator),old_label),
                frequency=sum(frequency)) %>%
         select(-old_label)
       ) %>%
