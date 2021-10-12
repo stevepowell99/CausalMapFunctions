@@ -3397,6 +3397,7 @@ make_print_map <- function(
   grv_splines=NULL,
   grv_overlap=NULL,
   color=NULL,
+  graph_title="",
   ranksep_slider=NULL,
   nodesep_slider=NULL,
   safe_limit=NULL
@@ -3451,7 +3452,7 @@ make_print_map <- function(
     mutate(label=clean_grv(label) )%>%
     mutate(label=add_default_wrap(label) )%>%
     # mutate(cluster=if_else(is.na(cluster),"",cluster) )%>%
-    mutate(tooltip=label)%>%
+    mutate(tooltip= clean_grv(label)) %>%   # seemed to cause intermittent error!!!
     mutate(fillcolor=color.background) %>%
     mutate(color=color.border) %>%
     mutate(penwidth=14) %>% #if_else(color.border %>% unique %>% length %>% `==`(1),0,14)) %>% # if borders are all same colour, don't print border
@@ -3485,16 +3486,18 @@ make_print_map <- function(
     mutate(width=as.numeric(width))%>%
     mutate(penwidth=width*48)%>%
     mutate(arrowsize=(width*9)) %>%
-    mutate(tooltip=simple_bundle) %>%
+    mutate(tooltip=clean_grv(simple_bundle)) %>%
     # mutate(title="blue") %>%
     mutate(arrowhead="vee")
 
 # browser()
+
   grv <-
     DiagrammeR::create_graph() %>%
     add_nodes_from_table(factors  %>% mutate(id=row_number()),label_col="label") %>%
     add_edges_from_table(links,from_col="from",to_col="to",from_to_map = id_external) %>%
 
+    add_global_graph_attrs("label", graph_title, "graph") %>%
     add_global_graph_attrs("layout", grv_layout, "graph") %>%
     add_global_graph_attrs("splines", grv_splines, "graph") %>%
     add_global_graph_attrs("overlap", grv_overlap, "graph") %>%
@@ -3502,9 +3505,9 @@ make_print_map <- function(
     add_global_graph_attrs("outputorder", "nodesfirst","graph") %>%
     add_global_graph_attrs("tooltip", " ", "graph") %>%
     add_global_graph_attrs("rankdir", "LR", "graph") %>%
-    add_global_graph_attrs("fontsize", "28", "graph") %>%
+    add_global_graph_attrs("fontsize", "160", "graph") %>%
     add_global_graph_attrs("fontname", "Arial", "graph") %>%
-    add_global_graph_attrs("nodesep", 1, "graph") %>%
+    # add_global_graph_attrs("nodesep", 1, "graph") %>%
     add_global_graph_attrs("ranksep", ranksep, "graph") %>%
     add_global_graph_attrs("style", "filled,dashed", "graph") %>%
     add_global_graph_attrs("color", color, "graph") %>%
