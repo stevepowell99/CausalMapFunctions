@@ -61,7 +61,7 @@ standard_links <- function(){tibble(
   from=1L,
   to=1L,
   quote="",
-  frequency=1L,
+  # frequency=1L,
   capacity=1,
   weight=1L,
   actualisation=1L,
@@ -534,6 +534,7 @@ pipe_coerce_mapfile <- function(tables){
 
     links <-  links %>%
       select(-starts_with("color")) %>%
+      select(-any_of("frequency")) %>%
       add_column(.name_repair="minimal",!!!standard_links())   %>%
       select(which(!duplicated(colnames(.)))) %>%
       select(-starts_with("..."))
@@ -774,7 +775,7 @@ fix_columns_factors <- function(factors){
 fix_columns_links <- function(links){
 
   if(!("color" %in% colnames(links))) links <- links %>% mutate(color="#22bb4488")
-  if(!("frequency" %in% colnames(links))) links <- links %>% mutate(frequency=1L)
+  # if(!("frequency" %in% colnames(links))) links <- links %>% mutate(frequency=1L)
   if(!("capacity" %in% colnames(links))) links <- links %>% mutate(capacity=1L)
   if(!("label" %in% colnames(links))) links <- links %>% mutate(label="")
   if(!("width" %in% colnames(links))) links <- links %>% mutate(width=.2)
@@ -1546,10 +1547,15 @@ create_colors <- function(vec,lo="#FCFDBF",hi="#5F187F",mid="#D3436E",type,field
 }
 create_sizes <- function(vec,type,field="frequency",fun=NULL){
   # browser()
+  if(is.na(vec) %>% all){
+    res <- rep(1,length(vec))
+  attr(res,type) <-   list(table=tibble(vec,res) %>% unique,field=field,fun=fun)
+  } else {
   mn <- min(vec,na.rm=T)
   mx <- max(vec,na.rm=T)
   res <- scales::rescale(as.numeric(vec),from = {if(mn>0) c(0,mx) else c(mn,mx)},to=c(0.1,1))
   attr(res,type) <-   list(table=tibble(vec,res) %>% unique,field=field,fun=fun)
+  }
   res
 }
 
@@ -2893,7 +2899,7 @@ pipe_color_borders <- function(graf,field="frequency",lo="#FCFDBF",hi="#5F187F",
 #'
 #'
 #' @examples
-pipe_color_links <- function(graf,field="frequency",lo="#FCFDBF",hi="#5F187F",mid="#D3436E",fixed=NULL,fun="length"){
+pipe_color_links <- function(graf,field="link_id",lo="#FCFDBF",hi="#5F187F",mid="#D3436E",fixed=NULL,fun="count"){
   if(field %notin% link_colnames(graf)){warning("No such column");return(graf)}
   links <- graf$links
   fun <- full_function_name(links,fun)
