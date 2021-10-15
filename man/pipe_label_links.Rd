@@ -4,7 +4,13 @@
 \alias{pipe_label_links}
 \title{Label links}
 \usage{
-pipe_label_links(graf, field = "link_id", fun = "count", field_label = F)
+pipe_label_links(
+  graf,
+  field = "link_id",
+  fun = "count",
+  field_label = F,
+  value = NULL
+)
 }
 \arguments{
 \item{graf}{A tidymap representing a causal map.

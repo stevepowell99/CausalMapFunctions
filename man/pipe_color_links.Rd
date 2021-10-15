@@ -6,12 +6,13 @@
 \usage{
 pipe_color_links(
   graf,
-  field = "frequency",
+  field = "link_id",
   lo = "#FCFDBF",
   hi = "#5F187F",
   mid = "#D3436E",
   fixed = NULL,
-  fun = "length"
+  fun = "count",
+  value = NULL
 )
 }
 \arguments{

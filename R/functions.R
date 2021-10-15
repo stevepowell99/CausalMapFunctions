@@ -2582,6 +2582,16 @@ pipe_calculate_robustness <- function(graf,field=NULL){
 
 
 
+#' pipe_combine_opposites
+#'
+#' @param graf
+#' @param flipchar
+#' @param add_colors
+#'
+#' @return
+#' @export
+#'
+#' @examples
 pipe_combine_opposites <- function(graf,flipchar="~",add_colors=T){
   if(add_colors)notify("Also adding colours; you can turn this off with 'combine opposites add_colors=FALSE'")
   factors <-

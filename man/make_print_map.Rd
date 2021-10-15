@@ -11,6 +11,7 @@ make_print_map(
   grv_splines = NULL,
   grv_overlap = NULL,
   color = NULL,
+  graph_title = "",
   ranksep_slider = NULL,
   nodesep_slider = NULL,
   safe_limit = NULL
