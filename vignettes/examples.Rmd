@@ -91,6 +91,7 @@ If you filter the statements of a mapfile, e.g. show only statements with texts 
   oo <- load_premap("organisation1coded")%>% pipe_coerce_mapfile
   e3 <- load_premap("example3-spcheck")%>% pipe_coerce_mapfile
   mm <- load_premap("save-the-children-mozambique-copy")%>% pipe_coerce_mapfile
+  hh <- load_premap("hannahcombiningopposites-sp-test")%>% pipe_coerce_mapfile
 ```
 
 ## Basic examples
@@ -420,15 +421,11 @@ oo %>%
 
 
 ```{r}
-mm %>% 
-  parse_commands("find factors field=label value=(AG) Farm production operator=contains up=1 down=1
-combine opposites
-bundle links group=flipped_bundle
-scale links field=source_id fun=count
-label links field=source_id fun=count
-wrap factors length=22
-color factors field=found lo=white hi=#7FC97F") %>% .$links %>% select(flipped_bundle,from_flipped,to_flipped)
-
+hh %>% 
+  make_print_map()
+hh %>% 
+  pipe_combine_opposites %>% 
+  make_print_map()
 
 ```
 

@@ -1383,17 +1383,17 @@ compact_factors_links <- function(factors,links){
   if(factors$label %>% table %>% max %>% `>`(1)){
     notify("Some factor labels are duplicates; compacting")
     # browser()
+    # browser()
     factors <-
       factors %>%
       group_by(label) %>%
       mutate(new_id=cur_group_id(),
+             yesfreq=if_else(is_flipped,frequency,0),
              frequency=sum(frequency),
              in_degree=sum(in_degree),
              out_degree=sum(out_degree)
       )
 
-
-    # browser()
     new_id <- factors$new_id
 
     links$from <-
@@ -1403,8 +1403,14 @@ compact_factors_links <- function(factors,links){
 
     factors <-
       factors %>%
-      summarise_all(first) %>%  # should it be collapse_unique???
-      mutate(factor_id=new_id) %>%
+      summarise(across(yesfreq,sum),
+               across(everything(),first)
+      ) %>%
+      ungroup %>%
+      mutate(is_flipped=yesfreq/frequency) %>%
+      mutate(factor_id=new_id,
+             color.border= div_gradient_pal("#00ffaf","white","#ff8fb8")(is_flipped)
+      ) %>%
       select(-new_id)
 
   }
@@ -1572,13 +1578,20 @@ count_unique <- function(vec){
   length(unique(vec))
 }
 
-proportion_false <- function(lis) lis %>% map(~sum(unlist(.))/length(.)) %>% unlist
+proportion_false <- function(lis) {
+  lis %>% map(~sum(unlist(.))/length(unlist(.)) ) %>% unlist
+  # lis %>% map(~sum(unlist(.))/length(.)) %>% unlist
+  }
 
 
 color_combined_factors <- function(factors){
-  factors %>%
-    mutate(is_flipped=proportion_false(is_flipped)) %>%
-    mutate(color.border= div_gradient_pal("#00ffaf","white","#ff8fb8")(is_flipped))
+  # factors %>%
+  #   group_by(label) %>%
+  #   mutate(yesfreq=if_else(is_flipped,frequency,0),sumfreq=sum(frequency),is_flipped=yesfreq/sumfreq) %>%
+  #   mutate(color.border= div_gradient_pal("#00ffaf","white","#ff8fb8")(is_flipped)) %>%
+  #   ungroup %>%
+  #   select(-yesfreq,-sumfreq)
+  # browser()
 
 }
 color_combined_links <- function(links){
@@ -2601,8 +2614,9 @@ pipe_combine_opposites <- function(graf,flipchar="~",add_colors=T){
       is_flipped=str_detect(label,paste0("^ *",flipchar)),
       label=if_else(is_flipped,flip_vector(label,flipchar = flipchar),label),
       label=flip_fix_vector(label)
-    ) %>%
-    {if(add_colors)color_combined_factors(.) else .}
+    )
+  # %>%
+  #   {if(add_colors)color_combined_factors(.) else .}
 
   # browser()
   links <-
