@@ -2593,6 +2593,7 @@ pipe_calculate_robustness <- function(graf,field=NULL){
 #'
 #' @examples
 pipe_combine_opposites <- function(graf,flipchar="~",add_colors=T){
+  # browser()
   if(add_colors)notify("Also adding colours; you can turn this off with 'combine opposites add_colors=FALSE'")
   factors <-
     graf$factors %>%
@@ -2606,8 +2607,8 @@ pipe_combine_opposites <- function(graf,flipchar="~",add_colors=T){
   # browser()
   links <-
     graf$links %>%
-    mutate(from_flipped=factors$is_flipped[from] %>% as.logical) %>%
-    mutate(to_flipped=factors$is_flipped[to] %>% as.logical) %>%
+    mutate(from_flipped=(recode(from,!!!(factors$is_flipped %>% set_names(factors$factor_id)))) %>% as.logical) %>%
+    mutate(to_flipped=(recode(to,!!!(factors$is_flipped %>% set_names(factors$factor_id)))) %>% as.logical) %>%
     unite("flipped_bundle",from_flipped,to_flipped,sep = "|",remove=F) %>%
     {if(add_colors)color_combined_links(.) else .}
 
