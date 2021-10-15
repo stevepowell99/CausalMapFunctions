@@ -542,6 +542,7 @@ pipe_coerce_mapfile <- function(tables){
     links[,colnames(standard_links())] <- map(colnames(standard_links()),
                                               ~coerceValue(links[[.]],standard_links()[[.]]))
     # browser()
+    links$link_label[is.na(links$link_label)] <- ""
     links <- links %>%
       filter(!is.na(from) & !is.na(to) & !is.na(statement_id) & !is.na(link_id))%>%
       distinct(link_id,.keep_all = T)
@@ -3177,11 +3178,13 @@ if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- gr
     fix_columns_links()
 
 
-  # browser()
   if(is_grouped_df(edges))edges <- edges %>% summarise(across(quote,collapse_unique_5),across(everything(),collapse_unique)) %>%
     ungroup
 
+  # browser()
   edges$width <- as.numeric(edges$width)
+  edges$label[is.na(edges$label )] <- ""
+  edges$label["NA"==(edges$label )] <- ""
 
   if(nrow(edges)>0) edges <- edges %>% mutate_all(first_map)## in case there are any list columns left*****************
   edges <-  edges %>% vn_fan_edges()
@@ -3487,6 +3490,8 @@ make_print_map <- function(
 
   links <- graf$links %>%
     fix_columns_links()
+
+  links$link_label[is.na(links$link_label)] <- ""
 
   # browser()
 
