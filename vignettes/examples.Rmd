@@ -205,7 +205,43 @@ ll %>%
     make_interactive_map
 ```
 
+Case insensitive
 
+```{r }  
+ee %>%
+    pipe_find_factors(value="business") %>%
+    make_interactive_map
+
+```
+
+Should these work?
+
+```{r }  
+ee %>%
+    pipe_find_factors(value="business|property") %>%
+    make_interactive_map
+
+```
+
+```{r }  
+ee %>%
+    pipe_find_factors(value="business OR property") %>%
+    make_interactive_map
+
+```
+
+
+Does work:
+
+```{r }  
+ee %>%
+    pipe_find_factors(value=c("business", "property")) %>%
+    make_interactive_map
+
+```
+
+
+Order matters
 
 ```{r }  
 ll %>%
@@ -455,16 +491,47 @@ ee %>%
   pipe_trace_paths(from = "Funds",to="area",length = 5) %>% 
   make_interactive_map
 
-cat("### Failing; no paths\n")  
+cat("### Case insensitive\n")  
+
+ee %>%    
+  pipe_trace_paths(from = "funds",to="aREa",length = 5) %>% 
+  make_interactive_map
+
+cat("### Failing; no paths at all\n")  
 
 ee %>%    
   pipe_trace_paths(from = "xx",to="yy",length = 5) %>% 
   make_interactive_map
 
-cat("### Multiple\n")  
+cat("### Failing; no paths\n")  
+ee %>%    
+  pipe_trace_paths(from = "Funds",to="yy",length = 5) %>% 
+  make_interactive_map
+
+ee %>%    
+  pipe_trace_paths(from = "xx",to="Property",length = 5) %>% 
+  make_interactive_map
+
+cat("### Implicit multiple\n")  
 
 ee %>%    
   pipe_trace_paths(from = "High",to="Damage",length = 5) %>% 
+  make_interactive_map
+
+cat("### Explicit multiple\n")  
+
+ee %>%    
+  pipe_trace_paths(from = "High",to="Property | Business",length = 5) %>% 
+  make_interactive_map
+
+ee %>%    
+  pipe_trace_paths(from = "High",to="Property OR Business",length = 5) %>% 
+  make_interactive_map
+
+cat("No?")
+
+ee %>%    
+  pipe_trace_paths(from = "High",to=c("Property","Business"),length = 5) %>% 
   make_interactive_map
 
 tt %>%

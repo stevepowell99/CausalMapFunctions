@@ -53,7 +53,7 @@ add_attribute <- function(graf,value,attr="flow"){
 
 standard_factors <- function(){
   tibble(label="blank factor",
-         factor_memo="",map_id=1L,size=1L,factor_id=1L)
+         factor_memo="",map_id=1L,size=1L,factor_id=1L,is_flipped=F)
 }
 standard_links <- function(){tibble(
   link_id=1L,
@@ -2454,22 +2454,25 @@ pipe_trace_paths <- function(graf,from,to,length=4){
   if(from=="") {notify("You have to specify source factors");return(graf)}
   if(to=="") {notify("You have to specify target factors");return(graf)}
   # browser()
-  from <- from %>% make_search
-  to <- to %>% make_search
-  if(from=="" & to =="") return(graf)
+  from <- from %>%  str_replace_all(" OR ","|") %>% str_split(.,"\\|") %>% `[[`(1) %>% map(make_search ) %>% tolower
+  to <- to %>%  str_replace_all(" OR ","|") %>% str_split(.,"\\|") %>% `[[`(1) %>% map(make_search ) %>% tolower
+  if(from[[1]]=="" & to[[1]]=="") return(graf)
 
   links <- graf$links %>%
     select(from,to,everything())
+  # browser()
+
+  graf$factors$found_from <- map(from,~str_detect(tolower(graf$factors$label),.)) %>% as.data.frame %>% rowSums %>% as.logical
+  graf$factors$found_to <- map(to,~str_detect(tolower(graf$factors$label),.)) %>% as.data.frame %>% rowSums %>% as.logical
 
   factors <- graf$factors %>%
-    mutate(found_from=str_detect(tolower(label),tolower(from))) %>%
-    mutate(found_to=str_detect(tolower(label),tolower(to))) %>%
+    # mutate(found_from=str_detect(tolower(label),tolower(from))) %>%
+    # mutate(found_to=str_detect(tolower(label),tolower(to))) %>%
     mutate(found_type=paste0(if_else(found_from,"source","-"),if_else(found_to,"target","-"))) %>%
     mutate(found_any=found_from|found_to)
 
-  # browser()
 
-  if(!any(factors %>% pull(found_any))) return(graf %>% pipe_update_mapfile(factors=graf$factors %>% filter(F)))
+  if(!any(factors$found_from) | !any(factors$found_to)) return(graf %>% pipe_update_mapfile(factors=graf$factors %>% filter(F)))
 
 
 
