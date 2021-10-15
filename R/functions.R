@@ -2737,7 +2737,14 @@ pipe_scale_factors <- function(graf,field="frequency"){
 #' @export
 #'
 #' @examples
-pipe_scale_links <- function(graf,field="link_id",fixed=NULL,fun="count"){
+pipe_scale_links <- function(graf,field="link_id",fixed=NULL,fun="count",value=NULL){
+
+  if(!is.null(value)){
+    tmp <- str_match(value,"(^.*?):(.*)")
+    fun <- tmp[,2] %>% str_trim
+    field <- tmp[,3] %>% str_trim
+  }
+
   links <- graf$links
   fun <- full_function_name(links,fun)
 
@@ -2809,7 +2816,13 @@ pipe_label_factors <- function(graf,field="frequency",clear=F){
 #'
 #'
 #' @examples
-pipe_label_links <- function(graf,field="link_id",fun="count",field_label=F){
+pipe_label_links <- function(graf,field="link_id",fun="count",field_label=F,value=NULL){
+  if(!is.null(value)){
+    tmp <- str_match(value,"(^.*?):(.*)")
+    fun <- tmp[,2] %>% str_trim
+    field <- tmp[,3] %>% str_trim
+  }
+
   # clear=as.logical(clear)
   if(field %notin% link_colnames(graf)){warning("No such column");return(graf)}
   fun <- full_function_name(graf,fun)
@@ -2899,7 +2912,13 @@ pipe_color_borders <- function(graf,field="frequency",lo="#FCFDBF",hi="#5F187F",
 #'
 #'
 #' @examples
-pipe_color_links <- function(graf,field="link_id",lo="#FCFDBF",hi="#5F187F",mid="#D3436E",fixed=NULL,fun="count"){
+pipe_color_links <- function(graf,field="link_id",lo="#FCFDBF",hi="#5F187F",mid="#D3436E",fixed=NULL,fun="count",value=NULL){
+  if(!is.null(value)){
+    tmp <- str_match(value,"(^.*?):(.*)")
+    fun <- tmp[,2] %>% str_trim
+    field <- tmp[,3] %>% str_trim
+  }
+
   if(field %notin% link_colnames(graf)){warning("No such column");return(graf)}
   links <- graf$links
   fun <- full_function_name(links,fun)
