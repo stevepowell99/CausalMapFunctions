@@ -2451,8 +2451,8 @@ pipe_trace_robustness <- function(graf,from,to,length=4,field=NULL){
 #' @examples
 pipe_trace_paths <- function(graf,from,to,length=4){
   if(is.na(length)) {notify("You have to specify length");return(graf)}
-  if(from=="") {notify("You have to specify source factors");return(graf)}
-  if(to=="") {notify("You have to specify target factors");return(graf)}
+  if(from[1]=="") {notify("You have to specify source factors");return(graf)}
+  if(to[1]=="") {notify("You have to specify target factors");return(graf)}
   # browser()
   from <- from %>%  str_replace_all(" OR ","|") %>% str_split(.,"\\|") %>% `[[`(1) %>% map(make_search ) %>% tolower
   to <- to %>%  str_replace_all(" OR ","|") %>% str_split(.,"\\|") %>% `[[`(1) %>% map(make_search ) %>% tolower
@@ -2471,10 +2471,13 @@ pipe_trace_paths <- function(graf,from,to,length=4){
     mutate(found_type=paste0(if_else(found_from,"source","-"),if_else(found_to,"target","-"))) %>%
     mutate(found_any=found_from|found_to)
 
+# browser()
 
   if(!any(factors$found_from) | !any(factors$found_to)) return(graf %>% pipe_update_mapfile(factors=graf$factors %>% filter(F)))
 
-
+  tmp <- pipe_normalise_factors_links(assemble_mapfile(factors,links))
+  factors <- tmp$factors
+  links <- tmp$links
 
   tracedownvec <- make_igraph_from_links(links) %>% distances(to=factors %>% pull(found_from),mode="in") %>% apply(1,min,na.rm=T)
   traceupvec <- make_igraph_from_links(links) %>% distances(to=factors %>% pull(found_to),mode="out") %>% apply(1,min,na.rm=T)
@@ -3648,7 +3651,7 @@ get_robustness <- function(graf){
 #' @examples
 robustUI <- function(graf){
   # browser()
-  flow <- get_robustness(graf$links)
+  flow <- get_robustness(graf)
   if(is.null(flow)) {notify("No paths");return(NULL)}
   if(nrow(flow)==0) {notify("No paths");return(NULL)}
 

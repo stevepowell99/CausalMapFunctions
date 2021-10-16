@@ -528,7 +528,7 @@ ee %>%
   pipe_trace_paths(from = "High",to="Property OR Business",length = 5) %>% 
   make_interactive_map
 
-cat("No?")
+cat("Should this be possible?")
 
 ee %>%    
   pipe_trace_paths(from = "High",to=c("Property","Business"),length = 5) %>% 
@@ -542,10 +542,7 @@ ee %>%
   pipe_trace_paths(from = "Funds",to="area",length = 5) %>% 
   make_print_map()
 
-tt %>%
-    pipe_zoom_factors(1) %>%
-    pipe_combine_opposites() %>%
-    make_print_map
+
 
 ```
 
@@ -558,6 +555,10 @@ ee %>%
   pipe_wrap_factors() %>% 
   make_print_map()
 
+ee %>%    
+  pipe_trace_robustness(from = "High",to="Damage",length = 5) %>% 
+  get_robustness()
+
 tt %>%
   pipe_trace_robustness(from = "Capabilities",to="[OP3]",length = 2) %>% 
   pipe_wrap_factors() %>% 
@@ -567,10 +568,6 @@ tt %>%
   pipe_trace_robustness(from = "Capabilities",to="[OP3",length = 2) %>% 
   pipe_wrap_factors() %>% 
   make_print_map()
-
-ee %>%    
-  pipe_trace_robustness(from = "High",to="Damage",length = 5) %>% 
-  get_robustness()
 
 tt %>%
   pipe_trace_robustness(from = "Capabilities",to="[OP3]",length = 2) %>% 
@@ -590,11 +587,32 @@ tt %>%
 ```{r}
 e3  %>%
   pipe_trace_robustness(from = "High",to="People moving",length = 5) %>% 
+  make_print_map()
+e3  %>%
+  pipe_trace_robustness(from = "High",to="People moving",length = 5) %>% 
   get_robustness()
+e3  %>%
+  pipe_trace_robustness(from = "High",to="Flooding",length = 5) %>% 
+  get_robustness()
+e3  %>%
+  pipe_trace_robustness(from = "High",to="Damage",length = 5) %>% 
+  get_robustness()
+e3  %>%
+  pipe_trace_robustness(from = "in;",to="Damage",length = 5) %>% 
+  get_robustness()
+e3  %>%
+  pipe_trace_robustness(from = "in;",to="out;",length = 5) %>% 
+  get_robustness()
+e3  %>%
+  pipe_trace_robustness(from = "in;",to="out;",length = 5) %>% 
+  get_robustness() %>% 
+  robustUI()
+
+
 ```
 
 
-Is the second one correct? 
+
 
 ```{r }  
 if(F){
