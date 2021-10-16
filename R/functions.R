@@ -3641,48 +3641,6 @@ get_robustness <- function(graf){
 # Shiny UI functions ------------------------------------------------------
 
 
-#' Robustness UI
-#'
-#' @param graf
-#'
-#' @return
-#' @export
-#'
-#' @examples
-robustUI <- function(graf){
-  # browser()
-  flow <- get_robustness(graf)
-  if(is.null(flow)) {notify("No paths");return(NULL)}
-  if(nrow(flow)==0) {notify("No paths");return(NULL)}
-
-
-
-  if(!is.null(flow)){
-    flow <-  flow %>% column_to_rownames(var="row_names")
-    flow[is.infinite(as.matrix(flow))] <- NA # because the colorbar plugin chokes on Inf
-    # browser()
-
-    flow <- flow %>%
-      arrange(UQ(sym(colnames(flow)[1])) %>% desc)
-
-    ## because if all targets / all sources is NA, top row will not be All targets
-    if("All targets" %in% rownames(flow)){
-      # flow <-
-      #   bind_rows(g["All targets",],flow[rownames(flow)!="All targets",])
-    }
-
-    flow %>%
-      datatable(caption="Maximum flow / minimum cut",rownames = T,editable=F,extensions = 'Buttons',
-                options = list(
-                  # columnDefs = list(list(width = paste0(100/ncol(row),"%"), targets = (0:ncol(flow)))),
-                  autoWidth = F,
-                  autoHideNavigation=T,
-
-
-                  dom = 'Bfrtip',
-                  buttons = c('copy', 'csv', 'excel', 'pdf', 'print', I('colvis'))
-                )) %>% add_heat_map(flow)
-  }}
 
 
 #' Add heat map
