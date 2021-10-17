@@ -1840,7 +1840,13 @@ find_fun <- function(df,field=NULL,value,operator=NULL,what){
     # if(field %in% xc("label text from_label to_label")){
 
     value <- value %>% make_search %>% tolower()
-  }
+  } else if(is.integer(df[[field]])){
+
+    value <- value %>% as.integer
+  } else if(is.numeric(df[[field]])){
+
+    value <- value %>% as.numeric
+    }
 
   if(field %notin% colnames(df)) {notify("No such field");return(df)}
 
@@ -1860,6 +1866,7 @@ find_fun <- function(df,field=NULL,value,operator=NULL,what){
   #     pager_current <- which(value_original==vec) %>% min
   #     attr(df,"pager") <- list(pager=vec,pager_current=pager_current)
   #   }
+  # browser()
   df
 
 }
@@ -2181,7 +2188,13 @@ pipe_find_factors <- function(graf,field="label",value,operator="contains",up=1,
 
   if(df$found %>% sum %>% `==`(0)) return(pipe_update_mapfile(graf,factors=graf$factors %>% filter(F),links=graf$links %>% filter(F)))
 
-  graf <- pipe_update_mapfile(graf,factors=df) #%>% add_attribute(pager,"pager")
+
+  if(operator=="notcontains" | operator=="notequals"){
+  graf <- pipe_update_mapfile(graf,factors=df %>% filter(found))
+    return(graf %>% pipe_coerce_mapfile())
+  }
+
+  graf <- pipe_update_mapfile(graf,factors=df)
 
   ig <- make_igraph(graf$factors,graf$links)
   downvec <- ig %>% igraph::distances(to=graf %>% factors_table %>% pull(found),mode="in") %>% apply(1,min) %>% `<=`(down)

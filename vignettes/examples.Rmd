@@ -230,6 +230,51 @@ ee %>%
 
 ```
 
+### notcontains
+
+```{r }  
+ee %>%
+    pipe_find_factors(value="sea",operator="notcontains") %>%
+    make_interactive_map
+
+```
+
+```{r }  
+ee %>%
+    pipe_find_factors(value=c("sea", "High"),operator="notcontains") %>%
+    make_interactive_map
+
+```
+```{r }  
+ee %>% pipe_find_statements(value="1",operator="notcontains",field="statement_id")%>%
+    make_interactive_map
+
+```
+
+```{r }  
+ee %>% pipe_find_statements(value="1",operator="notcontains",field="statement_id")%>%
+    make_interactive_map
+
+```
+
+### notequals
+
+```{r }  
+ee %>% pipe_find_statements(value="1",operator="notequals",field="statement_id")%>%
+    make_interactive_map
+
+```
+
+
+```{r }  
+ee %>%
+    pipe_find_factors(value=c("Coastal erosion"),operator="notequals") %>%
+    make_interactive_map
+
+```
+
+
+
 
 Does work:
 
