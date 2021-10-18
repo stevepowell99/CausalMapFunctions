@@ -487,7 +487,7 @@ load_premap <- function(path=NULL,connection=conn){
   # browser()
   if(!is.null(graf$links)>0)graf$links <- graf$links %>% select(-any_of(c("link_id.1","statement_id.2","from.2","to.2","quote.2","frequency.1","weight.2","actualisation.2","strength.2","certainty.2","from_flipped.1","to_flipped.1","link_label.1","from_label.1","to_label.1","hashtags.2","link_memo.1","link_map_id.1","link_id.2","statement_id.3","from.3","to.3","quote.3","frequency.2","weight.3","actualisation.3","strength.3","certainty.3","from_flipped.2","to_flipped.2","link_label.2","from_label.2","to_label.2","hashtags.3","link_memo.2","link_map_id.2","statement_id.1","from.1","to.1","quote.1","weight.1","actualisation.1","strength.1","certainty.1","hashtags.1")))#FIXME TODO  this is just legacy/transition
   notify("Loading map")
-  return(graf )
+  return(graf ) #2%>% pipe_coerce_mapfile()
 
 
 
@@ -1464,6 +1464,7 @@ full_function_name <- function(df,nam){
   else if(nam=="sum")"getsum"
   else if(nam=="median")"getmedian"
   else if(nam=="mode")"getmode"
+  else if(nam=="percent")"count_unique"
   else if(nam=="count")"count_unique"
   else nam
 
@@ -2737,10 +2738,11 @@ pipe_remove_brackets <- function(graf,value="["){
 #' # or, counting sources rather than statements:
 #' if(F)cashTransferMap %>% pipe_merge_statements() %>%  pipe_select_factors(10) %>% pipe_bundle_links(group="1. Sex",counter="#SourceID")%>% pipe_label_links(field = "frequency") %>% pipe_color_links(field="1. Sex") %>% pipe_scale_links() %>%  make_print_map()
 pipe_bundle_links <- function(graf,group=NULL){
-  links <- graf$links
+  links <- graf$links %>% ungroup
   coln <- colnames(links)
   if(group %>% replace_null("from") %notin% coln) {notify("no such counter");return(graf)}else
 
+    {
     # browser()
 
     return(pipe_update_mapfile(graf,
@@ -2749,10 +2751,22 @@ pipe_bundle_links <- function(graf,group=NULL){
                         add_attribute(group,attr = "group")))
 
 
-
+}
 }
 
+get_percentages <- function(links){
+  groupvars <- group_vars(links)
+  groupvar <- groupvars %>% keep(.!="from" & .!="to")
 
+  links %>%
+    group_by(!!(sym(groupvar))) %>%
+    mutate(group_baseline=n()) %>%
+    ungroup() %>%
+    group_by(!!!(syms(groupvars)))
+
+
+
+}
 
 #' Scale factors
 #'
@@ -2791,6 +2805,7 @@ pipe_scale_links <- function(graf,field="link_id",fixed=NULL,fun="count",value=N
   }
 
   links <- graf$links
+  oldfun <- fun
   fun <- full_function_name(links,fun)
 
 
@@ -2802,9 +2817,17 @@ pipe_scale_links <- function(graf,field="link_id",fixed=NULL,fun="count",value=N
 
   if(field %notin% colnames(links)){warning("No such column");return(graf)}
 
+# browser()
+
 
   links <- links %>% mutate(width=exec(fun,!!sym(field)))
-  links$width=create_sizes(links$width,type="scale_links",field=field,fun=fun)
+  if(oldfun=="percent"){
+
+    links <- get_percentages(links)
+    links$width=100*links$width/links$group_baseline
+
+  }
+  links$width=create_sizes(links$width,type="scale_links",field=field,fun=oldfun)
 
 
   if(did_group) {
@@ -2870,6 +2893,7 @@ pipe_label_links <- function(graf,field="link_id",fun="count",field_label=F,valu
 
   # clear=as.logical(clear)
   if(field %notin% link_colnames(graf)){warning("No such column");return(graf)}
+  oldfun <- fun
   fun <- full_function_name(graf,fun)
   links <- graf$links
 
@@ -2886,6 +2910,12 @@ pipe_label_links <- function(graf,field="link_id",fun="count",field_label=F,valu
   # browser()
   links <- links %>%
     mutate(link_label=exec(fun,!!sym(field)))
+  if(oldfun=="percent"){
+    links <- get_percentages(links)
+
+  links$link_label=format(100*as.numeric(links$link_label)/links$group_baseline,digits=0) %>% paste0(links$link_label," (",.,"%)")
+  }
+
   # links$link_label <- exec(fun,links[[field]])
 
   if(did_group) {
@@ -2966,6 +2996,7 @@ pipe_color_links <- function(graf,field="link_id",lo="#FCFDBF",hi="#5F187F",mid=
 
   if(field %notin% link_colnames(graf)){warning("No such column");return(graf)}
   links <- graf$links
+  oldfun <- fun
   fun <- full_function_name(links,fun)
 
 
@@ -2977,6 +3008,11 @@ pipe_color_links <- function(graf,field="link_id",lo="#FCFDBF",hi="#5F187F",mid=
   }else did_group <- F
 
   links <- links %>% mutate(color=exec(fun,!!sym(field)))
+  if(oldfun=="percent"){
+    links <- get_percentages(links)
+    links$color=100*links$color/links$group_baseline
+  }
+
   links$color=create_colors(links$color,type="color_links",lo=lo,mid=mid,hi=hi,field=field,fun=fun)
 
   if(did_group) {

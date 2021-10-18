@@ -16,8 +16,13 @@ output:
 ```{r setup, include=FALSE}
 options(dplyr.summarise.inform = FALSE)
 library(CausalMapFunctions)
+library(knitr)
+library(kableExtra)
 knitr::opts_chunk$set(echo = TRUE)
 source("../R/functions.R")################################
+
+
+
 ```
 
 ## Loading example datasets
@@ -89,7 +94,7 @@ If you filter the statements of a mapfile, e.g. show only statements with texts 
   tt <- load_premap("cm1/tearfund-sl")%>% pipe_coerce_mapfile
   ll <- load_premap("quip-coded")%>% pipe_coerce_mapfile
   oo <- load_premap("organisation1coded")%>% pipe_coerce_mapfile
-  e3 <- load_premap("example3-spcheck")%>% pipe_coerce_mapfile
+  e3 <- load_premap("example3-path-tracing")%>% pipe_coerce_mapfile
   mm <- load_premap("save-the-children-mozambique-copy")%>% pipe_coerce_mapfile
   hh <- load_premap("hannahcombiningopposites-sp-test")%>% pipe_coerce_mapfile
 ```
@@ -356,6 +361,22 @@ ee %>%
 
 ```
 
+```{r }  
+
+ee %>%
+    pipe_label_links(value="unique: from_label") %>%
+    pipe_wrap_links(6) %>%
+    make_interactive_map
+
+```
+
+```{r }  
+
+ll %>%
+    make_interactive_map
+
+```
+
 ## Remove brackets
 
 ```{r }  
@@ -461,6 +482,49 @@ ll %>%
     pipe_scale_links("link_id",fun = "count") %>%
     pipe_label_links("link_id",fun = "count") %>%
     make_interactive_map
+```
+Proportion
+
+```{r}
+ll %>%    
+  pipe_find_factors(value="sed yield") %>%
+  pipe_bundle_links(group="District") %>% 
+  pipe_color_links(field="District",fun="unique") %>% 
+  pipe_label_links(field="link_id",fun="percent") %>%  
+  pipe_scale_links(field="link_id",fun="count") %>%  
+  make_print_map
+```
+
+```{r}
+ll %>%    
+  pipe_find_factors(value="sed yield") %>%
+  pipe_bundle_links(group="1. Sex") %>% 
+  pipe_color_links(field="1. Sex",fun="unique") %>% 
+  pipe_label_links(field="link_id",fun="percent") %>%  
+  pipe_scale_links(field="link_id",fun="count") %>%  
+  make_print_map
+```
+
+```{r}
+ll %>%    
+  pipe_find_factors(value="sed yield") %>%
+  pipe_bundle_links(group="1. Sex") %>% 
+  pipe_color_links(field="1. Sex",fun="unique") %>% 
+  pipe_label_links(field="source_id",fun="percent") %>%  
+  pipe_scale_links(field="source_id",fun="percent") %>%  
+  make_print_map
+
+```
+
+```{r}
+ll %>%    
+  pipe_find_factors(value="sed yield") %>%
+  pipe_bundle_links(group="1. Sex") %>% 
+  pipe_color_links(field="source_id",fun="percent") %>% 
+  pipe_label_links(field="source_id",fun="percent") %>%  
+  pipe_scale_links(field="source_id",fun="count") %>%  
+  make_print_map
+
 ```
 
 
@@ -593,7 +657,7 @@ ee %>%
 
 ### Robustness
 
-```{r }  
+```{r}  
 
 ee %>%    
   pipe_trace_robustness(from = "High",to="Damage",length = 5) %>% 
@@ -635,23 +699,24 @@ e3  %>%
   make_print_map()
 e3  %>%
   pipe_trace_robustness(from = "High",to="People moving",length = 5) %>% 
-  get_robustness()
+  get_robustness() %>% 
+  kable
 e3  %>%
   pipe_trace_robustness(from = "High",to="Flooding",length = 5) %>% 
-  get_robustness()
+  get_robustness() %>% 
+  kable
 e3  %>%
   pipe_trace_robustness(from = "High",to="Damage",length = 5) %>% 
-  get_robustness()
-e3  %>%
-  pipe_trace_robustness(from = "in;",to="Damage",length = 5) %>% 
-  get_robustness()
-e3  %>%
-  pipe_trace_robustness(from = "in;",to="out;",length = 5) %>% 
-  get_robustness()
-e3  %>%
-  pipe_trace_robustness(from = "in;",to="out;",length = 5) %>% 
   get_robustness() %>% 
-  robustUI()
+  kable
+e3  %>%
+  pipe_trace_robustness(from = "External",to="Damage",length = 5) %>% 
+  get_robustness() %>% 
+  kable
+e3  %>%
+  pipe_trace_robustness(from = "External",to="Outcome",length = 5) %>% 
+  get_robustness()%>% 
+  kable
 
 
 ```
