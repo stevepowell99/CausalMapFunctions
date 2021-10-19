@@ -1691,9 +1691,10 @@ flip_inner_component <- function(tex,flipchar="~"){
 flip_inner <- function(tex,flipchar="~",sepchar=";"){
   tex %>%
     str_split(sepchar) %>%
+    str_trim %>%
     `[[`(1) %>%
     flip_inner_component(flipchar=flipchar) %>%
-    paste0(collapse=sepchar)
+    paste0(collapse="; ")
 }
 flip_vector <- function(tex,flipchar="~",sepchar=";"){
   lapply(tex,function(x)flip_inner(x,flipchar=flipchar,sepchar=sepchar)) %>%
