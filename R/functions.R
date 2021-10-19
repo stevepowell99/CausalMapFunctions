@@ -3094,8 +3094,8 @@ pipe_wrap_links <- function(graf,length=20){
   graf %>%
     pipe_update_mapfile(links=
                  graf$links %>%
-                 mutate(label=str_remove_all(label,"\n")) %>%
-                 mutate(label=str_wrap(label,length)) %>%
+                 # mutate(label=str_remove_all(link_label,"\n")) %>%
+                 # mutate(label=str_wrap(link_label,length)) %>%
                  mutate(link_label=str_remove_all(link_label,"\n")) %>%
                  mutate(link_label=str_wrap(link_label,length))
     )
