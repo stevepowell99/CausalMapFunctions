@@ -533,7 +533,7 @@ pipe_coerce_mapfile <- function(tables){
         mutate(link_id=row_number())
 
     links <-  links %>%
-      select(-starts_with("color")) %>%
+      # select(-starts_with("color")) %>%
       select(-any_of("frequency")) %>%
       add_column(.name_repair="minimal",!!!standard_links())   %>%
       select(which(!duplicated(colnames(.)))) %>%
@@ -555,7 +555,7 @@ pipe_coerce_mapfile <- function(tables){
 
     # browser()
     factors <-  factors %>%
-      select(-starts_with("color")) %>%
+      # select(-starts_with("color")) %>%
       add_column(.name_repair="minimal",!!!standard_factors())   %>%
       select(which(!duplicated(colnames(.)))) %>%
       select(-starts_with("..."))
@@ -775,7 +775,7 @@ fix_columns_factors <- function(factors){
 #' @examples
 fix_columns_links <- function(links){
 
-  if(!("color" %in% colnames(links))) links <- links %>% mutate(color="#22bb4488")
+  if(!("color" %in% colnames(links))) links <- links %>% mutate(color="#058488")
   # if(!("frequency" %in% colnames(links))) links <- links %>% mutate(frequency=1L)
   if(!("capacity" %in% colnames(links))) links <- links %>% mutate(capacity=1L)
   if(!("label" %in% colnames(links))) links <- links %>% mutate(label="")
@@ -1409,7 +1409,7 @@ compact_factors_links <- function(factors,links){
       ungroup %>%
       mutate(is_flipped=yesfreq/frequency) %>%
       mutate(factor_id=new_id,
-             color.border= div_gradient_pal("#00ffaf","white","#ff8fb8")(is_flipped)
+             color.border= div_gradient_pal("#058488","white","#f26d04")(is_flipped)
       ) %>%
       select(-new_id)
 
@@ -1589,7 +1589,7 @@ color_combined_factors <- function(factors){
   # factors %>%
   #   group_by(label) %>%
   #   mutate(yesfreq=if_else(is_flipped,frequency,0),sumfreq=sum(frequency),is_flipped=yesfreq/sumfreq) %>%
-  #   mutate(color.border= div_gradient_pal("#00ffaf","white","#ff8fb8")(is_flipped)) %>%
+  #   mutate(color.border= div_gradient_pal("#058488","white","#f26d04")(is_flipped)) %>%
   #   ungroup %>%
   #   select(-yesfreq,-sumfreq)
   # browser()
@@ -1598,13 +1598,13 @@ color_combined_factors <- function(factors){
 color_combined_links <- function(links){
   links %>% mutate(
     from_color = case_when(
-      from_flipped  ~  "#ff8fb8",
-      T ~  "#00ffaf"
+      from_flipped  ~  "#f26d04",
+      T ~  "#058488"
     )) %>%
     mutate(
       to_color = case_when(
-        to_flipped  ~  "#ff8fb8",
-        T ~  "#00ffaf"
+        to_flipped  ~  "#f26d04",
+        T ~  "#058488"
       )) %>%
     mutate(
       color=paste0(from_color,";0.5:",to_color)
@@ -2754,13 +2754,14 @@ pipe_bundle_links <- function(graf,group=NULL){
 }
 }
 
-get_percentages <- function(links){
+get_percentages <- function(links,field){
   groupvars <- group_vars(links)
   groupvar <- groupvars %>% keep(.!="from" & .!="to")
 
   links %>%
+    ungroup() %>%
     group_by(!!(sym(groupvar))) %>%
-    mutate(group_baseline=n()) %>%
+    mutate(group_baseline=length(unique(!!(sym(field))))) %>%
     ungroup() %>%
     group_by(!!!(syms(groupvars)))
 
@@ -2823,7 +2824,7 @@ pipe_scale_links <- function(graf,field="link_id",fixed=NULL,fun="count",value=N
   links <- links %>% mutate(width=exec(fun,!!sym(field)))
   if(oldfun=="percent"){
 
-    links <- get_percentages(links)
+    links <- get_percentages(links,field)
     links$width=100*links$width/links$group_baseline
 
   }
@@ -2907,11 +2908,11 @@ pipe_label_links <- function(graf,field="link_id",fun="count",field_label=F,valu
 
   if(field %notin% colnames(links)){warning("No such column");return(graf)}
 
-  # browser()
   links <- links %>%
     mutate(link_label=exec(fun,!!sym(field)))
   if(oldfun=="percent"){
-    links <- get_percentages(links)
+    links <- get_percentages(links,field)
+  # browser()
 
   links$link_label=format(100*as.numeric(links$link_label)/links$group_baseline,digits=0) %>% paste0(links$link_label," (",.,"%)")
   }
@@ -3009,7 +3010,7 @@ pipe_color_links <- function(graf,field="link_id",lo="#FCFDBF",hi="#5F187F",mid=
 
   links <- links %>% mutate(color=exec(fun,!!sym(field)))
   if(oldfun=="percent"){
-    links <- get_percentages(links)
+    links <- get_percentages(links,field)
     links$color=100*links$color/links$group_baseline
   }
 
@@ -3258,10 +3259,34 @@ if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- gr
     fix_columns_links()
 
 
-  if(is_grouped_df(edges))edges <- edges %>% summarise(across(quote,collapse_unique_5),across(everything(),collapse_unique)) %>%
+  if(is_grouped_df(edges)){
+    # browser()
+    edges <- edges %>% summarise(across(color,~average_color(.,combine_doubles = T)),across(quote,collapse_unique_5),across(everything(),collapse_unique)) %>%
     ungroup
+    }
+
+
+
 
   # browser()
+  # edges$arrows <- list(to=T)
+    # case_when(
+    #   # edges$color=="#058488;0.5:#058488" ~ list(to=T),
+    #   # edges$color=="#f26d04;0.5:#f26d04" ~ list(to=T,from=list(enabled=T,type="circle")),
+    #   # edges$color=="#058488;0.5:#f26d04" ~ list(to=T),
+    #   # edges$color=="#f26d04;0.5:#058488" ~ list(to=T,from=list(enabled=T,type="circle")),
+    #   T ~ T
+    # )
+  edges$color <-
+    case_when(
+      edges$color=="#058488;0.5:#058488" ~ "#058488",
+      edges$color=="#f26d04;0.5:#f26d04" ~ "#058488",
+      edges$color=="#058488;0.5:#f26d04" ~ "#f26d04",
+      edges$color=="#f26d04;0.5:#058488" ~ "#f26d04",
+      T ~ edges$color
+    )
+
+
   edges$width <- as.numeric(edges$width)
   edges$label[is.na(edges$label )] <- ""
   edges$label["NA"==(edges$label )] <- ""
@@ -3326,7 +3351,8 @@ if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- gr
       smooth = F,
       arrowStrikethrough = T,
       physics = F,
-      shadow=T,
+      shadow=T
+      ,
       arrows =
         list(to = T)
     ) %>%
@@ -3479,6 +3505,25 @@ add_default_wrap <- function(labelvec){
   if(!any(str_detect(labelvec,"\n"))) str_wrap(labelvec,22) else labelvec
 }
 
+average_color <- function(colvec,combine_doubles=F){
+  if(any(str_detect(colvec,":"))){
+
+    if(combine_doubles){
+      # browser()
+      # SOMETHING NOT RIGHT TODO
+      res <- map(colvec,~str_split(.,":") %>% unlist %>% average_color) %>% average_color
+      return(res)
+    }
+
+    res <- str_split(colvec,":") %>% as.data.frame %>% t %>% as.data.frame %>% lapply(.,function(x)average_color(x)) %>% unlist
+    return(paste0(res,collapse=";0.5:"))
+  }
+  colvec <- str_sub(colvec,1,7)  # in case there is any alpha stuff at the end
+  av <- col2rgb(colvec) %>% rowMeans() %>% `/`(255)
+  rgb(av[1],av[2],av[3])
+
+}
+
 #' Make a Graphviz map
 #' @description Make a Graphviz map: https://graphviz.org/documentation/
 #' @param graf A tidymap. Link and factor tables may contain columns to control formatting
@@ -3526,7 +3571,6 @@ make_print_map <- function(
   graf <- pipe_normalise_factors_links(graf)
 
 
-
   # if((nrow(graf %>% factors_table)>safe_limit/3))notify("Map larger than 'safe limit'; setting print layout to twopi")
   # if((nrow(graf %>% links_table)>safe_limit))notify("Map larger than 'safe limit'; setting print layout to use straight edges")
 
@@ -3542,6 +3586,7 @@ make_print_map <- function(
       pipe_label_links(field = "link_id",fun="count") %>%
       pipe_scale_links(field = "link_id",fun="count")
 
+# browser()
 
     # if(nrow(factors_table(graf))>safe_limit) graf <- graf %>% pipe_select_factors(safe_limit/10)
   }
@@ -3573,12 +3618,13 @@ make_print_map <- function(
 
   links$link_label[is.na(links$link_label)] <- ""
 
+
+  if(is_grouped_df(links)){
   # browser()
-
-  if(is_grouped_df(links))links <-
-  links %>% summarise(across(color,first),across(everything(),collapse_unique)) %>%
+    links <-
+  links %>% summarise(across(color,average_color),across(everything(),collapse_unique)) %>%
     ungroup
-
+}
 
   # mutate_all(first_map)%>%
   links <- links %>%

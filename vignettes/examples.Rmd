@@ -352,6 +352,15 @@ ll %>%
 
 ```
 
+```{r }
+ll %>%
+    pipe_select_factors(5) %>%
+    pipe_color_links(value="count: link_id") %>%
+    pipe_wrap_factors(5) %>%
+    make_interactive_map
+
+```
+
 ```{r }  
 
 ee %>%
@@ -518,7 +527,7 @@ ll %>%
 
 ```{r}
 ll %>%    
-  pipe_find_factors(value="sed yield") %>%
+  pipe_find_factors(value="sed yield",down=0) %>%
   pipe_bundle_links(group="1. Sex") %>% 
   pipe_color_links(field="source_id",fun="percent") %>% 
   pipe_label_links(field="source_id",fun="percent") %>%  
@@ -578,9 +587,14 @@ hh %>%
 
 ## Nested maps with opposites
 
-Note colours are not provided in Interactive view
+Note colours are different in Interactive view
 
 ```{r }  
+tt %>%
+    pipe_zoom_factors(1) %>%
+    pipe_combine_opposites() %>%
+    pipe_select_links(3) %>%
+    make_print_map
 tt %>%
     pipe_zoom_factors(1) %>%
     pipe_combine_opposites() %>%
@@ -721,7 +735,46 @@ e3  %>%
 
 ```
 
+Check that opposites colouring is always preserved?
 
+```{r}
+hh  %>%
+  pipe_trace_robustness(from = "Revision",to="happy",length = 5) %>% 
+  pipe_combine_opposites %>% 
+  make_print_map()
+
+hh  %>%
+  pipe_combine_opposites %>% 
+  pipe_trace_robustness(from = "Revision",to="happy",length = 5) %>% 
+  make_print_map()
+
+hh  %>%
+  pipe_combine_opposites %>% 
+  pipe_find_factors(value="exam") %>% 
+  make_print_map()
+
+hh  %>%
+  pipe_combine_opposites %>% 
+  pipe_zoom_factors() %>% 
+  pipe_find_factors(value="exam") %>% 
+  pipe_select_factors(2) %>% 
+  pipe_select_links(3) %>% 
+  make_print_map()
+
+
+```
+
+
+Colours in interactive map
+
+```{r}
+hh  %>%
+  pipe_combine_opposites %>% 
+  pipe_zoom_factors() %>% 
+  make_interactive_map()
+
+
+```
 
 
 ```{r }  
