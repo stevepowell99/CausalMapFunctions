@@ -1378,7 +1378,7 @@ normalise_id <- function(main,referring,keyname,referring_keyname1=keyname,refer
   return(list(main=main %>% select(-.old_key) %>% mutate(factor_id=row_number()),referring=referring))## factor_id wtf !FIXME
 }
 
-
+# if factors are duplicates, compact them together
 compact_factors_links <- function(factors,links){
   if(factors$label %>% table %>% max %>% `>`(1)){
     notify("Some factor labels are duplicates; compacting")
@@ -1388,7 +1388,7 @@ compact_factors_links <- function(factors,links){
       factors %>%
       group_by(label) %>%
       mutate(new_id=cur_group_id(),
-             yesfreq=if_else(is_flipped,frequency,0),
+             yesfreq=if_else(as.logical(is_flipped),frequency,0),
              frequency=sum(frequency),
              in_degree=sum(in_degree),
              out_degree=sum(out_degree)
@@ -1400,18 +1400,25 @@ compact_factors_links <- function(factors,links){
       links$from %>% recode(!!!new_id %>% set_names(factors$factor_id))
     links$to <-
       links$to %>% recode(!!!new_id %>% set_names(factors$factor_id))
-
+# browser()
     factors <-
       factors %>%
       summarise(across(yesfreq,sum),
                across(everything(),first)
       ) %>%
       ungroup %>%
-      mutate(is_flipped=yesfreq/frequency) %>%
+      mutate(is_flipped=(yesfreq/frequency) %>% replace_na(0)) %>%
+
       mutate(factor_id=new_id,
              color.border= div_gradient_pal("#058488","white","#f26d04")(is_flipped)
       ) %>%
       select(-new_id)
+
+    ## if all werent flipped there is no need to have colour border
+    if(sum(factors$is_flipped)==0){
+      factors <- factors %>% select(-is_flipped)
+
+    }
 
   }
   return(list(factors=factors,links=links))
@@ -2413,6 +2420,7 @@ pipe_zoom_factors <- function(graf,level=1,separator=";",hide=T){
 #'
 #' @examples
 pipe_bundle_factors <- function(graf,value=""){
+  # browser()
   value <- value %>% make_search %>% paste0(collapse="|")
   pipe_update_mapfile(graf,factors = graf$factors %>%
                mutate(

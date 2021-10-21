@@ -499,7 +499,7 @@ ll %>%
   pipe_find_factors(value="sed yield") %>%
   pipe_bundle_links(group="District") %>% 
   pipe_color_links(field="District",fun="unique") %>% 
-  pipe_label_links(field="link_id",fun="percent") %>%  
+  pipe_label_links(value="percent: link_id") %>%  
   pipe_scale_links(field="link_id",fun="count") %>%  
   make_print_map
 ```
@@ -587,7 +587,7 @@ hh %>%
 
 ## Nested maps with opposites
 
-Note colours are different in Interactive view
+Note colours in Interactive view
 
 ```{r }  
 tt %>%
@@ -741,11 +741,6 @@ Check that opposites colouring is always preserved?
 hh  %>%
   pipe_trace_robustness(from = "Revision",to="happy",length = 5) %>% 
   pipe_combine_opposites %>% 
-  make_print_map()
-
-hh  %>%
-  pipe_combine_opposites %>% 
-  pipe_trace_robustness(from = "Revision",to="happy",length = 5) %>% 
   make_print_map()
 
 hh  %>%
