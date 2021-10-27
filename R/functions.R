@@ -3053,19 +3053,42 @@ pipe_cluster_factors <- function(graf,clusters=NULL){
 
 
   if(!is.null(clusters)) {
-    # browser()
+
     choices <- clusters %>% escapeRegex %>% str_split(" OR ") %>% `[[`(1) %>% str_trim
 
+    if(length(choices)>1){
+      for(c in choices){
+        graf <- pipe_cluster_factors(graf,c)
+      }
+      return(graf)
+    } else {
+
+
+      #ifelse(str_detect(labs,tex),tex,"")
+
     nodes <- factors_table(graf)
-    nodes$cluster <- choices %>%
-      map(~cluster_fun(nodes$label,.)) %>%
-      as.data.frame() %>%
-      apply(1,function(x)paste0(x,collapse=""))
+    # browser()
+    # old <- nodes$cluster
+
+    if("cluster" %notin% colnames(nodes)) nodes$cluster <- ""
+
+    nodes <-
+      nodes %>%
+      mutate(cluster=if_else(str_detect(label,choices),choices,cluster))
+
+
+    # nodes$cluster <- choices %>%
+    #   map(~cluster_fun(nodes$label,.)) %>%
+    #   as.data.frame() %>%
+    #   apply(1,function(x)paste0(x,collapse=""))
+    #
+    # if(!is.null(old))nodes$cluster[nodes$cluster==""] <- old    # if the current loop couldn't find anything, replace with maybe an existing cluster from a previous pass
     nodes <- nodes %>%
       mutate(cluster=ifelse(cluster=="",NA,cluster))    %>%
       mutate(cluster=str_remove_all(cluster,"\\\\"))
     graf %>% pipe_update_mapfile(factors=graf$factors %>% mutate(cluster = nodes$cluster))
-  }
+    }
+  } else graf
 }
 
 

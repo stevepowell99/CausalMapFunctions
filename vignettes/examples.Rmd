@@ -784,3 +784,25 @@ graf$links %>% filter(statement_id %notin% graf$statements$statement_id) %>% nro
 
 
 ```
+
+## Cluster factors
+
+```{r}
+ee %>% 
+  pipe_cluster_factors("Damage OR Flood") %>% 
+  make_print_map
+```
+
+Pipe-able:
+
+```{r}
+ee %>% 
+  pipe_cluster_factors("Damage OR Flood") %>% 
+  pipe_cluster_factors("Rising") %>% 
+  make_print_map
+```
+
+
+
+
+
