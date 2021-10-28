@@ -3269,6 +3269,7 @@ make_interactive_map <- function(graf,scale=1,safe_limit=200){
 
   # browser()
   # graf <- prepare_visual_bundles(graf)
+    notify("started vn")
 
   if(!is_grouped_df(graf$links) & nrow(links_table(graf))>replace_null(safe_limit,200)){
     notify("Map larger than 'safe limit'; bundling and labelling links")
@@ -3279,6 +3280,7 @@ make_interactive_map <- function(graf,scale=1,safe_limit=200){
 
   }
 
+    message("2vn")
 
 if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- graf %>% pipe_update_mapfile(factors=.$factors %>% arrange((size))) %>% pipe_remove_orphaned_links()#because this is the way to get the most important ones in front
 }
@@ -3290,6 +3292,7 @@ if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- gr
   edges <- graf$links %>% select(-any_of("label")) %>% rename(label=link_label) %>%
     fix_columns_links()
 
+    message("3vn")
 
   if(is_grouped_df(edges)){
     # browser()
@@ -3297,18 +3300,11 @@ if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- gr
     ungroup
     }
 
+    message("4vn")
 
 
 
-  # browser()
-  # edges$arrows <- list(to=T)
-    # case_when(
-    #   # edges$color=="#058488;0.5:#058488" ~ list(to=T),
-    #   # edges$color=="#f26d04;0.5:#f26d04" ~ list(to=T,from=list(enabled=T,type="circle")),
-    #   # edges$color=="#058488;0.5:#f26d04" ~ list(to=T),
-    #   # edges$color=="#f26d04;0.5:#058488" ~ list(to=T,from=list(enabled=T,type="circle")),
-    #   T ~ T
-    # )
+
   edges$color <-
     case_when(
       edges$color=="#058488;0.5:#058488" ~ "#058488",
@@ -3318,12 +3314,14 @@ if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- gr
       T ~ edges$color
     )
 
+    message("5vn")
 
   edges$width <- as.numeric(edges$width)
   edges$label[is.na(edges$label )] <- ""
   edges$label["NA"==(edges$label )] <- ""
 
-  if(nrow(edges)>0) edges <- edges %>% mutate_all(first_map)## in case there are any list columns left*****************
+  islist <- lapply(edges,is.list) %>% unlist
+  if(nrow(edges)>0) edges[,islist] <- edges[,islist] %>% mutate_all(first_map)## in case there are any list columns left*****************
   edges <-  edges %>% vn_fan_edges()
   if(is.list(edges$width))edges$width=2 else edges$width=edges$width*10
   edges <-  edges  %>%
@@ -3334,6 +3332,7 @@ if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- gr
     nodes <- data.frame(nodes, layout)
     ############## don't get tempted to use the internal visnetwork layout functions - problems with fitting to screen, and they are slower ....
   }
+    message("6vn")
   nodes <- nodes %>%   mutate(id=factor_id)
   edges <- edges %>%   mutate(id=NULL) # id would be necessary for getting ids from clicks etc, but seems to stop tooltip from working
  # browser()
@@ -3356,6 +3355,7 @@ if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- gr
       "</br>",
       paste0("ID:", factor_id)
     ))
+    message("7vn")
   edges <-
     edges %>% mutate(title=paste0(
       map(link_id,link_click_edit),
@@ -3370,6 +3370,7 @@ if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- gr
       "<p class='link_tooltip'>Question ID:", question_id  %>% str_wrap,"</p>"
     ))
   # browser()
+    notify("8vn")
   visNetwork(nodes,edges,background="white")   %>%
     visNodes(
       shadow = list(enabled = T, size = 10),
