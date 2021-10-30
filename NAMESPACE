@@ -2,7 +2,6 @@
 
 export(add_attribute)
 export(add_class)
-export(add_heat_map)
 export(add_metrics_to_factors)
 export(as_numeric_if_all)
 export(assemble_mapfile)

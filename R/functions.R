@@ -3766,30 +3766,4 @@ get_robustness <- function(graf){
 }
 
 
-# Shiny UI functions ------------------------------------------------------
-
-
-
-
-#' Add heat map
-#'
-#' @param dt
-#' @param flow
-#'
-#' @return
-#' @export
-#'
-add_heat_map <- function(dt,flow){
-  # browser()
-  flow2 <- flow %>% ungroup%>% mutate(across(where(~!is.numeric(.)),~0))
-  heat_breaks <- c(quantile(flow2, probs = seq(.05, .9899, .05), na.rm = TRUE),
-                   quantile(flow2, probs = seq(.99, 1, .001), na.rm = TRUE))
-  heat_colors <- round(seq(255, 90, length.out = length(heat_breaks) + 1), 0) %>%
-    paste0("rgb(",.,",", ., ",", "255)")
-
-  formatStyle(dt,names(flow),
-              backgroundColor = styleInterval(heat_breaks,heat_colors))
-}
-
-
 
