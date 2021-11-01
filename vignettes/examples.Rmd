@@ -536,6 +536,19 @@ ll %>%
 
 ```
 
+## Surprise
+
+```{r}
+ll %>%    
+  pipe_find_factors(value="sed yield",down=0) %>%
+  pipe_bundle_links(group="1. Sex") %>% 
+  pipe_color_links(field="1. Sex",fun="unique") %>% 
+  pipe_label_links(field="source_id",fun="surprise") %>%  
+  pipe_scale_links(field="source_id",fun="count") %>%  
+  make_print_map
+
+```
+
 
 ## Nested maps
 

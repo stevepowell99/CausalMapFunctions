@@ -1472,6 +1472,7 @@ full_function_name <- function(df,nam){
   else if(nam=="median")"getmedian"
   else if(nam=="mode")"getmode"
   else if(nam=="percent")"count_unique"
+  else if(nam=="surprise")"count_unique"
   else if(nam=="count")"count_unique"
   else nam
 
@@ -1540,8 +1541,19 @@ coerceValue <- function (val, old)
   # warning("The data type is not supported: ", classes(old))
   val
 }
+# if the vector includes zero, zero should be the midpoint of the result
+rescale_with_zero <- function(vec){
+  if(
+    # max(vec,na.rm=T)>0 &
+    min(vec,na.rm=T)<0
+  ){
+  newvec <- vec %>% abs %>% rescale
+  (newvec*(ifelse(vec>0,1,-1))/2)+.5
+  }
+  else rescale(vec)
+}
 div_pal_n <- function(vec,lo,hi,mid){
-  div_gradient_pal(low=lo,high=hi,mid=mid)(rescale(vec)) %>% alpha(.95)
+  div_gradient_pal(low=lo,high=hi,mid=mid)(rescale_with_zero(vec)) %>% alpha(.95)
 }
 viridis_pal_n <- function(vec){
   vec <- vec %>% as.factor %>% as.numeric
@@ -1560,6 +1572,8 @@ create_colors <- function(vec,lo="#FCFDBF",hi="#5F187F",mid="#D3436E",type,field
     attr(res,type) <-   list(table=tibble(vec,res) %>% unique,field=field,fun=fun)
     res
 }
+
+
 create_sizes <- function(vec,type,field="frequency",fun=NULL){
   # browser()
   if(is.na(vec) %>% all){
@@ -2763,6 +2777,8 @@ pipe_bundle_links <- function(graf,group=NULL){
 }
 }
 
+# deconstructs then reconstructs the groups same as they were, including the group nominators which have
+# already been calculated; simply adds the group baseline to each group
 get_percentages <- function(links,field){
   groupvars <- group_vars(links)
   groupvar <- groupvars %>% keep(.!="from" & .!="to")
@@ -2773,8 +2789,47 @@ get_percentages <- function(links,field){
     mutate(group_baseline=length(unique(!!(sym(field))))) %>%
     ungroup() %>%
     group_by(!!!(syms(groupvars)))
+}
+
+### different from percentages as the group nominators are going to get overwritten; it is the std residuals only which matter
+get_surprises <- function(links,field){
+  groupvars <- group_vars(links)
+  groupvar <- groupvars %>% keep(.!="from" & .!="to")
 
 
+
+  stats_by_group <-
+    links %>%
+    select(from,to,!!(sym(groupvar)),!!(sym(field))) %>%
+  # need to fill in missing combinations
+    ungroup() %>%
+    complete(from,to,!!(sym(groupvar))) %>%
+    group_by(!!(sym(groupvar))) %>%
+    mutate(group_baseline=length(unique(!!(sym(field))))) %>%
+    ungroup() %>%
+    group_by(!!!(syms(groupvars))) %>%
+    summarise(baseline=first(group_baseline),
+              actual=length(unique(!!(sym(field)))),
+              nonactual=baseline-actual) %>%
+    group_by(from,to) %>%
+    mutate(stdres=get_stdres(actual,nonactual)) %>%
+    select(!!!(syms(groupvars)),stdres)
+  # browser()
+
+  links %>%
+    left_join(stats_by_group,by=groupvars)
+    # ungroup() %>%
+
+}
+
+get_stdres <- function(actual,nonactual,sig=1){
+  # browser()
+  matrix <- rbind(actual,nonactual) %>% as.matrix(nrow=2)
+  if(any(matrix<0)) stop("neg values in stdres")
+  matrix[matrix<0] <- 0   ###################### NONONONO
+  # browser()
+  ch <- chisq.test(matrix,simulate.p.value = T)
+  if(ch$p.value<sig)(ch$stdres %>% as.matrix(nrow=2))[1,] else rep(0,ncol(matrix))
 
 }
 
@@ -2834,6 +2889,12 @@ pipe_scale_links <- function(graf,field="link_id",fixed=NULL,fun="count",value=N
   if(oldfun=="percent"){
 
     links <- get_percentages(links,field)
+    links$width=100*links$width/links$group_baseline
+
+  }
+  if(oldfun=="surprise"){
+
+    links <- get_surprises(links,field)
     links$width=100*links$width/links$group_baseline
 
   }
@@ -2919,11 +2980,17 @@ pipe_label_links <- function(graf,field="link_id",fun="count",field_label=F,valu
 
   links <- links %>%
     mutate(link_label=exec(fun,!!sym(field)))
+
   if(oldfun=="percent"){
     links <- get_percentages(links,field)
-  # browser()
 
   links$link_label=format(100*as.numeric(links$link_label)/links$group_baseline,digits=0) %>% paste0(links$link_label," (",.,"%)")
+  }
+  if(oldfun=="surprise"){
+    # browser()
+    links <- get_surprises(links,field)
+
+  links$link_label=format(as.numeric(links$stdres),digits=2) %>% paste0(links$link_label," (",.,")")
   }
 
   # links$link_label <- exec(fun,links[[field]])
@@ -3021,6 +3088,11 @@ pipe_color_links <- function(graf,field="link_id",lo="#FCFDBF",hi="#5F187F",mid=
   if(oldfun=="percent"){
     links <- get_percentages(links,field)
     links$color=100*links$color/links$group_baseline
+  }
+  if(oldfun=="surprise"){
+    # browser()
+    links <- get_surprises(links,field)
+    links$color=links$stdres
   }
 
   links$color=create_colors(links$color,type="color_links",lo=lo,mid=mid,hi=hi,field=field,fun=fun)
@@ -3538,6 +3610,7 @@ add_default_wrap <- function(labelvec){
   if(!any(str_detect(labelvec,"\n"))) str_wrap(labelvec,22) else labelvec
 }
 
+# combine doubles deals with double colours of the form red:blue, then recursively works out the average
 average_color <- function(colvec,combine_doubles=F){
   if(any(str_detect(colvec,":"))){
 
@@ -3670,6 +3743,7 @@ make_print_map <- function(
     mutate(label=replace_na(label,"     .     "))%>% # obscure! if all are =="", error
     mutate(width=as.numeric(width))%>%
     mutate(penwidth=width*48)%>%
+    mutate(fontcolor=color)%>%
     mutate(arrowsize=(width*9)) %>%
     mutate(tooltip=clean_grv(simple_bundle)) %>%
     # mutate(title="blue") %>%
@@ -3709,8 +3783,9 @@ make_print_map <- function(
     add_global_graph_attrs("width", "0", "node") %>%
     add_global_graph_attrs("height", "0", "node")  %>%
 
-    add_global_graph_attrs("fontsize", 100, "edge") %>%
-    add_global_graph_attrs("fontcolor", "#666666", "edge")
+    add_global_graph_attrs("fontsize", 100, "edge")
+  # %>%
+  #   add_global_graph_attrs("fontcolor", "#666666", "edge")
 
   return(
     grv %>% DiagrammeR::render_graph()
