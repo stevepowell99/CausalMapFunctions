@@ -3100,7 +3100,7 @@ pipe_color_links <- function(graf,field="link_id",lo="#FCFDBF",hi="#5F187F",mid=
     links$color=links$stdres
   }
 
-  links$color=create_colors(links$color,type="color_links",lo=lo,mid=mid,hi=hi,field=field,fun=fun)
+  links$color=create_colors(links$color,type="color_links",lo=lo,mid=mid,hi=hi,field=field,fun=oldfun)
 
   if(did_group) {
     links <- links %>% ungroup
