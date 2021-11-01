@@ -1553,6 +1553,11 @@ rescale_with_zero <- function(vec){
   else rescale(vec)
 }
 div_pal_n <- function(vec,lo,hi,mid){
+    if(min(vec,na.rm=T)<0){
+      lo="#4B0092"
+      hi="#1AFF1A" # these are colorblind friendly
+      mid="#eeeeee"
+    }
   div_gradient_pal(low=lo,high=hi,mid=mid)(rescale_with_zero(vec)) %>% alpha(.95)
 }
 viridis_pal_n <- function(vec){
