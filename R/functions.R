@@ -552,6 +552,11 @@ pipe_coerce_mapfile <- function(tables){
 
     if("factor_id" %notin% colnames(factors))  factors <-  factors %>%
         mutate(factor_id=row_number())
+    if(is.infinite(max(as.numeric(factors$factor_id))))  factors <-  factors %>%
+        mutate(factor_id=row_number())
+
+
+
 
     # browser()
     factors <-  factors %>%
@@ -569,8 +574,9 @@ pipe_coerce_mapfile <- function(tables){
 
     # browser()
     # ensure distinct label and id-----------------------------------------------
-    if(nrow(factors)>0)factors <- factors %>%
-      mutate(factor_id=if_else(is.na(factor_id),max(factors$factor_id,na.rm=T)+row_number(),factor_id)) %>%
+    if(nrow(factors)>0)factors <-
+      factors %>%
+      mutate(factor_id=ifelse(is.na(factor_id),max(factors$factor_id,na.rm=T)+row_number(),factor_id)) %>%
       filter(!is.na(label) & !is.na(factor_id))%>%
       distinct(factor_id,.keep_all = T) %>%
       distinct(label,.keep_all = T)
@@ -1490,11 +1496,11 @@ collapse_unique_5 <- function(vec){
 #
 # }
 first_map <- function(vec,fun){
-
-  map(vec,first) %>% unlist
+# browser()
+  res <- map(vec,first) %>% unlist
+  if(is.null(res)) return(vec %>% map(~NA)) else return(vec)
 
 }
-
 
 literal <- function(lis){
   paste0(lis,collapse = "; ")
@@ -3397,6 +3403,8 @@ if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- gr
   edges$label[is.na(edges$label )] <- ""
   edges$label["NA"==(edges$label )] <- ""
 
+
+  # browser()
   islist <- lapply(edges,is.list) %>% unlist
   if(nrow(edges)>0) edges[,islist] <- edges[,islist] %>% mutate_all(first_map)## in case there are any list columns left*****************
   edges <-  edges %>% vn_fan_edges()
