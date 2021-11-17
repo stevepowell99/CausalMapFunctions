@@ -1496,11 +1496,11 @@ collapse_unique_5 <- function(vec){
 #
 # }
 first_map <- function(vec,fun){
-# browser()
-  res <- map(vec,first) %>% unlist
-  if(is.null(res)) return(vec %>% map(~NA)) else return(vec)
+
+  map(vec,first) %>% unlist
 
 }
+
 
 literal <- function(lis){
   paste0(lis,collapse = "; ")
@@ -3348,7 +3348,7 @@ prepare_visual_bundles <- function(graf,
 #'
 #'
 #' @examples
-make_interactive_map <- function(graf,scale=1,safe_limit=200,rainbow=F){
+make_interactive_map <- function(graf,scale=1,safe_limit=200){
 
   # browser()
   # graf <- prepare_visual_bundles(graf)
@@ -3386,10 +3386,6 @@ if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- gr
     message("4vn")
 
 
-    if(rainbow){
-      edges$color <- rainbow(nrow(edges),s=.33,v=1)[1:nrow(edges)]
-
-    } else {
 
 
   edges$color <-
@@ -3400,15 +3396,13 @@ if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- gr
       edges$color=="#f26d04;0.5:#058488" ~ "#f26d04",
       T ~ edges$color
     )
-}
+
     message("5vn")
 
   edges$width <- as.numeric(edges$width)
   edges$label[is.na(edges$label )] <- ""
   edges$label["NA"==(edges$label )] <- ""
 
-
-  # browser()
   islist <- lapply(edges,is.list) %>% unlist
   if(nrow(edges)>0) edges[,islist] <- edges[,islist] %>% mutate_all(first_map)## in case there are any list columns left*****************
   edges <-  edges %>% vn_fan_edges()
@@ -3673,7 +3667,6 @@ make_print_map <- function(
   grv_splines=NULL,
   grv_overlap=NULL,
   color=NULL,
-  rainbow=F,
   graph_title="",
   ranksep_slider=NULL,
   nodesep_slider=NULL,
@@ -3748,11 +3741,7 @@ make_print_map <- function(
     links <-
   links %>% summarise(across(color,average_color),across(everything(),collapse_unique)) %>%
     ungroup
-} else
-  if(rainbow){
-    links$color <- rainbow(nrow(links),s=.33,v=1)[1:nrow(links)]
-
-  }
+}
 
   # mutate_all(first_map)%>%
   links <- links %>%
