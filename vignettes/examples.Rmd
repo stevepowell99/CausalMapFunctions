@@ -748,6 +748,19 @@ e3  %>%
 
 ```
 
+
+### Robustness by field
+
+Just one source:
+
+```{r}
+ee  %>%
+  pipe_trace_robustness(from = "Funds",to="Increased",length = 5,field = "source_id") %>% (get_robustness)
+
+```
+
+
+
 Check that opposites colouring is always preserved?
 
 ```{r}

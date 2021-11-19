@@ -2458,7 +2458,9 @@ pipe_bundle_factors <- function(graf,value=""){
 }
 
 
-
+make_empty_graf <- function(graf){
+  graf %>% pipe_update_mapfile(factors=graf$factors %>% filter(F))
+}
 
 #' Trace robustness
 #'
@@ -2477,10 +2479,71 @@ pipe_bundle_factors <- function(graf,value=""){
 #'
 #' @examples
 pipe_trace_robustness <- function(graf,from,to,length=4,field=NULL){
-  graf %>%
-    pipe_trace_paths(from=from,to=to,length=length) %>%
-    pipe_calculate_robustness(field=field)
+  # browser()
+  if(is.null(field)){
 
+    return(graf %>%
+      pipe_trace_paths(from=from,to=to,length=length) %>%
+      pipe_calculate_robustness()
+    )
+  } else {if(field %notin% link_colnames(graf)) {warning("Field not found");return(graf <- graf %>% make_empty_graf)}
+  else {
+
+    # actually we only want to calculate the robustness, the map will be the same as if we were not using a field
+
+    vec <- graf$links %>%
+      pull(UQ(sym(field))) %>%
+      unique
+
+    if("" %in% vec){warning("Vector contains an empty string");vec <- vec %>% keep(.!="")}
+
+    # browser()
+    res <-
+      vec %>%
+      set_names %>%
+      map(
+      function(x) graf %>%
+        pipe_find_links(field=field,value=x,operator="equals") %>%
+        pipe_trace_paths(from=from,to=to,length=length) %>%
+        pipe_calculate_robustness() %>%
+        get_robustness
+    ) %>%
+      keep(~!is.na(.[[1]][[1]]))
+    if(length(res)==0) {graf <- (graf %>% make_empty_graf);res <- NULL} else{
+
+    field_survivors <- names(res) %>% unique
+
+    res <- res %>% map(~column_to_rownames(.,var="row_names"))
+
+    allcols <-
+      map(res,~colnames(.)) %>% unlist %>% unique
+    allrows <-
+      map(res,~rownames(.)) %>% unlist %>% unique
+
+    res <-
+      res %>%
+      map(~fill_cols(.,allcols)) %>%
+      map(~fill_rows(.,allrows)) %>%
+      map(~select(.,any_of("All origins"),everything()))
+
+
+    res$summary <-
+      res %>% map(function(x){x[x>0] <- 1;x} ) %>%
+      reduce(`+`) %>%
+      mutate_all(~replace_na(.,0)) %>%
+      rownames_to_column()
+# browser()
+    attr(res$summary,which = "caption") <- field_survivors %>% paste0(collapse=";") %>% paste0("Field: ",field," = ",.)
+
+
+
+}
+  }
+  graf %>%
+      pipe_trace_paths(from=from,to=to,length=length) %>%   # to get the ordinary map
+      pipe_update_mapfile(.,links=add_attribute(.$links,res,"flow"))
+
+}
 }
 
 #' Trace paths
@@ -2604,49 +2667,28 @@ pipe_trace_paths <- function(graf,from,to,length=4){
 #'
 #' @examples
 #' if(F)cashTransferMap %>% pipe_trace_paths(from="Cash",to="Increa",length=4) %>% pipe_merge_statements %>% pipe_calculate_robustness(field="#SourceID") %>% attr("flow")
-pipe_calculate_robustness <- function(graf,field=NULL){
+pipe_calculate_robustness <- function(graf){
   res <- list()
   # browser()
   if("found_from" %notin% factor_colnames(graf)) {warning("No found_from column");return(graf)}  # if("found_from" %notin% factor_colnames(graf)) {warning("No found_from column");return(graf)}
   if("found_to" %notin% factor_colnames(graf)) {warning("No found_to column");return(graf)}
-  if(field %>% replace_null("")=="")field <- NULL
+  # if(field %>% replace_null("")=="")field <- NULL
   # browser()
 
-  if(is.null(field)) res$summary <- (calculate_robustness_inner(graf)) else
-
-    if(field %notin% link_colnames(graf)) {warning("Field not found");res$summary <- graf}
-  else {
-
-
-
-    vec <- graf %>%
-      links_table() %>%
-      pull(UQ(sym(field))) %>%
-      unique
-
-    if("" %in% vec){warning("Vector contains an empty string");vec <- vec %>% keep(.!="")}
-
-    res <- vec %>% set_names(vec) %>% map(
-      function(x) graf %>%
-        pipe_find_links(field=field,value=x,operator="=") %>%
-        calculate_robustness_inner()
-    )
-
-    summary <- res %>% map(~(select(.,-1))%>% mutate_all(~if_else(.>0 ,1,0))) %>%
-      Reduce(`+`,.)
-    res$summary <- cbind(res[[1]][,1],summary) %>% as_tibble
-
-
-
-
-
-  }
-  # browser()
+  res$summary <- (calculate_robustness_inner(graf))
   graf %>% pipe_update_mapfile(.,links=add_attribute(graf$links,res,"flow"))
 
 }
 
+fill_cols <- function(df,colnames){
+  df[,setdiff(colnames, colnames(df))]=0
+  df
+}
 
+fill_rows <- function(df,rownames){
+  df[setdiff(rownames, rownames(df)),]=0
+  df
+}
 
 
 #' pipe_combine_opposites
