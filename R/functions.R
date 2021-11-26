@@ -681,11 +681,11 @@ pipe_coerce_mapfile <- function(tables){
   # browser()
 
 
-  if(nrow(factors)>0){links <- add_labels_to_links(links,factors)
+  if(nrow(factors)>0){
+    links <- add_labels_to_links(links,factors)
+    links <- add_simple_bundle_to_links(links)
 
-  links <- links %>%
-    unite(simple_bundle,from_label,to_label,remove = F,sep = " / ") %>%
-    select(from_label,to_label,statement_id,quote,everything())
+
 
   factors <- add_metrics_to_factors(factors,links)
 }
@@ -698,7 +698,15 @@ pipe_coerce_mapfile <- function(tables){
 
 }
 
+add_simple_bundle_to_links <- function(links){
+  links %>%
+  unite(simple_bundle,from_label,to_label,remove = F,sep = " / ") %>%
+  select(from_label,to_label,statement_id,quote,everything()) %>%
+  group_by(simple_bundle) %>%
+  mutate(simple_frequency=n())%>%
+  ungroup
 
+}
 #' Update mapfile
 #' @inheritParams parse_commands
 #' @param factors
@@ -1446,7 +1454,8 @@ pipe_compact_mapfile <- function(graf){
   factors <- graf$factors
   links <- graf$links
   tmp <- compact_factors_links(factors,links)
-  pipe_update_mapfile(graf,factors=tmp$factors,links=tmp$links)
+  links <- tmp$links %>% add_simple_bundle_to_links
+  pipe_update_mapfile(graf,factors=tmp$factors,links=links)
 
 }
 
@@ -2454,7 +2463,8 @@ pipe_bundle_factors <- function(graf,value=""){
                  else if_else(str_detect(label,value),str_match(label,paste0(value)),label)
                )
   ) %>%
-    pipe_compact_mapfile()
+    pipe_compact_mapfile() %>%
+    pipe_coerce_mapfile()
 }
 
 
