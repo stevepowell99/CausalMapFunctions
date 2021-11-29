@@ -431,6 +431,33 @@ ee %>%
 ```
 
 
+## Link labels
+
+```{r }  
+e3 %>%
+  pipe_label_links("link_id",fun = "literal",add_field_name = T) %>%
+  make_interactive_map
+
+e3 %>%
+  pipe_label_links("link_id",fun = "literal") %>%
+  pipe_label_links("from_label",fun = "literal",add_field_name = T,clear_previous = F) %>%
+  make_interactive_map
+
+e3 %>%
+  pipe_bundle_links() %>% 
+  pipe_label_links("link_id",fun = "literal",add_field_name = T) %>%
+  make_interactive_map
+
+e3 %>%
+  pipe_bundle_links() %>% 
+  pipe_label_links("link_id",fun = "literal") %>%
+  pipe_label_links("from_label",fun = "literal",clear_previous = F) %>%
+  make_interactive_map
+
+
+```
+
+
 ## Bundling links
 
 Note the defaults for `bundle_links` and `label_links`:

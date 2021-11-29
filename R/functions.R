@@ -3018,11 +3018,13 @@ pipe_label_factors <- function(graf,field="frequency",clear=F){
 #'
 #'
 #' @examples
-pipe_label_links <- function(graf,field="link_id",fun="count",field_label=F,value=NULL){
+pipe_label_links <- function(graf,field="link_id",fun="count",value=NULL,add_field_name=F,clear_previous=T){
   if(!is.null(value)){
     tmp <- str_match(value,"(^.*?):(.*)")
     fun <- tmp[,2] %>% str_trim
     field <- tmp[,3] %>% str_trim
+    add_field_name <- as.logical(add_field_name)
+    clear_previous <- as.logical(clear_previous)
   }
 
   # clear=as.logical(clear)
@@ -3042,24 +3044,42 @@ pipe_label_links <- function(graf,field="link_id",fun="count",field_label=F,valu
   if(field %notin% colnames(links)){warning("No such column");return(graf)}
 
   links <- links %>%
-    mutate(link_label=exec(fun,!!sym(field)))
+    mutate(new_link_label=exec(fun,!!sym(field)))
 
   if(oldfun=="percent"){
     links <- get_percentages(links,field)
 
-  links$link_label=format(100*as.numeric(links$link_label)/links$group_baseline,digits=0) %>% paste0(links$link_label," (",.,"%)")
+  links$new_link_label=format(100*as.numeric(links$link_label)/links$group_baseline,digits=0) %>% paste0(links$link_label," (",.,"%)")
   }
   if(oldfun=="surprise"){
     # browser()
     links <- get_surprises(links,field)
 
-  links$link_label=format(as.numeric(links$stdres),digits=2) %>% paste0(links$link_label," (",.,")")
+  links$new_link_label=format(as.numeric(links$stdres),digits=2) %>% paste0(links$link_label," (",.,")")
   }
 
   # links$link_label <- exec(fun,links[[field]])
 
   if(did_group) {
     links <- links %>% ungroup
+  }
+# browser()
+  if(add_field_name){
+    links <-
+      links %>%
+      mutate(new_link_label=paste0(field,": ",new_link_label))
+  }
+
+  if(!clear_previous) {
+    links <-
+      links %>%
+      unite(link_label,new_link_label,link_label,sep=", ")
+  } else {
+    links <-
+      links %>%
+      mutate(link_label=new_link_label) %>%
+      select(-new_link_label)
+
   }
 
   graf %>% pipe_update_mapfile(links=links)
