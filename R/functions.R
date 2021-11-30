@@ -487,7 +487,7 @@ load_premap <- function(path=NULL,connection=conn){
   # browser()
   if(!is.null(graf$links)>0)graf$links <- graf$links %>% select(-any_of(c("link_id.1","statement_id.2","from.2","to.2","quote.2","frequency.1","weight.2","actualisation.2","strength.2","certainty.2","from_flipped.1","to_flipped.1","link_label.1","from_label.1","to_label.1","hashtags.2","link_memo.1","link_map_id.1","link_id.2","statement_id.3","from.3","to.3","quote.3","frequency.2","weight.3","actualisation.3","strength.3","certainty.3","from_flipped.2","to_flipped.2","link_label.2","from_label.2","to_label.2","hashtags.3","link_memo.2","link_map_id.2","statement_id.1","from.1","to.1","quote.1","weight.1","actualisation.1","strength.1","certainty.1","hashtags.1")))#FIXME TODO  this is just legacy/transition
   notify("Loading map")
-  return(graf ) #2%>% pipe_coerce_mapfile()
+  return(graf  %>% pipe_coerce_mapfile())
 
 
 
@@ -587,9 +587,16 @@ pipe_coerce_mapfile <- function(tables){
   #   browser()
   #   tmp <- compact_factors_links(factors,links)
   # }
+            # browser()
   if(is.null(statements)) statements <- standard_statements() else {
     if("statement_id" %notin% colnames(statements)) statements <-  statements %>%
-        mutate(statement_id=row_number())
+        mutate(statement_id=row_number()) else {
+          if(!identical(statements$statement_id,1:nrow(statements))){
+            links$statement_id <- recode(links$statement_id,!!!(row_index(statements) %>% set_names(statements$statement_id)))
+            statements <-  statements %>%
+              mutate(statement_id=row_number())
+          }
+        }
 
     statements <-  statements %>%
       # select(-starts_with("color")) %>%
