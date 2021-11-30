@@ -543,6 +543,7 @@ pipe_coerce_mapfile <- function(tables){
                                               ~coerceValue(links[[.]],standard_links()[[.]]))
     # browser()
     links$link_label[is.na(links$link_label)] <- ""
+    links$width[is.na(links$width)] <- 0.2
     links <- links %>%
       filter(!is.na(from) & !is.na(to) & !is.na(statement_id) & !is.na(link_id))%>%
       distinct(link_id,.keep_all = T)
@@ -3161,6 +3162,11 @@ pipe_color_links <- function(graf,field="link_id",lo="#FCFDBF",hi="#5F187F",mid=
     fun <- tmp[,2] %>% str_trim
     field <- tmp[,3] %>% str_trim
   }
+  if(!is.null(fixed)){
+    links <- graf$links %>%
+      mutate(color=fixed)
+
+  } else{
 
   if(field %notin% link_colnames(graf)){warning("No such column");return(graf)}
   links <- graf$links
@@ -3192,7 +3198,7 @@ pipe_color_links <- function(graf,field="link_id",lo="#FCFDBF",hi="#5F187F",mid=
     links <- links %>% ungroup
   }
 
-
+}
 
   graf  %>% pipe_update_mapfile(links=links)
 
