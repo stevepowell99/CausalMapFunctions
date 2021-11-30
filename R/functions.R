@@ -3770,7 +3770,7 @@ make_print_map <- function(
   grv_overlap <- replace_null(grv_overlap,graf %>% attr("set_print") %>% .$grv_overlap %>% replace_null(F))
   color <- replace_null(color,graf %>% attr("set_print") %>% .$color %>% replace_null("grey"))
   ranksep_slider <- replace_null(ranksep_slider,graf %>% attr("set_print") %>% .$ranksep_slider %>% replace_null(3))
-  nodesep_slider <- replace_null(nodesep_slider,graf %>% attr("set_print") %>% .$nodesep_slider %>% replace_null(20))
+  nodesep <- replace_null(nodesep_slider,graf %>% attr("set_print") %>% .$nodesep_slider %>% replace_null(2))
   ranksep <- ranksep_slider %>% replace_null(2*log(nrow(factors_table(graf))))
   graf <- pipe_normalise_factors_links(graf)
 
@@ -3846,7 +3846,7 @@ make_print_map <- function(
     mutate(width=as.numeric(width))%>%
     mutate(penwidth=width*48)%>%
     mutate(fontcolor=color)%>%
-    mutate(arrowsize=(width*9)) %>%
+    mutate(arrowsize=(3+(width*9))) %>%
     mutate(tooltip=clean_grv(simple_bundle)) %>%
     # mutate(title="blue") %>%
     mutate(arrowhead="vee")
@@ -3868,7 +3868,7 @@ make_print_map <- function(
     add_global_graph_attrs("rankdir", "LR", "graph") %>%
     add_global_graph_attrs("fontsize", "160", "graph") %>%
     add_global_graph_attrs("fontname", "Arial", "graph") %>%
-    # add_global_graph_attrs("nodesep", 1, "graph") %>%
+    add_global_graph_attrs("nodesep", nodesep, "graph") %>%
     add_global_graph_attrs("ranksep", ranksep, "graph") %>%
     add_global_graph_attrs("style", "filled,dashed", "graph") %>%
     add_global_graph_attrs("color", color, "graph") %>%
@@ -3880,7 +3880,7 @@ make_print_map <- function(
     add_global_graph_attrs("fixedsize", "false", "node") %>%
     add_global_graph_attrs("fontcolor", "black", "node") %>%
     # add_global_graph_attrs("fontsize", "80", "node") %>%
-    add_global_graph_attrs("margin", "0.3", "node") %>%
+    add_global_graph_attrs("margin", "0.9", "node") %>%
     # add_global_graph_attrs("penwidth", "14", "node") %>%
     add_global_graph_attrs("width", "0", "node") %>%
     add_global_graph_attrs("height", "0", "node")  %>%
