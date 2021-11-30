@@ -592,6 +592,7 @@ pipe_coerce_mapfile <- function(tables){
     if("statement_id" %notin% colnames(statements)) statements <-  statements %>%
         mutate(statement_id=row_number()) else {
           if(!identical(statements$statement_id,1:nrow(statements))){
+            statements$statement_id <- replace_na(statements$statement_id,Inf)
             links$statement_id <- recode(links$statement_id,!!!(row_index(statements) %>% set_names(statements$statement_id)))
             statements <-  statements %>%
               mutate(statement_id=row_number())
