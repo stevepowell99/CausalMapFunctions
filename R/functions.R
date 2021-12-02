@@ -543,7 +543,7 @@ pipe_coerce_mapfile <- function(tables){
                                               ~coerceValue(links[[.]],standard_links()[[.]]))
     # browser()
     links$link_label[is.na(links$link_label)] <- ""
-    links$width[is.na(links$width)] <- 0.2
+    if("width" %in% colnames(links))links$width[is.na(links$width)] <- 0.2
     links <- links %>%
       filter(!is.na(from) & !is.na(to) & !is.na(statement_id) & !is.na(link_id))%>%
       distinct(link_id,.keep_all = T)
