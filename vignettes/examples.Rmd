@@ -343,6 +343,22 @@ ll %>%
     make_interactive_map
 ```
 
+### Highlight only
+
+```{r }  
+e3  %>% 
+  pipe_find_links(field="from_label",value="Damage",highlight_only=T) %>%   pipe_color_links(field="found",fun="literal") %>% 
+  make_interactive_map()
+
+```
+
+```{r }  
+e3  %>% 
+  pipe_find_factors(value="Damage",highlight_only=T) %>%       pipe_color_factors(field="found") %>% 
+  make_interactive_map()
+
+```
+
 ## Conditional formatting
 
 ```{r }  

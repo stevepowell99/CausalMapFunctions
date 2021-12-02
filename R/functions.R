@@ -2232,7 +2232,7 @@ parse_commands <- function(graf=NULL,tex){
 #' pipe_find_factors(cashTransferMap,field="label",value="Cash",operator="contains")
 #' pipe_find_factors(cashTransferMap,field="id",value=10,operator="greater")
 #' pipe_find_factors(cashTransferMap,NULL,"purchase OR buy")
-pipe_find_factors <- function(graf,field="label",value,operator="contains",up=1,down=1,remove_isolated=T){
+pipe_find_factors <- function(graf,field="label",value,operator="contains",up=1,down=1,remove_isolated=T,highlight_only=F){
 # browser()
     # st <- attr(graf,"statements")
   df <- graf$factors %>% find_fun(field,value,operator)
@@ -2247,6 +2247,8 @@ pipe_find_factors <- function(graf,field="label",value,operator="contains",up=1,
   }
 
   graf <- pipe_update_mapfile(graf,factors=df)
+
+  if(highlight_only)return(pipe_update_mapfile(graf,factors=df,links=graf$links))
 
   ig <- make_igraph(graf$factors,graf$links)
   downvec <- ig %>% igraph::distances(to=graf %>% factors_table %>% pull(found),mode="in") %>% apply(1,min) %>% `<=`(down)
@@ -2273,9 +2275,10 @@ pipe_find_factors <- function(graf,field="label",value,operator="contains",up=1,
 #' pipe_find_links(cashTransferMap,value="Cash")
 #' pipe_find_links(cashTransferMap,field="label",value="Cash",operator="contains")
 #' pipe_find_links(cashTransferMap,field="from",value="12",operator="greater")
-pipe_find_links <- function(graf,field=NULL,value,operator="contains",remove_isolated=T){
+pipe_find_links <- function(graf,field=NULL,value,operator="contains",remove_isolated=T,highlight_only=F){
   # browser()
-  graf$links <- graf$links %>% find_fun(field,value,operator) %>% filter(found)
+  graf$links <- graf$links %>% find_fun(field,value,operator)
+  if(!highlight_only) graf$links <- graf$links %>% filter(found)
 
   if(remove_isolated) pipe_remove_isolated(graf) else  graf
 
@@ -3157,6 +3160,7 @@ pipe_color_borders <- function(graf,field="frequency",lo="#FCFDBF",hi="#5F187F",
 #'
 #' @examples
 pipe_color_links <- function(graf,field="link_id",lo="#FCFDBF",hi="#5F187F",mid="#D3436E",fixed=NULL,fun="count",value=NULL){
+  # browser()
   if(!is.null(value)){
     tmp <- str_match(value,"(^.*?):(.*)")
     fun <- tmp[,2] %>% str_trim
