@@ -347,18 +347,20 @@ ll %>%
 
 ```{r }  
 e3  %>% 
-  pipe_find_links(field="from_label",value="Damage",highlight_only=T) %>%   pipe_color_links(field="found",fun="literal") %>% 
+  pipe_find_factors(value="Damage",highlight_only=T) %>% pipe_color_factors(field="found") %>% 
   make_interactive_map()
 
 ```
+
+Note this doe sn'twork in the app:
 
 ```{r }  
 e3  %>% 
-  pipe_find_factors(value="Damage",highlight_only=T) %>%       pipe_color_factors(field="found") %>% 
+  pipe_find_links(field="from_label",value="Damage",highlight_only=T) %>%     
+  pipe_color_links(field="found",fun="literal") %>% 
   make_interactive_map()
 
 ```
-
 ## Conditional formatting
 
 ```{r }  
