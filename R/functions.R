@@ -475,9 +475,21 @@ load_premap <- function(path=NULL,connection=conn){
 
     }
 
+
+
+  # this should not really be here, because pipe_coerce_premap was supposed to only operate on new unfiltered maps
+  if(!is.null(graf$statements))
+  if(!identical(graf$statements$statement_id,1:nrow(graf$statements))){
+    graf$statements$statement_id <- replace_na(graf$statements$statement_id,Inf)
+    if(!is.null(graf$links))graf$links$statement_id <- recode(graf$links$statement_id,!!!(row_index(graf$statements) %>% set_names(graf$statements$statement_id)))
+    graf$statements <-  graf$statements %>%
+      mutate(statement_id=row_number())
+  }
+
+
+
+
   if(is.null(graf) & is.null(factors) & is.null(links)) {
-
-
 
     graf <- assemble_mapfile()
     notify("creating blank map");
@@ -591,14 +603,7 @@ pipe_coerce_mapfile <- function(tables){
             # browser()
   if(is.null(statements)) statements <- standard_statements() else {
     if("statement_id" %notin% colnames(statements)) statements <-  statements %>%
-        mutate(statement_id=row_number()) else {
-          if(!identical(statements$statement_id,1:nrow(statements))){
-            statements$statement_id <- replace_na(statements$statement_id,Inf)
-            links$statement_id <- recode(links$statement_id,!!!(row_index(statements) %>% set_names(statements$statement_id)))
-            statements <-  statements %>%
-              mutate(statement_id=row_number())
-          }
-        }
+        mutate(statement_id=row_number())
 
     statements <-  statements %>%
       # select(-starts_with("color")) %>%
