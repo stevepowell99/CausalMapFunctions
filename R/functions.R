@@ -477,15 +477,15 @@ load_premap <- function(path=NULL,connection=conn){
 
 
 
-  # this should not really be here, because pipe_coerce_premap was supposed to only operate on new unfiltered maps
-  if(!is.null(graf$statements))
+  # this should not really be here, because pipe_coerce_mapfile was supposed to only operate on new unfiltered maps
+  if(!is.null(graf$statements)){
   if(!identical(graf$statements$statement_id,1:nrow(graf$statements))){
-    graf$statements$statement_id <- replace_na(graf$statements$statement_id,Inf)
+    if("statement_id" %in% colnames(graf$statements))graf$statements$statement_id <- replace_na(graf$statements$statement_id,Inf)
     if(!is.null(graf$links))graf$links$statement_id <- recode(graf$links$statement_id,!!!(row_index(graf$statements) %>% set_names(graf$statements$statement_id)))
     graf$statements <-  graf$statements %>%
       mutate(statement_id=row_number())
   }
-
+}
 
 
 
