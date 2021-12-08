@@ -1909,7 +1909,7 @@ find_fun <- function(df,field=NULL,value,operator=NULL,what){
 
 
   if(operator=="contains"){df <- df %>%  mutate(found=str_detect(tolower(unwrap(UQ(sym(field)))),value %>% paste0(collapse="|")))} else
-    if(operator=="notcontains"){df <- df %>%  mutate(found=!str_detect(tolower(unwrap(UQ(sym(field)))),value %>% paste0(collapse="|")))} else
+    if(operator=="notcontains"){df <- df %>%  mutate(found=!str_detect(tolower(unwrap(UQ(sym(field))) %>% replace_na("")),value %>% paste0(collapse="|")))} else
       if(operator %in% xc("= equals equal")){df <- df %>%  mutate(found=(make_search(tolower(unwrap(UQ(sym(field))))) %in% value))} else
         if(operator %in% xc("notequals notequal")){df <- df %>%  mutate(found=(tolower(unwrap(UQ(sym(field)))) %notin% value))} else
           if(operator %in% xc("greater")){df <- df %>%  mutate(found=(as.numeric(UQ(sym(field)))>max(as.numeric(value),na.rm=T)))} else
@@ -3474,6 +3474,7 @@ if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- gr
 
   if(is_grouped_df(edges)){
     # browser()
+    # NOTE IF YOU THOUGHT YOU HAD WRAPPED LINKS, IT WILL FAIL HERE #TODO
     edges <- edges %>% summarise(across(color,~average_color(.,combine_doubles = T)),across(quote,collapse_unique_5),across(everything(),collapse_unique)) %>%
     ungroup
     }
