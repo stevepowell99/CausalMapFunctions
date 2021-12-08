@@ -3447,7 +3447,7 @@ make_interactive_map <- function(graf,scale=1,safe_limit=200,rainbow=F){
 
   # browser()
   # graf <- prepare_visual_bundles(graf)
-    notify("started vn")
+    #notify("started vn")
 
   if(!is_grouped_df(graf$links) & nrow(links_table(graf))>replace_null(safe_limit,200)){
     notify("Map larger than 'safe limit'; bundling and labelling links")
@@ -3458,7 +3458,7 @@ make_interactive_map <- function(graf,scale=1,safe_limit=200,rainbow=F){
 
   }
 
-    message("2vn")
+    #message("2vn")
 
 if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- graf %>% pipe_update_mapfile(factors=.$factors %>% arrange((size))) %>% pipe_remove_orphaned_links()#because this is the way to get the most important ones in front
 }
@@ -3470,7 +3470,7 @@ if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- gr
   edges <- graf$links %>% select(-any_of("label")) %>% rename(label=link_label) %>%
     fix_columns_links()
 
-    message("3vn")
+    #message("3vn")
 
   if(is_grouped_df(edges)){
     # browser()
@@ -3478,7 +3478,7 @@ if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- gr
     ungroup
     }
 
-    message("4vn")
+    #message("4vn")
 
 
     if(rainbow){
@@ -3496,7 +3496,7 @@ if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- gr
       T ~ edges$color
     )
 }
-    message("5vn")
+    #message("5vn")
 
   edges$width <- as.numeric(edges$width)
   edges$label[is.na(edges$label )] <- ""
@@ -3516,7 +3516,7 @@ if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- gr
     nodes <- data.frame(nodes, layout)
     ############## don't get tempted to use the internal visnetwork layout functions - problems with fitting to screen, and they are slower ....
   }
-    message("6vn")
+    #message("6vn")
   nodes <- nodes %>%   mutate(id=factor_id)
   edges <- edges %>%   mutate(id=NULL) # id would be necessary for getting ids from clicks etc, but seems to stop tooltip from working
  # browser()
@@ -3539,7 +3539,7 @@ if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- gr
       "</br>",
       paste0("ID:", factor_id)
     ))
-    message("7vn")
+    #message("7vn")
   edges <-
     edges %>% mutate(title=paste0(
       map(link_id,link_click_edit),
@@ -3554,7 +3554,7 @@ if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- gr
       "<p class='link_tooltip'>Question ID:", question_id  %>% str_wrap,"</p>"
     ))
   # browser()
-    notify("8vn")
+    #notify("8vn")
   visNetwork(nodes,edges,background="white")   %>%
     visNodes(
       shadow = list(enabled = T, size = 10),
