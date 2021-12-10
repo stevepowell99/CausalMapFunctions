@@ -3554,7 +3554,7 @@ if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- gr
       "<p class='link_tooltip'>Statement ID:", statement_id  %>% str_wrap,"</p>",
       "<p class='link_tooltip'>Hashtags:", hashtags   %>% str_wrap,"</p>",
       "<p class='link_tooltip'>Question ID:", question_id  %>% str_wrap,"</p>",
-      "</br><p class='link_tooltip'>",quote %>% str_wrap,"</p>"
+      "</br><p class='link_tooltip'>",quote %>% str_replace_all(";","</br>") %>% str_wrap,"</p>"
     ))
   # browser()
     #notify("8vn")
