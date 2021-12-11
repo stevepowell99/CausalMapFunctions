@@ -718,6 +718,8 @@ add_simple_bundle_to_links <- function(links){
   select(from_label,to_label,statement_id,quote,everything()) %>%
   group_by(simple_bundle) %>%
   mutate(simple_frequency=n())%>%
+  group_by(simple_bundle) %>%
+  mutate(source_frequency=length(unique(source_id)))%>%
   ungroup
 
 }
@@ -2507,6 +2509,7 @@ make_empty_graf <- function(graf){
 #' @examples
 pipe_trace_robustness <- function(graf,from,to,length=4,field=NULL){
   # browser()
+ if(from=="" | to==""){notify("blank from or to factor");return(graf)}# this should be possible but atm results are horrible
   if(is.null(field)){
 
     return(graf %>%
@@ -2589,8 +2592,9 @@ pipe_trace_robustness <- function(graf,from,to,length=4,field=NULL){
 #' @examples
 pipe_trace_paths <- function(graf,from,to,length=4){
   if(is.na(length)) {notify("You have to specify length");return(graf)}
-  if(from[1]=="") {notify("You have to specify source factors");return(graf)}
-  if(to[1]=="") {notify("You have to specify target factors");return(graf)}
+  if(0==(length)) {notify("You have to specify length greater than 0");return(graf)}
+  #if(from[1]=="") {notify("You have to specify source factors");return(graf)}
+  #if(to[1]=="") {notify("You have to specify target factors");return(graf)}
   # browser()
   from <- from %>%  str_replace_all(" OR ","|") %>% str_split(.,"\\|") %>% `[[`(1) %>% map(make_search ) %>% tolower
   to <- to %>%  str_replace_all(" OR ","|") %>% str_split(.,"\\|") %>% `[[`(1) %>% map(make_search ) %>% tolower
