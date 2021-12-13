@@ -108,6 +108,9 @@ library(scales)
 library(htmltools)
 library(paws)
 library(DT)
+library(jsonlite)
+library(shiny)
+#library(tidygraph)
 
 s3 <- paws::s3()
 
@@ -184,22 +187,31 @@ get_map_tables_from_sql <- function(path,connection=conn){
   if(nrow(vsentiment)>0)
     links <- links %>%   left_join_safe(vsentiment %>% group_by(session_token) %>% select(-project) %>% summarise_all(last),by="session_token") %>%
     suppressMessages
-  factors=tibble(label=c(links$from,links$to) %>% unique)
+
+  factors=tibble(label=c(links$from,links$to) %>% unique) %>%
+    mutate(label=if_else(label=="zero",vsettings$base_q,label))
+
+  links$from <-
+    recode(links$from,!!!(row_index(factors) %>% set_names(factors$label)))
+  links$to <-
+    recode(links$to,!!!(row_index(factors) %>% set_names(factors$label)))
+
+  factors$id <- row_index(factors)
 
 
-  graf <- tbl_graph(factors,links) %>%
-    mutate(label=if_else(label=="zero",vsettings$base_q,label)) %>%
-    filter(label!="")
+  # links$source_id=links$session_token  # why does it not work
 
   notify(paste0("Loading sql file: ",path))
-  return(list(
-    factors = graf %>% factors_table,
-    links = graf %>% links_table,
+  return(
+    list(
+    factors = factors, #%>% factors_table,
+    links = links, #%>% links_table,
     statements = NULL,               ########## STILL NEED TO GET SOURCES ETC
     sources = NULL,
     questions = NULL,
     settings = NULL
-  ))
+  )
+  )
 
 }
 get_map_tables_from_s3_pieces <- function(path){
@@ -451,8 +463,8 @@ load_premap <- function(path=NULL,connection=conn){
       if(is.null(graf)) return(NULL)
       notify("Loaded sql file")
     } else if(type=="sql"){
-      newtables <- get_map_tables_from_sql(path,connection=connection)
-      if(is.null(newtables)) return(NULL)
+      graf <- get_map_tables_from_sql(path,connection=connection)
+      if(is.null(graf)) return(NULL)
       notify("Loaded sql file")
     } else  if(type=="cm2"){
       graf <- get_mapfile_from_s3(path %>% paste0("cm2data/",.)) %>% as.list  #as list because of tidygraph format
