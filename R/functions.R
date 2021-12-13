@@ -109,6 +109,7 @@ library(htmltools)
 library(paws)
 library(DT)
 library(jsonlite)
+library(DBI)
 library(shiny)
 #library(tidygraph)
 
