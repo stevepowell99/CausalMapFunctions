@@ -11,7 +11,8 @@ pipe_find_factors(
   operator = "contains",
   up = 1,
   down = 1,
-  remove_isolated = T
+  remove_isolated = T,
+  highlight_only = F
 )
 }
 \arguments{

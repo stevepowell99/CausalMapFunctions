@@ -9,7 +9,8 @@ pipe_find_links(
   field = NULL,
   value,
   operator = "contains",
-  remove_isolated = T
+  remove_isolated = T,
+  highlight_only = F
 )
 }
 \description{

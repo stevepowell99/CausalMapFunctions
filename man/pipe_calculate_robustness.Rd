@@ -4,7 +4,7 @@
 \alias{pipe_calculate_robustness}
 \title{Calculate robustness}
 \usage{
-pipe_calculate_robustness(graf, field = NULL)
+pipe_calculate_robustness(graf)
 }
 \arguments{
 \item{graf}{A tidymap. To use this function, the factors table of this map must include

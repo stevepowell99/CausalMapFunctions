@@ -8,8 +8,9 @@ pipe_label_links(
   graf,
   field = "link_id",
   fun = "count",
-  field_label = F,
-  value = NULL
+  value = NULL,
+  add_field_name = F,
+  clear_previous = T
 )
 }
 \arguments{

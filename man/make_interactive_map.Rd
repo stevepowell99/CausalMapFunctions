@@ -4,7 +4,7 @@
 \alias{make_interactive_map}
 \title{Make a visNetwork}
 \usage{
-make_interactive_map(graf, scale = 1, safe_limit = 200)
+make_interactive_map(graf, scale = 1, safe_limit = 200, rainbow = F)
 }
 \arguments{
 \item{graf}{A tidymap. The factors table and links table may contain additional formatting information like color.background.}
