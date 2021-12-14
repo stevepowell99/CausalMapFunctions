@@ -3133,14 +3133,20 @@ pipe_label_links <- function(graf,field="link_id",fun="count",value=NULL,add_fie
 pipe_mark_links <- function(graf,field="source_id",add_field_name=F,show_number=F){
   links <- graf$links
   ogroups <- groups(links)
+  if(length(ogroups)==0){
+    ogroups="link_id"
+    groups="link_id"
+  } else {
   groups <- ogroups %>% setdiff(c("from","to")) %>% unlist %>% pluck(1)
   ogroups <- as.character(as.vector(ogroups))
+
+  }
 
   # add head labels
   links <-
     links %>% group_by(from,to) %>%
-    arrange(from,to,flipped_bundle) %>%
-    mutate(head3=flipped_bundle!=lag(flipped_bundle) %>% replace_na(0)) %>%
+    arrange(from,to,UQ(sym(groups))) %>%
+    mutate(head3=UQ(sym(groups))!=lag(UQ(sym(groups))) %>% replace_na(0)) %>%
     mutate(headlabel=letters[cumsum(head3)]) %>%
     group_by(from,to,UQ(sym(groups))) %>%
   # add tail labels
@@ -3172,7 +3178,7 @@ pipe_mark_links <- function(graf,field="source_id",add_field_name=F,show_number=
     mutate(taillabel=paste0(headlabelin,collapse=",")) %>%
     ungroup %>%
     select("from"=factor,"headlabel"=headlabelout,taillabel)
-  #
+  # this nearly works
   # mutate(x=length(intersect(unlist(allsourcesin),unlist((allsourcesout))))) %>%
   #   mutate(y=length(unlist(unique(allsourcesout)))) %>%
   #   mutate(continuity=(x/y) %>% round(2)) %>%
