@@ -3134,8 +3134,8 @@ pipe_mark_links <- function(graf,field="source_id",add_field_name=F,show_number=
   links <- graf$links
   ogroups <- groups(links)
   if(length(ogroups)==0){
-    ogroups="link_id"
-    groups="link_id"
+    ogroups <- "simple_bundle"
+    groups <-"simple_bundle"
   } else {
   groups <- ogroups %>% setdiff(c("from","to")) %>% unlist %>% pluck(1)
   ogroups <- as.character(as.vector(ogroups))
@@ -3144,8 +3144,8 @@ pipe_mark_links <- function(graf,field="source_id",add_field_name=F,show_number=
 
   # add head labels
   links <-
-    links %>% group_by(from,to) %>%
-    arrange(from,to,UQ(sym(groups))) %>%
+    links %>% group_by(to) %>%
+    arrange(to_label,from,to) %>%
     mutate(head3=UQ(sym(groups))!=lag(UQ(sym(groups))) %>% replace_na(0)) %>%
     mutate(headlabel=letters[cumsum(head3)]) %>%
     group_by(from,to,UQ(sym(groups))) %>%

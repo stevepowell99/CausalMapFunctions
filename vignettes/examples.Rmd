@@ -621,9 +621,25 @@ ll %>%
 
 ```{r}
 so %>% 
-  pipe_combine_opposites() %>% 
-  pipe_bundle_links(group = "flipped_bundle") %>% 
   pipe_label_links(field = "source_id",fun="literal") %>% 
+  pipe_mark_links(field="source_id") %>% 
+  make_print_map
+
+e3 %>% 
+  pipe_label_links(field = "source_id",fun="literal") %>% 
+  pipe_mark_links(field="source_id") %>% 
+  make_print_map
+
+ee %>% 
+  pipe_label_links(field = "source_id",fun="literal") %>% 
+  pipe_mark_links(field="source_id") %>% 
+  make_print_map
+
+
+so %>% 
+  pipe_bundle_links(group = "source_id") %>% 
+  pipe_label_links(field = "source_id",fun="literal") %>% 
+  pipe_mark_links(field="source_id") %>% 
   make_print_map
 
 so %>% 
@@ -633,6 +649,11 @@ so %>%
   pipe_mark_links(field="source_id") %>% 
   make_print_map
 
+ll %>% 
+  pipe_select_factors(5) %>% 
+  pipe_bundle_links(group = "simple_bundle") %>% 
+  pipe_mark_links(field="source_id") %>% 
+  make_print_map
 
 
 ```
