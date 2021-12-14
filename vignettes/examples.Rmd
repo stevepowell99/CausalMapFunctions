@@ -813,6 +813,14 @@ tt %>%
 e3  %>%
   pipe_trace_robustness(from = "High",to="People moving",length = 5) %>% 
   make_print_map()
+
+e3  %>%
+  pipe_trace_robustness(from = "High",to="",length = 5) %>% 
+  make_print_map()
+```
+
+
+```{r}
 e3  %>%
   pipe_trace_robustness(from = "High",to="People moving",length = 5) %>% 
   get_robustness() %>% 

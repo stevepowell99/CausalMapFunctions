@@ -2522,7 +2522,7 @@ make_empty_graf <- function(graf){
 #' @examples
 pipe_trace_robustness <- function(graf,from,to,length=4,field=NULL){
   # browser()
- if(from=="" | to==""){notify("blank from or to factor");return(graf)}# this should be possible but atm results are horrible
+ if(from=="" | to==""){notify("blank from or to factor; robustness calculation may not be correct")}# this should be possible but atm results are horrible
   if(is.null(field)){
 
     return(graf %>%
@@ -3175,7 +3175,7 @@ pipe_mark_links <- function(graf,field="source_id",add_field_name=F,show_number=
     group_by(factor,headlabelout) %>%
     filter(!is.na(headlabelin)) %>%
     filter(continues) %>%
-    mutate(taillabel=paste0(headlabelin,collapse=",")) %>%
+    mutate(taillabel=paste0(headlabelin %>% unique,collapse=",")) %>%
     ungroup %>%
     select("from"=factor,"headlabel"=headlabelout,taillabel)
   # this nearly works
