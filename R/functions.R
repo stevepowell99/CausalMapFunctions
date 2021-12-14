@@ -3119,6 +3119,68 @@ pipe_label_links <- function(graf,field="link_id",fun="count",value=NULL,add_fie
   graf %>% pipe_update_mapfile(links=links)
 }
 
+#' Title
+#'
+#' @param graf
+#' @param field
+#' @param add_field_name
+#' @param show_number
+#'
+#' @return
+#' @export
+#'
+#' @examples
+pipe_mark_links <- function(graf,field="source_id",add_field_name=F,show_number=F){
+  links <- graf$links
+  ogroups <- groups(links)
+  groups <- ogroups %>% setdiff(c("from","to")) %>% unlist %>% pluck(1)
+
+  # add head labels
+  links <-
+    links %>% group_by(from,to) %>%
+    arrange(from,to,flipped_bundle) %>%
+    mutate(head3=flipped_bundle!=lag(flipped_bundle) %>% replace_na(0)) %>%
+    mutate(headlabel=letters[cumsum(head3)]) %>%
+    group_by(from,to,UQ(sym(groups))) %>%
+  # add tail labels
+    mutate(allsources=list(UQ(sym(field)) %>% unique))
+
+  inlinks <-
+    links %>% summarise(headlabelin=first(headlabel),allsourcesin=unique(allsources)) %>%
+    mutate(factor=to) %>%
+    ungroup %>%
+    select(-from,-to,-flipped_bundle)
+
+  outlinks <-
+    links %>% summarise(headlabelout=first(headlabel),allsourcesout=unique(allsources)) %>%
+    mutate(factor=from) %>%
+    ungroup %>%
+    select(-from,-to,-flipped_bundle)
+
+  tmp <-
+    outlinks %>%
+    left_join(inlinks,by="factor") %>%
+    group_by(factor,headlabelout,headlabelin) %>%
+    select(factor,headlabelout,everything()) %>%
+    arrange(factor,headlabelout) %>%
+    mutate(continues=length(intersect(unlist(allsourcesin),unlist(allsourcesout)))>0) %>%
+    filter(!is.na(headlabelin)) %>%
+    filter(continues) %>%
+    group_by(factor,headlabelout) %>%
+    mutate(taillabel=paste0(headlabelin,collapse=",")) %>%
+    ungroup %>%
+    select("from"=factor,"headlabel"=headlabelout,taillabel)
+
+
+  links <-
+    links %>%
+    left_join(tmp,by=c("from","headlabel")) %>%
+    mutate(taillabel=replace_na(taillabel,"")) %>%
+    mutate(headlabel=if_else(to %in% links$from,headlabel,""))
+
+  graf %>% pipe_update_mapfile(links=links)
+}
+
 #' Color factors (background color)
 #'
 #' @inheritParams parse_commands
@@ -3871,7 +3933,7 @@ make_print_map <- function(
 
   # mutate_all(first_map)%>%
   links <- links %>%
-    select(any_of(xc("from to color simple_bundle width link_label width from_label to_label"))) %>%
+    select(any_of(xc("from to color simple_bundle width link_label width from_label headlabel taillabel to_label"))) %>%
     rename(label=link_label) %>%
     mutate(from=as.numeric(from))%>%
     mutate(to=as.numeric(to))%>%

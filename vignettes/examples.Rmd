@@ -91,6 +91,7 @@ If you filter the statements of a mapfile, e.g. show only statements with texts 
   # ll <- quip_example
   # ee <- example2
   ee <- load_premap("example2")%>% pipe_coerce_mapfile 
+  so <- load_premap("stress-opposites")%>% pipe_coerce_mapfile 
   tt <- load_premap("cm1/tearfund-sl")%>% pipe_coerce_mapfile
   ll <- load_premap("quip-coded")%>% pipe_coerce_mapfile
   oo <- load_premap("organisation1coded")%>% pipe_coerce_mapfile
@@ -614,6 +615,28 @@ ll %>%
   make_print_map
 
 ```
+
+
+## Mark links
+
+```{r}
+so %>% 
+  pipe_combine_opposites() %>% 
+  pipe_bundle_links(group = "flipped_bundle") %>% 
+  pipe_label_links(field = "source_id",fun="literal") %>% 
+  make_print_map
+
+so %>% 
+  pipe_combine_opposites() %>% 
+  pipe_bundle_links(group = "flipped_bundle") %>% 
+  pipe_label_links(field = "source_id",fun="literal") %>% 
+  pipe_mark_links(field="source_id") %>% 
+  make_print_map
+
+
+
+```
+
 
 
 ## Nested maps
