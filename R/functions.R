@@ -3134,6 +3134,7 @@ pipe_mark_links <- function(graf,field="source_id",add_field_name=F,show_number=
   links <- graf$links
   ogroups <- groups(links)
   groups <- ogroups %>% setdiff(c("from","to")) %>% unlist %>% pluck(1)
+  ogroups <- as.character(as.vector(ogroups))
 
   # add head labels
   links <-
@@ -3149,13 +3150,14 @@ pipe_mark_links <- function(graf,field="source_id",add_field_name=F,show_number=
     links %>% summarise(headlabelin=first(headlabel),allsourcesin=unique(allsources)) %>%
     mutate(factor=to) %>%
     ungroup %>%
-    select(-from,-to,-flipped_bundle)
+    select(-ogroups)
 
   outlinks <-
     links %>% summarise(headlabelout=first(headlabel),allsourcesout=unique(allsources)) %>%
     mutate(factor=from) %>%
     ungroup %>%
-    select(-from,-to,-flipped_bundle)
+    select(-ogroups)
+    #select(-from,-to,-flipped_bundle)
 
   tmp <-
     outlinks %>%
@@ -3164,16 +3166,21 @@ pipe_mark_links <- function(graf,field="source_id",add_field_name=F,show_number=
     select(factor,headlabelout,everything()) %>%
     arrange(factor,headlabelout) %>%
     mutate(continues=length(intersect(unlist(allsourcesin),unlist(allsourcesout)))>0) %>%
+    group_by(factor,headlabelout) %>%
     filter(!is.na(headlabelin)) %>%
     filter(continues) %>%
-    group_by(factor,headlabelout) %>%
     mutate(taillabel=paste0(headlabelin,collapse=",")) %>%
     ungroup %>%
     select("from"=factor,"headlabel"=headlabelout,taillabel)
-
+  #
+  # mutate(x=length(intersect(unlist(allsourcesin),unlist((allsourcesout))))) %>%
+  #   mutate(y=length(unlist(unique(allsourcesout)))) %>%
+  #   mutate(continuity=(x/y) %>% round(2)) %>%
+  #
 
   links <-
     links %>%
+    select(-allsources,-head3) %>%
     left_join(tmp,by=c("from","headlabel")) %>%
     mutate(taillabel=replace_na(taillabel,"")) %>%
     mutate(headlabel=if_else(to %in% links$from,headlabel,""))
