@@ -3276,8 +3276,8 @@ make_arrowhead=function(vec,dir="forwards"){
   vec %>%
     map(~{
       case_when(
-        .==0 ~ "odot",
-        .==1 ~ "dot",
+        .==0 ~ "obox",
+        .==1 ~ "box",
         .>.5 ~ "lbox",
         .<=.5 ~ "olbox",
         T    ~ "",
