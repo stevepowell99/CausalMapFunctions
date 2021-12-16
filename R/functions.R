@@ -3204,7 +3204,7 @@ pipe_mark_links <- function(graf,field="source_id",add_field_name=F,show_number=
 #' @export
 #'
 #' @examples
-pipe_show_continuity <- function(graf,field="source_id"){
+pipe_show_continuity <- function(graf,field="source_id",type="arrowtype"){
   links <- graf$links
   ogroups <- groups(links)
   if(length(ogroups)==0){
@@ -3251,16 +3251,42 @@ pipe_show_continuity <- function(graf,field="source_id"){
      mutate(nullbc=is.null(unlist(before_sources))) %>%
      mutate(before_continuity=if_else(nullbc,"",before_continuity)) %>%
      mutate(nullac=is.null(unlist(after_sources))) %>%
-     mutate(after_continuity=if_else(nullac,"",after_continuity))
+     mutate(after_continuity=if_else(nullac,"",after_continuity))%>%
+    select(-these_sources,-before_sources,-after_sources,-x,-y,nullac,-nullbc)
 
+  if(type=="label"){
   links <-
     links %>%
-    select(-these_sources,-before_sources,-after_sources,-x,-y,nullac,-nullbc) %>%
-    mutate(taillabel=if_else(before_continuity=="0","0",before_continuity)) %>%
-    mutate(headlabel=if_else(after_continuity=="0","0",after_continuity))
+    mutate(taillabel=before_continuity) %>%
+    mutate(headlabel=after_continuity)
+    # mutate(taillabel=if_else(before_continuity=="0","0",before_continuity)) %>%
+    # mutate(headlabel=if_else(after_continuity=="0","0",after_continuity))
+  } else
+  {
+    links <-
+      links %>%
+      mutate(arrowtail=make_arrowhead(before_continuity,dir="backwards")) %>%
+      mutate(arrowhead=make_arrowhead(after_continuity))
+  }
   graf %>% pipe_update_mapfile(links=links)
 }
 
+make_arrowhead=function(vec,dir="forwards"){
+  vec <- as.numeric(vec)
+  vec %>%
+    map(~{
+      case_when(
+        .==0 ~ "odot",
+        .==1 ~ "dot",
+        .>.5 ~ "lbox",
+        .<=.5 ~ "olbox",
+        T    ~ "",
+      ) %>%
+        {if(dir=="forwards") paste0("veenone",.) else .}
+    }) %>%
+    as.character() %>%
+    replace_na("")
+}
 
 #' Color factors (background color)
 #'
@@ -4021,7 +4047,7 @@ make_print_map <- function(
 
   # mutate_all(first_map)%>%
   links <- links %>%
-    select(any_of(xc("from to color simple_bundle width link_label width from_label headlabel taillabel to_label"))) %>%
+    select(any_of(xc("from to color simple_bundle width link_label width from_label headlabel taillabel arrowhead arrowtail to_label"))) %>%
     rename(label=link_label) %>%
     mutate(from=as.numeric(from))%>%
     mutate(to=as.numeric(to))%>%
@@ -4032,9 +4058,8 @@ make_print_map <- function(
     mutate(penwidth=width*48)%>%
     # mutate(fontcolor=color)%>%
     mutate(arrowsize=(3+(width*9))) %>%
-    mutate(tooltip=clean_grv(simple_bundle)) %>%
-    mutate(xlabel="blue") %>%
-    mutate(arrowhead="vee")
+    mutate(tooltip=clean_grv(simple_bundle))
+
   if(all(factors$cluster==""))factors$cluster=NULL
   # factors$cluster <- factors$cluster %>% replace_na("0")
 
@@ -4071,6 +4096,9 @@ make_print_map <- function(
     add_global_graph_attrs("width", "0", "node") %>%
     add_global_graph_attrs("height", "0", "node")  %>%
 
+    add_global_graph_attrs("arrowhead", "vee", "edge")    %>%
+    add_global_graph_attrs("arrowtail", "none", "edge")    %>%
+    add_global_graph_attrs("dir", "both", "edge")    %>%
     add_global_graph_attrs("fontsize", 100, "edge")    %>%
     add_global_graph_attrs("forcelabels", T, "graph")
 # browser()

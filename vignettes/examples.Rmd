@@ -93,6 +93,7 @@ If you filter the statements of a mapfile, e.g. show only statements with texts 
   # ll <- quip_example
   # ee <- example2
   ee <- load_premap("example2")%>% pipe_coerce_mapfile 
+  hz <- load_premap("health-zoom")%>% pipe_coerce_mapfile 
   so <- load_premap("stress-opposites")%>% pipe_coerce_mapfile 
   tt <- load_premap("cm1/tearfund-sl")%>% pipe_coerce_mapfile
   ll <- load_premap("quip-coded")%>% pipe_coerce_mapfile
@@ -693,12 +694,26 @@ so %>%
 
 
 so %>% 
+  pipe_show_continuity(field="source_id") %>% 
   pipe_combine_opposites() %>% 
   pipe_bundle_links(group = "flipped_bundle") %>% 
   pipe_label_links(field = "source_id",fun="unique") %>% 
-  pipe_show_continuity(field="source_id") %>% 
   make_print_map
+```
 
+But note if you show continuity too late, it won't work:
+
+```{r}
+so %>% 
+  pipe_combine_opposites() %>% 
+  pipe_show_continuity(field="source_id") %>% 
+  pipe_bundle_links(group = "flipped_bundle") %>% 
+  pipe_label_links(field = "source_id",fun="unique") %>% 
+  make_print_map
+```
+
+
+```{r}
 ll %>% 
   pipe_select_factors(5) %>% 
   pipe_bundle_links(group = "simple_bundle") %>% 
@@ -715,9 +730,42 @@ tt %>%
     make_print_map 
 
 
+hz %>%
+  pipe_show_continuity(field="source_id") %>% 
+    make_print_map 
+
+hz %>%
+  pipe_zoom_factors(1) %>%
+  pipe_show_continuity(field="source_id") %>% 
+    make_print_map 
+
+
 
 ```
 
+Group and label by sex and scale by count:
+
+```{r }  
+ll %>%
+    pipe_select_factors(5) %>%
+    pipe_bundle_links(group="1. Sex") %>%
+    pipe_scale_links("link_id",fun = "count") %>%
+    pipe_label_links("1. Sex",fun = "unique") %>%
+    pipe_color_links("1. Sex",fun = "unique") %>%
+    pipe_show_continuity(field="source_id") %>% 
+    make_print_map
+
+ll %>%
+    pipe_select_factors(5) %>%
+    pipe_find_links(field = "statement_id",value=90,operator="greater") %>%
+    pipe_find_links(field = "statement_id",value=290,operator="less") %>%
+    pipe_bundle_links(group="1. Sex") %>%
+    pipe_scale_links("link_id",fun = "count") %>%
+    pipe_label_links("source_id",fun = "unique") %>%
+    pipe_color_links("1. Sex",fun = "unique") %>%
+    pipe_show_continuity(field="source_id") %>% 
+    make_print_map
+```
 
 
 ## Nested maps
