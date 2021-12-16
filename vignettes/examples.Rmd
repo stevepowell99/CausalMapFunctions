@@ -21,7 +21,9 @@ library(kableExtra)
 knitr::opts_chunk$set(echo = TRUE)
 source("../R/functions.R")################################
 
-
+pp=function(x,N=99){
+  print(x,n=N)
+}
 
 ```
 
@@ -170,10 +172,10 @@ ee %>%
 
 ```{r }  
   ee %>%
-    pipe_label_links("link_id") %>%
+    pipe_label_links("link_id",fun = "unique") %>%
     make_interactive_map
   ee %>%
-    pipe_label_links("link_id") %>%
+    pipe_label_links("link_id",fun = "unique") %>%
     make_print_map()
   ee %>%
     pipe_set_print(grv_layout="circo") %>%
@@ -369,6 +371,11 @@ ll %>%
     pipe_select_factors(5) %>%
     pipe_scale_factors(field="frequency") %>%
     make_interactive_map
+
+ll %>%
+    pipe_select_factors(5) %>%
+    pipe_scale_factors(field="frequency") %>%
+    make_print_map
 ```
 
 ```{r }
@@ -658,6 +665,59 @@ ll %>%
 
 ```
 
+## Show continuity
+
+```{r}
+so %>% 
+  pipe_label_links(field = "source_id",fun="unique") %>% 
+  pipe_show_continuity(field="source_id") %>% 
+  make_print_map
+
+e3 %>% 
+  pipe_label_links(field = "source_id",fun="unique") %>% 
+  pipe_show_continuity(field="source_id") %>% 
+  make_print_map
+
+ee %>% 
+  pipe_label_links(field = "source_id",fun="unique") %>% 
+  pipe_show_continuity(field="source_id") %>% 
+  make_print_map
+
+
+so %>% 
+  pipe_bundle_links(group = "source_id") %>% 
+  pipe_label_links(field = "source_id",fun="unique") %>% 
+  pipe_show_continuity(field="source_id") %>% 
+  make_print_map
+
+
+
+so %>% 
+  pipe_combine_opposites() %>% 
+  pipe_bundle_links(group = "flipped_bundle") %>% 
+  pipe_label_links(field = "source_id",fun="unique") %>% 
+  pipe_show_continuity(field="source_id") %>% 
+  make_print_map
+
+ll %>% 
+  pipe_select_factors(5) %>% 
+  pipe_bundle_links(group = "simple_bundle") %>% 
+  pipe_scale_links(field = "link_id",fun="count") %>% 
+  pipe_show_continuity(field="source_id") %>% 
+  make_print_map
+
+tt %>%
+  pipe_zoom_factors(1) %>%
+  pipe_bundle_links(group="simple_bundle") %>% 
+  pipe_scale_links(field="source_id",fun = "count") %>% 
+  pipe_wrap_factors() %>% 
+  pipe_show_continuity(field="source_id") %>% 
+    make_print_map 
+
+
+
+```
+
 
 
 ## Nested maps
@@ -684,9 +744,8 @@ tt %>%
 ## Zooming out and showing source count
 
 ```{r }  
-oo %>%
+tt %>%
     pipe_zoom_factors(1) %>%
-    pipe_find_factors(value="Improved health and hygiene practices") %>%
   pipe_bundle_links(group="simple_bundle") %>% 
   pipe_label_links(field="source_id",fun = "count") %>% 
   pipe_wrap_factors() %>% 

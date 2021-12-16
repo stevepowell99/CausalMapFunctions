@@ -3194,6 +3194,74 @@ pipe_mark_links <- function(graf,field="source_id",add_field_name=F,show_number=
   graf %>% pipe_update_mapfile(links=links)
 }
 
+
+#' Title
+#'
+#' @param graf
+#' @param field
+#'
+#' @return
+#' @export
+#'
+#' @examples
+pipe_show_continuity <- function(graf,field="source_id"){
+  links <- graf$links
+  ogroups <- groups(links)
+  if(length(ogroups)==0){
+    ogroups <- "simple_bundle"
+    groups <-"simple_bundle"
+  } else {
+    groups <- ogroups %>% setdiff(c("from","to")) %>% unlist %>% pluck(1)
+    ogroups <- as.character(as.vector(ogroups))
+
+  }
+
+  all_sources <-
+    links %>%
+    group_by(from,to) %>%
+    summarise(all_sources = list(UQ(sym(field)) %>% unique))
+
+
+  before_sources <-
+    all_sources %>%
+    group_by(to) %>%
+    summarise(before_sources = unlist(all_sources) %>% unique %>% list) %>%
+    rename(from=to)
+
+  after_sources <-
+    all_sources %>%
+    group_by(from) %>%
+    summarise(after_sources = unlist(all_sources) %>% unique %>% list) %>%
+    rename(to=from)
+
+  links <-
+    links %>%
+    group_by(from,to,UQ(sym(groups))) %>%
+    mutate(these_sources = list(UQ(sym(field)) %>% unique)) %>%
+    left_join(before_sources,by="from") %>%
+    left_join(after_sources,by="to")
+
+  links <-
+    links %>%
+     mutate(x=length(intersect(unlist(before_sources),unlist((these_sources))))) %>%
+     mutate(y=length(unlist(unique(these_sources)))) %>%
+     mutate(before_continuity=(x/y) %>% round(1) %>% as.character) %>%
+     mutate(x=length(intersect(unlist(after_sources),unlist((these_sources))))) %>%
+     mutate(after_continuity=(x/y) %>% round(1) %>% as.character) %>%
+     mutate(nullbc=is.null(unlist(before_sources))) %>%
+     mutate(before_continuity=if_else(nullbc,"",before_continuity)) %>%
+     mutate(nullac=is.null(unlist(after_sources))) %>%
+     mutate(after_continuity=if_else(nullac,"",after_continuity))
+
+  links <-
+    links %>%
+    select(-these_sources,-before_sources,-after_sources,-x,-y,nullac,-nullbc) %>%
+    mutate(taillabel=if_else(before_continuity=="0","0",before_continuity)) %>%
+    mutate(headlabel=if_else(after_continuity=="0","0",after_continuity))
+  graf %>% pipe_update_mapfile(links=links)
+}
+
+
 #' Color factors (background color)
 #'
 #' @inheritParams parse_commands
@@ -3653,10 +3721,14 @@ if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- gr
   visNetwork(nodes,edges,background="white")   %>%
     visNodes(
       shadow = list(enabled = T, size = 10),
-      shape = "box",
-      font=list(color="black"),
-      borderWidth=2,
-      scaling = list(label = list(enabled = T)),
+      shape = "box"
+      ,
+      font=list(color="black")
+      ,
+      borderWidth=2
+      ,
+      scaling = list(label = list(enabled = T,min=14,max=30))# shouldn't need min and max but font not visible otherwise
+      ,
       physics = T
     ) %>%
     visEdges(
@@ -3921,12 +3993,15 @@ make_print_map <- function(
     mutate(penwidth=14) %>% #if_else(color.border %>% unique %>% length %>% `==`(1),0,14)) %>% # if borders are all same colour, don't print border
     mutate(fontsize=(size+4)*25) %>%
     mutate(fontcolor="black") %>%
+    # mutate(xlabel="blue") %>%
     select(any_of(xc("label size tooltip fillcolor color fontsize fontcolor cluster penwidth")))
+
   # %>%
   #   mutate(factor_id=factor_id)
 
   if(is.null(factors$cluster))factors$cluster <- ""
 
+  # browser()
   links <- graf$links %>%
     fix_columns_links()
 
@@ -3955,14 +4030,15 @@ make_print_map <- function(
     mutate(label=replace_na(label,"     .     "))%>% # obscure! if all are =="", error
     mutate(width=as.numeric(width))%>%
     mutate(penwidth=width*48)%>%
-    mutate(fontcolor=color)%>%
+    # mutate(fontcolor=color)%>%
     mutate(arrowsize=(3+(width*9))) %>%
     mutate(tooltip=clean_grv(simple_bundle)) %>%
-    # mutate(title="blue") %>%
+    mutate(xlabel="blue") %>%
     mutate(arrowhead="vee")
+  if(all(factors$cluster==""))factors$cluster=NULL
+  # factors$cluster <- factors$cluster %>% replace_na("0")
 
 # browser()
-
   grv <-
     DiagrammeR::create_graph() %>%
     add_nodes_from_table(factors  %>% mutate(id=row_number()),label_col="label") %>%
@@ -3995,9 +4071,8 @@ make_print_map <- function(
     add_global_graph_attrs("width", "0", "node") %>%
     add_global_graph_attrs("height", "0", "node")  %>%
 
-    add_global_graph_attrs("fontsize", 100, "edge")
-  # %>%
-  #   add_global_graph_attrs("fontcolor", "#666666", "edge")
+    add_global_graph_attrs("fontsize", 100, "edge")    %>%
+    add_global_graph_attrs("forcelabels", T, "graph")
 # browser()
   return(
     grv %>% DiagrammeR::render_graph()
