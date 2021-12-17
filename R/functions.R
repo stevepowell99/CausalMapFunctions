@@ -3276,13 +3276,13 @@ make_arrowhead=function(vec,dir="forwards"){
   vec %>%
     map(~{
       case_when(
-        .==0 ~ "obox",
-        .==1 ~ "box",
-        .>.5 ~ "lbox",
-        .<=.5 ~ "olbox",
+        .==0 ~ "odiamond",
+        .==1 ~ "diamond",
+        .>.5 ~ "ldiamond",
+        .<=.5 ~ "oldiamond",
         T    ~ "",
       ) %>%
-        {if(dir=="forwards") paste0("veenone",.) else .}
+        {if(dir=="forwards") paste0("veenonenone",.) else paste0("nonenone",.)}
     }) %>%
     as.character() %>%
     replace_na("")
