@@ -19,7 +19,7 @@ library(CausalMapFunctions)
 library(knitr)
 library(kableExtra)
 knitr::opts_chunk$set(echo = TRUE)
-source("../R/functions.R")################################
+#source("../R/functions.R")################################
 
 pp=function(x,N=99){
   print(x,n=N)
@@ -524,7 +524,7 @@ ll %>%
 
 ```
 
-Group and label by sex and scale by count:
+### Group and label by sex and scale by count:
 
 ```{r }  
 ll %>%
@@ -545,7 +545,7 @@ ll %>%
 ```
 
 
-Group by sex and scale and colour by count:
+### Group by sex and scale and colour by count:
 
 ```{r }  
 ll %>%
@@ -556,7 +556,8 @@ ll %>%
     pipe_label_links("link_id",fun = "count") %>%
     make_interactive_map
 ```
-Proportion
+
+### Proportion
 
 ```{r}
 ll %>%    
@@ -600,7 +601,7 @@ ll %>%
 
 ```
 
-## Surprise
+### Surprise
 
 ```{r}
 ll %>%    
@@ -669,7 +670,23 @@ ll %>%
 ## Show continuity
 
 ```{r}
+#original:
+
 so %>% 
+  pipe_label_links(field = "source_id",fun="unique") %>% 
+  make_print_map
+
+so %>% 
+  pipe_label_links(field = "source_id",fun="unique") %>% 
+  pipe_show_continuity(field="source_id",type="label") %>% 
+  make_print_map
+so %>% 
+  pipe_label_links(field = "source_id",fun="unique") %>% 
+  pipe_show_continuity(field="source_id") %>% 
+  make_print_map
+
+
+ee %>% 
   pipe_label_links(field = "source_id",fun="unique") %>% 
   pipe_show_continuity(field="source_id") %>% 
   make_print_map
@@ -679,14 +696,29 @@ e3 %>%
   pipe_show_continuity(field="source_id") %>% 
   make_print_map
 
-ee %>% 
-  pipe_label_links(field = "source_id",fun="unique") %>% 
+e3 %>% 
+  pipe_zoom_factors() %>% 
   pipe_show_continuity(field="source_id") %>% 
+  pipe_label_links(field = "source_id",fun="unique") %>% 
   make_print_map
 
+e3 %>% 
+  pipe_bundle_factors("Flooding") %>% 
+  pipe_show_continuity(field="source_id") %>% 
+  pipe_label_links(field = "source_id",fun="unique") %>% 
+  make_print_map
 
-so %>% 
+e3 %>% 
+  pipe_bundle_factors("Flooding") %>% 
   pipe_bundle_links(group = "source_id") %>% 
+  pipe_label_links(field = "source_id",fun="literal") %>% 
+  pipe_show_continuity(field="source_id") %>% 
+  make_print_map
+
+
+
+so %>% 
+  pipe_bundle_links() %>% 
   pipe_label_links(field = "source_id",fun="unique") %>% 
   pipe_show_continuity(field="source_id") %>% 
   make_print_map
@@ -694,22 +726,36 @@ so %>%
 
 
 so %>% 
+  pipe_combine_opposites() %>% 
+  pipe_label_links("link_id","literal") %>% 
   pipe_show_continuity(field="source_id") %>% 
+  make_print_map
+
+so %>% 
+  pipe_combine_opposites() %>% 
+  pipe_show_continuity() %>% 
+  make_print_map
+
+so %>% 
   pipe_combine_opposites() %>% 
   pipe_bundle_links(group = "flipped_bundle") %>% 
+  pipe_show_continuity(field="source_id") %>% 
   pipe_label_links(field = "source_id",fun="unique") %>% 
   make_print_map
-```
 
-But note if you show continuity too late, it won't work:
 
-```{r}
+
+
+# Order should not matter, but you can't put bundle links later
+
+
 so %>% 
   pipe_combine_opposites() %>% 
   pipe_show_continuity(field="source_id") %>% 
   pipe_bundle_links(group = "flipped_bundle") %>% 
   pipe_label_links(field = "source_id",fun="unique") %>% 
   make_print_map
+
 ```
 
 
@@ -720,14 +766,6 @@ ll %>%
   pipe_scale_links(field = "link_id",fun="count") %>% 
   pipe_show_continuity(field="source_id") %>% 
   make_print_map
-
-tt %>%
-  pipe_zoom_factors(1) %>%
-  pipe_bundle_links(group="simple_bundle") %>% 
-  pipe_scale_links(field="source_id",fun = "count") %>% 
-  pipe_wrap_factors() %>% 
-  pipe_show_continuity(field="source_id") %>% 
-    make_print_map 
 
 
 hz %>%
@@ -810,6 +848,18 @@ hh %>%
 hh %>% 
   pipe_combine_opposites %>% 
   make_print_map()
+
+# artificial arrowlabels
+hh %>% 
+    pipe_combine_opposites %>% pipe_update_mapfile(.,links=.$links %>% mutate(color="limegreen",taillabel=c("","","\u274C","\u274C","","\u274C"),headlabel=c("","","\u274C","\u274C","\u274C","\u274C")))  %>% make_print_map()
+
+hh %>% 
+    pipe_combine_opposites %>% pipe_update_mapfile(.,links=.$links %>% mutate(color="limegreen",taillabel=c("+","+","~","~","+","~"),headlabel=c("+","+","~","~","~","~")))  %>% make_print_map()
+
+hh %>% 
+    pipe_combine_opposites %>% pipe_update_mapfile(.,links=.$links %>% mutate(color="limegreen",arrowtail=c("","","nonetee","nonetee","","nonetee"),arrowhead=c("nonetee","","veenonenonetee","veenonenonetee","veenonenonetee","veenonenonetee")))  %>% make_print_map()
+
+
 
 ```
 

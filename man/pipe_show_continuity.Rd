@@ -4,7 +4,7 @@
 \alias{pipe_show_continuity}
 \title{Title}
 \usage{
-pipe_show_continuity(graf, field = "source_id")
+pipe_show_continuity(graf, field = "source_id", type = "arrowtype")
 }
 \arguments{
 \item{field}{}

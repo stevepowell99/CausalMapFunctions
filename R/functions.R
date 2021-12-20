@@ -49,7 +49,7 @@ add_attribute <- function(graf,value,attr="flow"){
   graf
 }
 
-
+lcollapse <- function(x)map(x,~paste0(.,collapse=":"))%>% unlist(recursive=F)
 
 standard_factors <- function(){
   tibble(label="blank factor",
@@ -564,6 +564,8 @@ pipe_coerce_mapfile <- function(tables){
       select(which(!duplicated(colnames(.)))) %>%
       select(-starts_with("..."))
 
+
+
     links[,colnames(standard_links())] <- map(colnames(standard_links()),
                                               ~coerceValue(links[[.]],standard_links()[[.]]))
     # browser()
@@ -714,8 +716,32 @@ pipe_coerce_mapfile <- function(tables){
 
 
 
+
   factors <- add_metrics_to_factors(factors,links)
-}
+  }
+
+
+  # for show_continuity, need to store all the before and after link ids in each link.
+
+  before_ids <-
+    links %>% select(-any_of("before_id")) %>% select("before_id"=link_id,"from"=to) %>%
+    group_by(from) %>%
+    summarise(before_id=list(before_id))
+
+  after_ids <-
+    links %>% select(-any_of("after_id")) %>% select("after_id"=link_id,"to"=from) %>%
+    group_by(to) %>%
+    summarise(after_id=list(after_id))
+
+
+  links <-
+    links %>%
+    select(-any_of("before_id")) %>%
+  select(-any_of("after_id")) %>%
+  left_join(before_ids,by="from") %>%
+    left_join(after_ids,by="to")
+
+
   attr(links,"flow") <- flow
 
 
@@ -3194,6 +3220,15 @@ pipe_mark_links <- function(graf,field="source_id",add_field_name=F,show_number=
   graf %>% pipe_update_mapfile(links=links)
 }
 
+get_field <- function(links,field,idlist){
+  links %>%
+    filter(link_id %in% unlist(idlist)) %>%
+    pull(UQ(sym(field))) %>%
+    unlist
+  # %>%
+  #   replace_zero("not found")
+
+}
 
 #' Title
 #'
@@ -3206,53 +3241,41 @@ pipe_mark_links <- function(graf,field="source_id",add_field_name=F,show_number=
 #' @examples
 pipe_show_continuity <- function(graf,field="source_id",type="arrowtype"){
   links <- graf$links
-  ogroups <- groups(links)
-  if(length(ogroups)==0){
-    ogroups <- "simple_bundle"
-    groups <-"simple_bundle"
-  } else {
-    groups <- ogroups %>% setdiff(c("from","to")) %>% unlist %>% pluck(1)
-    ogroups <- as.character(as.vector(ogroups))
-
-  }
-
-  all_sources <-
-    links %>%
-    group_by(from,to) %>%
-    summarise(all_sources = list(UQ(sym(field)) %>% unique))
 
 
-  before_sources <-
-    all_sources %>%
-    group_by(to) %>%
-    summarise(before_sources = unlist(all_sources) %>% unique %>% list) %>%
-    rename(from=to)
-
-  after_sources <-
-    all_sources %>%
-    group_by(from) %>%
-    summarise(after_sources = unlist(all_sources) %>% unique %>% list) %>%
-    rename(to=from)
+  links$before_sources <- map(links$before_id,~{get_field(links,field,.)})
+  links$after_sources <- map(links$after_id,~{get_field(links,field,.)})
 
   links <-
     links %>%
-    group_by(from,to,UQ(sym(groups))) %>%
-    mutate(these_sources = list(UQ(sym(field)) %>% unique)) %>%
-    left_join(before_sources,by="from") %>%
-    left_join(after_sources,by="to")
+    mutate(these_sources = (UQ(sym(field))))
 
-  links <-
+  if(!is_grouped_df(links)){
+  tmp <-
     links %>%
+    group_by(link_id)
+  } else tmp <- links
+
+
+  tmp <-
+    tmp  %>%
      mutate(x=length(intersect(unlist(before_sources),unlist((these_sources))))) %>%
      mutate(y=length(unlist(unique(these_sources)))) %>%
      mutate(before_continuity=(x/y) %>% round(1) %>% as.character) %>%
      mutate(x=length(intersect(unlist(after_sources),unlist((these_sources))))) %>%
      mutate(after_continuity=(x/y) %>% round(1) %>% as.character) %>%
-     mutate(nullbc=is.null(unlist(before_sources))) %>%
+     mutate(nullbc=length(unlist(before_sources))==0) %>%
      mutate(before_continuity=if_else(nullbc,"",before_continuity)) %>%
-     mutate(nullac=is.null(unlist(after_sources))) %>%
-     mutate(after_continuity=if_else(nullac,"",after_continuity))%>%
-    select(-these_sources,-before_sources,-after_sources,-x,-y,nullac,-nullbc)
+     mutate(nullac=length(unlist(after_sources))==0) %>%
+    mutate(after_continuity=if_else(nullac,"",after_continuity))%>%
+    ungroup %>%
+     select(link_id,before_continuity,after_continuity)
+   # select(-these_sources,-before_sources,-after_sources,-x,-y,nullac,-nullbc)
+
+# browser()
+  links <-
+    links %>%
+    left_join(tmp,by="link_id")
 
   if(type=="label"){
   links <-
@@ -3268,6 +3291,9 @@ pipe_show_continuity <- function(graf,field="source_id",type="arrowtype"){
       mutate(arrowtail=make_arrowhead(before_continuity,dir="backwards")) %>%
       mutate(arrowhead=make_arrowhead(after_continuity))
   }
+
+
+
   graf %>% pipe_update_mapfile(links=links)
 }
 
@@ -3276,10 +3302,10 @@ make_arrowhead=function(vec,dir="forwards"){
   vec %>%
     map(~{
       case_when(
-        .==0 ~ "odiamond",
-        .==1 ~ "diamond",
-        .>.5 ~ "ldiamond",
-        .<=.5 ~ "oldiamond",
+        .==0 ~ "obox",
+        .==1 ~ "box",
+        .>.5 ~ "lbox",
+        .<=.5 ~ "olbox",
         T    ~ "",
       ) %>%
         {if(dir=="forwards") paste0("veenonenone",.) else paste0("nonenone",.)}
