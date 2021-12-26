@@ -1089,7 +1089,7 @@ graf$links %>% filter(statement_id %notin% graf$statements$statement_id) %>% nro
 ## Cluster factors
 
 ```{r}
-ee %>% 
+example2 %>% 
   pipe_cluster_factors("Damage OR Flood") %>% 
   make_print_map
 ```

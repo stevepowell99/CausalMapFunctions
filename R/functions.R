@@ -4032,14 +4032,13 @@ make_print_map <- function(
 
   # if("frequency" %in% colnames(links_table(graf)))graf <-  graf %>% mutate(tooltip=as.character(n))
   # browser()
-  # browser()
   factors <-
     graf$factors %>%
     fix_columns_factors() %>%
     mutate(label=clean_grv(label) )%>%
     mutate(label=add_default_wrap(label) )%>%
     # mutate(cluster=if_else(is.na(cluster),"",cluster) )%>%
-    mutate(tooltip= clean_grv(label)) %>%   # seemed to cause intermittent error!!!
+# tooltip causes error with panzoom    mutate(tooltip= clean_grv(label)) %>%   # seemed to cause intermittent error!!!
     mutate(fillcolor=color.background) %>%
     mutate(color=color.border) %>%
     mutate(penwidth=14) %>% #if_else(color.border %>% unique %>% length %>% `==`(1),0,14)) %>% # if borders are all same colour, don't print border
@@ -4087,9 +4086,9 @@ make_print_map <- function(
     mutate(tooltip=clean_grv(simple_bundle))
 
   if(all(factors$cluster==""))factors$cluster=NULL
-  # factors$cluster <- factors$cluster %>% replace_na("0")
-
 # browser()
+  # factors$cluster <- factors$cluster %>% replace_na("")
+
   grv <-
     DiagrammeR::create_graph() %>%
     add_nodes_from_table(factors  %>% mutate(id=row_number()),label_col="label") %>%
@@ -4121,6 +4120,9 @@ make_print_map <- function(
     # add_global_graph_attrs("penwidth", "14", "node") %>%
     add_global_graph_attrs("width", "0", "node") %>%
     add_global_graph_attrs("height", "0", "node")  %>%
+
+    # add_global_graph_attrs("margin", "888", "subgraph")    %>%
+    # add_global_graph_attrs("margin", "888", "cluster")    %>%
 
     add_global_graph_attrs("arrowhead", "vee", "edge")    %>%
     add_global_graph_attrs("arrowtail", "none", "edge")    %>%
