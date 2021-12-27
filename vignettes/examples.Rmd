@@ -517,7 +517,7 @@ Note the default for `bundle_links` is equivalent to simple_bundle:
 ll %>%
     pipe_find_factors(value="economic") %>%
     pipe_select_factors(5) %>%
-    pipe_bundle_links(group="simple_bundle") %>%
+    pipe_bundle_links(field="simple_bundle") %>%
     pipe_label_links() %>%
     make_interactive_map
 
@@ -529,7 +529,7 @@ ll %>%
 ```{r }  
 ll %>%
     pipe_select_factors(5) %>%
-    pipe_bundle_links(group="1. Sex") %>%
+    pipe_bundle_links(field="1. Sex") %>%
     pipe_scale_links("link_id",fun = "count") %>%
     pipe_label_links("1. Sex",fun = "unique") %>%
     pipe_color_links("1. Sex",fun = "unique") %>%
@@ -539,7 +539,7 @@ ll %>%
 ```{r }  
 ll %>%
     pipe_select_links(16) %>%
-    pipe_bundle_links(group="1. Sex") %>%
+    pipe_bundle_links(field="1. Sex") %>%
     pipe_label_links("link_id",fun = "count") %>%
     make_interactive_map
 ```
@@ -550,7 +550,7 @@ ll %>%
 ```{r }  
 ll %>%
     pipe_select_factors(5) %>%
-    pipe_bundle_links(group="1. Sex") %>%
+    pipe_bundle_links(field="1. Sex") %>%
     pipe_color_links("link_id",fun = "count") %>%
     pipe_scale_links("link_id",fun = "count") %>%
     pipe_label_links("link_id",fun = "count") %>%
@@ -562,7 +562,7 @@ ll %>%
 ```{r}
 ll %>%    
   pipe_find_factors(value="sed yield") %>%
-  pipe_bundle_links(group="District") %>% 
+  pipe_bundle_links(field="District") %>% 
   pipe_color_links(field="District",fun="unique") %>% 
   pipe_label_links(value="percent: link_id") %>%  
   pipe_scale_links(field="link_id",fun="count") %>%  
@@ -572,7 +572,7 @@ ll %>%
 ```{r}
 ll %>%    
   pipe_find_factors(value="sed yield") %>%
-  pipe_bundle_links(group="1. Sex") %>% 
+  pipe_bundle_links(field="1. Sex") %>% 
   pipe_color_links(field="1. Sex",fun="unique") %>% 
   pipe_label_links(field="link_id",fun="percent") %>%  
   pipe_scale_links(field="link_id",fun="count") %>%  
@@ -582,7 +582,7 @@ ll %>%
 ```{r}
 ll %>%    
   pipe_find_factors(value="sed yield") %>%
-  pipe_bundle_links(group="1. Sex") %>% 
+  pipe_bundle_links(field="1. Sex") %>% 
   pipe_color_links(field="1. Sex",fun="unique") %>% 
   pipe_label_links(field="source_id",fun="percent") %>%  
   pipe_scale_links(field="source_id",fun="percent") %>%  
@@ -593,7 +593,7 @@ ll %>%
 ```{r}
 ll %>%    
   pipe_find_factors(value="sed yield",down=0) %>%
-  pipe_bundle_links(group="1. Sex") %>% 
+  pipe_bundle_links(field="1. Sex") %>% 
   pipe_color_links(field="source_id",fun="percent") %>% 
   pipe_label_links(field="source_id",fun="percent") %>%  
   pipe_scale_links(field="source_id",fun="count") %>%  
@@ -606,7 +606,7 @@ ll %>%
 ```{r}
 ll %>%    
   pipe_find_factors(value="sed yield",down=0) %>%
-  pipe_bundle_links(group="1. Sex") %>% 
+  pipe_bundle_links(field="1. Sex") %>% 
   pipe_color_links(field="1. Sex",fun="unique") %>% 
   pipe_label_links(field="source_id",fun="surprise") %>%  
   pipe_scale_links(field="source_id",fun="count") %>%  
@@ -617,7 +617,7 @@ ll %>%
 ```{r}
 ll %>%    
   pipe_find_factors(value="sed yield",down=0) %>%
-  pipe_bundle_links(group="1. Sex") %>% 
+  pipe_bundle_links(field="1. Sex") %>% 
   pipe_label_links(field="1. Sex",fun="unique") %>% 
   pipe_color_links(field="source_id",fun="surprise") %>%  
   pipe_scale_links(field="source_id",fun="count") %>%  
@@ -646,21 +646,21 @@ ee %>%
 
 
 so %>% 
-  pipe_bundle_links(group = "source_id") %>% 
+  pipe_bundle_links(field = "source_id") %>% 
   pipe_label_links(field = "source_id",fun="literal") %>% 
   pipe_mark_links(field="source_id") %>% 
   make_print_map
 
 so %>% 
   pipe_combine_opposites() %>% 
-  pipe_bundle_links(group = "flipped_bundle") %>% 
+  pipe_bundle_links(field = "flipped_bundle") %>% 
   pipe_label_links(field = "source_id",fun="literal") %>% 
   pipe_mark_links(field="source_id") %>% 
   make_print_map
 
 ll %>% 
   pipe_select_factors(5) %>% 
-  pipe_bundle_links(group = "simple_bundle") %>% 
+  pipe_bundle_links(field = "simple_bundle") %>% 
   pipe_mark_links(field="source_id") %>% 
   make_print_map
 
@@ -710,7 +710,7 @@ e3 %>%
 
 e3 %>% 
   pipe_bundle_factors("Flooding") %>% 
-  pipe_bundle_links(group = "source_id") %>% 
+  pipe_bundle_links(field = "source_id") %>% 
   pipe_label_links(field = "source_id",fun="literal") %>% 
   pipe_show_continuity(field="source_id") %>% 
   make_print_map
@@ -738,7 +738,7 @@ so %>%
 
 so %>% 
   pipe_combine_opposites() %>% 
-  pipe_bundle_links(group = "flipped_bundle") %>% 
+  pipe_bundle_links(field = "flipped_bundle") %>% 
   pipe_show_continuity(field="source_id") %>% 
   pipe_label_links(field = "source_id",fun="unique") %>% 
   make_print_map
@@ -752,7 +752,7 @@ so %>%
 so %>% 
   pipe_combine_opposites() %>% 
   pipe_show_continuity(field="source_id") %>% 
-  pipe_bundle_links(group = "flipped_bundle") %>% 
+  pipe_bundle_links(field = "flipped_bundle") %>% 
   pipe_label_links(field = "source_id",fun="unique") %>% 
   make_print_map
 
@@ -762,7 +762,7 @@ so %>%
 ```{r}
 ll %>% 
   pipe_select_factors(5) %>% 
-  pipe_bundle_links(group = "simple_bundle") %>% 
+  pipe_bundle_links(field = "simple_bundle") %>% 
   pipe_scale_links(field = "link_id",fun="count") %>% 
   pipe_show_continuity(field="source_id") %>% 
   make_print_map
@@ -786,7 +786,7 @@ Group and label by sex and scale by count:
 ```{r }  
 ll %>%
     pipe_select_factors(5) %>%
-    pipe_bundle_links(group="1. Sex") %>%
+    pipe_bundle_links(field="1. Sex") %>%
     pipe_scale_links("link_id",fun = "count") %>%
     pipe_label_links("1. Sex",fun = "unique") %>%
     pipe_color_links("1. Sex",fun = "unique") %>%
@@ -797,7 +797,7 @@ ll %>%
     pipe_select_factors(5) %>%
     pipe_find_links(field = "statement_id",value=90,operator="greater") %>%
     pipe_find_links(field = "statement_id",value=290,operator="less") %>%
-    pipe_bundle_links(group="1. Sex") %>%
+    pipe_bundle_links(field="1. Sex") %>%
     pipe_scale_links("link_id",fun = "count") %>%
     pipe_label_links("source_id",fun = "unique") %>%
     pipe_color_links("1. Sex",fun = "unique") %>%
@@ -832,7 +832,7 @@ tt %>%
 ```{r }  
 tt %>%
     pipe_zoom_factors(1) %>%
-  pipe_bundle_links(group="simple_bundle") %>% 
+  pipe_bundle_links(field="simple_bundle") %>% 
   pipe_label_links(field="source_id",fun = "count") %>% 
   pipe_wrap_factors() %>% 
     make_print_map 

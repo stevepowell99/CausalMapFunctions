@@ -1926,6 +1926,105 @@ calculate_robustness_inner <- function(graf){
 unwrap <- function(str){
   str_replace_all(str,"\n"," ")
 }
+
+fill_cols <- function(df,colnames){
+  df[,setdiff(colnames, colnames(df))]=0
+  df
+}
+
+fill_rows <- function(df,rownames){
+  df[setdiff(rownames, rownames(df)),]=0
+  df
+}
+
+make_empty_graf <- function(graf){
+  graf %>% pipe_update_mapfile(factors=graf$factors %>% filter(F))
+}
+
+# deconstructs then reconstructs the groups same as they were, including the group nominators which have
+# already been calculated; simply adds the group baseline to each group
+get_percentages <- function(links,field){
+  groupvars <- group_vars(links)
+  groupvar <- groupvars %>% keep(.!="from" & .!="to")
+
+  links %>%
+    ungroup() %>%
+    group_by(!!(sym(groupvar))) %>%
+    mutate(group_baseline=length(unique(!!(sym(field))))) %>%
+    ungroup() %>%
+    group_by(!!!(syms(groupvars)))
+}
+
+### different from percentages as the group nominators are going to get overwritten; it is the std residuals only which matter
+get_surprises <- function(links,field){
+  groupvars <- group_vars(links)
+  groupvar <- groupvars %>% keep(.!="from" & .!="to")
+
+
+
+  stats_by_group <-
+    links %>%
+    select(from,to,!!(sym(groupvar)),!!(sym(field))) %>%
+    # need to fill in missing combinations
+    ungroup() %>%
+    complete(from,to,!!(sym(groupvar))) %>%
+    group_by(!!(sym(groupvar))) %>%
+    mutate(group_baseline=length(unique(!!(sym(field))))) %>%
+    ungroup() %>%
+    group_by(!!!(syms(groupvars))) %>%
+    summarise(baseline=first(group_baseline),
+              actual=length(unique(!!(sym(field)))),
+              nonactual=baseline-actual) %>%
+    group_by(from,to) %>%
+    mutate(stdres=get_stdres(actual,nonactual)) %>%
+    select(!!!(syms(groupvars)),stdres)
+  # browser()
+
+  links %>%
+    left_join(stats_by_group,by=groupvars)
+  # ungroup() %>%
+
+}
+
+get_field <- function(links,field,idlist){
+  links %>%
+    filter(link_id %in% unlist(idlist)) %>%
+    pull(UQ(sym(field))) %>%
+    unlist
+  # %>%
+  #   replace_zero("not found")
+
+}
+
+make_arrowhead=function(vec,dir="forwards"){
+  vec <- as.numeric(vec)
+  vec %>%
+    map(~{
+      case_when(
+        .==0 ~ "obox",
+        .==1 ~ "box",
+        .>.5 ~ "lbox",
+        .<=.5 ~ "olbox",
+        T    ~ "",
+      ) %>%
+        {if(dir=="forwards") paste0("veenonenone",.) else paste0("nonenone",.)}
+    }) %>%
+    as.character() %>%
+    replace_na("")
+}
+
+get_stdres <- function(actual,nonactual,sig=1){
+  # browser()
+  matrix <- rbind(actual,nonactual) %>% as.matrix(nrow=2)
+  if(any(matrix<0)) stop("neg values in stdres")
+  matrix[matrix<0] <- 0   ###################### NONONONO
+  # browser()
+  ch <- chisq.test(matrix,simulate.p.value = T)
+  if(ch$p.value<sig)(ch$stdres %>% as.matrix(nrow=2))[1,] else rep(0,ncol(matrix))
+
+}
+
+
 find_fun <- function(df,field=NULL,value,operator=NULL,what){
   # browser()
   if(is.null(field) & is.null(operator)){
@@ -2526,9 +2625,6 @@ pipe_bundle_factors <- function(graf,value=""){
 }
 
 
-make_empty_graf <- function(graf){
-  graf %>% pipe_update_mapfile(factors=graf$factors %>% filter(F))
-}
 
 #' Trace robustness
 #'
@@ -2750,16 +2846,6 @@ pipe_calculate_robustness <- function(graf){
 
 }
 
-fill_cols <- function(df,colnames){
-  df[,setdiff(colnames, colnames(df))]=0
-  df
-}
-
-fill_rows <- function(df,rownames){
-  df[setdiff(rownames, rownames(df)),]=0
-  df
-}
-
 
 #' pipe_combine_opposites
 #'
@@ -2799,31 +2885,6 @@ pipe_combine_opposites <- function(graf,flipchar="~",add_colors=T){
 
 }
 
-
-
-#' Merge statements into links
-#'
-#' @inheritParams parse_commands
-#'
-#' @return A tidymap in which columns from the statements table are merged into the links table.
-#' @export
-#'
-#' @examples
-#'cashTransferMap %>% pipe_merge_statements() %>% pipe_find_links(field="text",value="women",operator="contains")
-#'cashTransferMap %>% pipe_find_statements(field="text",value="women",operator="contains")
-pipe_merge_statements <- function(graf){
-  warning("deprecated!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-  statements <- statements_table(graf) %>%
-    left_join_safe(sources_table(graf)) %>% suppressMessages %>%
-    left_join_safe(questions_table(graf)) %>% suppressMessages
-
-  links <- links_table(graf) %>%
-    left_join_safe(statements) %>% suppressMessages # ,by="statement_id") %>% otherwise when this is repeated, you get loads of cols
-
-  # browser()
-  pipe_update_mapfile(graf,links=links,statements=statements )
-
-}
 
 #' Pipe merge map
 #' @inheritParams parse_commands
@@ -2883,7 +2944,7 @@ pipe_remove_brackets <- function(graf,value="["){
 #' if(F)cashTransferMap %>% pipe_merge_statements() %>%  pipe_select_factors(10) %>% pipe_bundle_links(counter="frequency",group="1. Sex")%>% pipe_label_links(field = "frequency") %>% pipe_color_links(field="1. Sex") %>% pipe_scale_links() %>%  make_print_map()
 #' # or, counting sources rather than statements:
 #' if(F)cashTransferMap %>% pipe_merge_statements() %>%  pipe_select_factors(10) %>% pipe_bundle_links(group="1. Sex",counter="#SourceID")%>% pipe_label_links(field = "frequency") %>% pipe_color_links(field="1. Sex") %>% pipe_scale_links() %>%  make_print_map()
-pipe_bundle_links <- function(graf,group=NULL){
+pipe_bundle_links <- function(graf,field=NULL,group=field){
   links <- graf$links %>% ungroup
   coln <- colnames(links)
   if(group %>% replace_null("from") %notin% coln) {notify("no such counter");return(graf)}else
@@ -2900,61 +2961,6 @@ pipe_bundle_links <- function(graf,group=NULL){
 }
 }
 
-# deconstructs then reconstructs the groups same as they were, including the group nominators which have
-# already been calculated; simply adds the group baseline to each group
-get_percentages <- function(links,field){
-  groupvars <- group_vars(links)
-  groupvar <- groupvars %>% keep(.!="from" & .!="to")
-
-  links %>%
-    ungroup() %>%
-    group_by(!!(sym(groupvar))) %>%
-    mutate(group_baseline=length(unique(!!(sym(field))))) %>%
-    ungroup() %>%
-    group_by(!!!(syms(groupvars)))
-}
-
-### different from percentages as the group nominators are going to get overwritten; it is the std residuals only which matter
-get_surprises <- function(links,field){
-  groupvars <- group_vars(links)
-  groupvar <- groupvars %>% keep(.!="from" & .!="to")
-
-
-
-  stats_by_group <-
-    links %>%
-    select(from,to,!!(sym(groupvar)),!!(sym(field))) %>%
-  # need to fill in missing combinations
-    ungroup() %>%
-    complete(from,to,!!(sym(groupvar))) %>%
-    group_by(!!(sym(groupvar))) %>%
-    mutate(group_baseline=length(unique(!!(sym(field))))) %>%
-    ungroup() %>%
-    group_by(!!!(syms(groupvars))) %>%
-    summarise(baseline=first(group_baseline),
-              actual=length(unique(!!(sym(field)))),
-              nonactual=baseline-actual) %>%
-    group_by(from,to) %>%
-    mutate(stdres=get_stdres(actual,nonactual)) %>%
-    select(!!!(syms(groupvars)),stdres)
-  # browser()
-
-  links %>%
-    left_join(stats_by_group,by=groupvars)
-    # ungroup() %>%
-
-}
-
-get_stdres <- function(actual,nonactual,sig=1){
-  # browser()
-  matrix <- rbind(actual,nonactual) %>% as.matrix(nrow=2)
-  if(any(matrix<0)) stop("neg values in stdres")
-  matrix[matrix<0] <- 0   ###################### NONONONO
-  # browser()
-  ch <- chisq.test(matrix,simulate.p.value = T)
-  if(ch$p.value<sig)(ch$stdres %>% as.matrix(nrow=2))[1,] else rep(0,ncol(matrix))
-
-}
 
 #' Scale factors
 #'
@@ -3220,15 +3226,6 @@ pipe_mark_links <- function(graf,field="source_id",add_field_name=F,show_number=
   graf %>% pipe_update_mapfile(links=links)
 }
 
-get_field <- function(links,field,idlist){
-  links %>%
-    filter(link_id %in% unlist(idlist)) %>%
-    pull(UQ(sym(field))) %>%
-    unlist
-  # %>%
-  #   replace_zero("not found")
-
-}
 
 #' Title
 #'
@@ -3297,22 +3294,6 @@ pipe_show_continuity <- function(graf,field="source_id",type="arrowtype"){
   graf %>% pipe_update_mapfile(links=links)
 }
 
-make_arrowhead=function(vec,dir="forwards"){
-  vec <- as.numeric(vec)
-  vec %>%
-    map(~{
-      case_when(
-        .==0 ~ "obox",
-        .==1 ~ "box",
-        .>.5 ~ "lbox",
-        .<=.5 ~ "olbox",
-        T    ~ "",
-      ) %>%
-        {if(dir=="forwards") paste0("veenonenone",.) else paste0("nonenone",.)}
-    }) %>%
-    as.character() %>%
-    replace_na("")
-}
 
 #' Color factors (background color)
 #'
@@ -4183,5 +4164,34 @@ get_robustness <- function(graf){
    attr(graf$links,"flow")$summary
 }
 
+
+
+
+# deprecated --------------------------------------------------------------
+
+
+#' Merge statements into links
+#'
+#' @inheritParams parse_commands
+#'
+#' @return A tidymap in which columns from the statements table are merged into the links table.
+#' @export
+#'
+#' @examples
+#'cashTransferMap %>% pipe_merge_statements() %>% pipe_find_links(field="text",value="women",operator="contains")
+#'cashTransferMap %>% pipe_find_statements(field="text",value="women",operator="contains")
+pipe_merge_statements <- function(graf){
+  warning("deprecated!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+  statements <- statements_table(graf) %>%
+    left_join_safe(sources_table(graf)) %>% suppressMessages %>%
+    left_join_safe(questions_table(graf)) %>% suppressMessages
+
+  links <- links_table(graf) %>%
+    left_join_safe(statements) %>% suppressMessages # ,by="statement_id") %>% otherwise when this is repeated, you get loads of cols
+
+  # browser()
+  pipe_update_mapfile(graf,links=links,statements=statements )
+
+}
 
 
