@@ -1,5 +1,5 @@
 ---
-htitle: "Causal Map Functions Vignette"
+title: "Causal Map Functions Vignette"
 author: "Steve Powell"
 date: "24/09/2021"
 output:
@@ -17,9 +17,11 @@ output:
 options(dplyr.summarise.inform = FALSE)
 library(CausalMapFunctions)
 library(knitr)
+library(htmltools)
 library(kableExtra)
+library(scales)
 knitr::opts_chunk$set(echo = TRUE)
-#source("../R/functions.R")################################
+source("../R/functions.R")################################
 
 pp=function(x,N=99){
   print(x,n=N)
@@ -120,7 +122,7 @@ ll %>%
 ### Merging two maps 
 
 ```{r }  
-merge_mapfile(ee,tt %>% pipe_select_factors(top=8)) %>% 
+if(T)merge_mapfile(ee,tt %>% pipe_select_factors(top=8)) %>% 
   pipe_color_factors(field="map_id") %>% 
   pipe_color_links(field="map_id",fun="unique") %>% 
   make_interactive_map
@@ -131,7 +133,7 @@ Note warning if factor labels are shared
 
 
 ```{r }  
-load_premap("example2") %>%
+if(T)load_premap("example2") %>%
   pipe_coerce_mapfile %>% 
   pipe_merge_mapfile("example2") %>% 
   pipe_color_factors(field="map_id") %>% 
@@ -517,7 +519,7 @@ Note the default for `bundle_links` is equivalent to simple_bundle:
 ll %>%
     pipe_find_factors(value="economic") %>%
     pipe_select_factors(5) %>%
-    pipe_bundle_links(field="simple_bundle") %>%
+    pipe_bundle_links(group="simple_bundle") %>%
     pipe_label_links() %>%
     make_interactive_map
 
