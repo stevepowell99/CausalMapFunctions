@@ -315,14 +315,19 @@ notify <- notify # alias
 
 
 bind_rows_safe <- function(x,y,...){
-
   if(is.null(x) & is.null(y))return(NULL)
   if(is.null(x))return(y)
   if(is.null(y))return(x)
 
+
+  x <- x %>% select(where(~!is_list(.))) # drop any list columns
+  y <- y %>% select(where(~!is_list(.)))
+
   by=intersect(colnames(x),colnames(y))
   if(is.null(by))return()
   for(i in seq_along(by)){
+    # message(by[i])
+# if(by[i]=="before_id") browser()
     y[,by[i]] <- coerceValue(unlist(y[,by[i]]),unlist(x[,by[i]]))
   }
   bind_rows(x,y,...)
@@ -1059,7 +1064,6 @@ merge_mapfile <- function(map1,map2){
   # map2 <- graf2# %>% pipe_clean_map() #  clean map will put the important vars to integer.
 
   # browser()
-# browser()
   maxfactorid <- max(as.numeric(map1$factors$factor_id))
   maxstatementid <- max(as.numeric(map1$statements$statement_id))
 
@@ -1075,6 +1079,7 @@ merge_mapfile <- function(map1,map2){
   if(any(map1$factors$label %in% map2$factors$label)    |
      any(map2$factors$label %in% map1$factors$label)) warning("Factor labels are shared!")
 
+# browser()
 assemble_mapfile(
 
     factors=map1$factors %>%
@@ -1086,7 +1091,8 @@ assemble_mapfile(
       bind_rows_safe(map2$links %>%
                       mutate(map_id=maxmapid+1) %>%
                       mutate(from=from+maxfactorid,to=to+maxfactorid) %>%
-                      mutate(statement_id=statement_id+maxstatementid) ) %>%
+                      mutate(statement_id=statement_id+maxstatementid)
+                     ) %>%
   mutate(link_id=row_number()),
     statements=map1$statements  %>%
       bind_rows_safe(map2$statements %>%
