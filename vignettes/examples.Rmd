@@ -21,7 +21,7 @@ library(htmltools)
 library(kableExtra)
 library(scales)
 knitr::opts_chunk$set(echo = TRUE)
-source("../R/functions.R")################################
+#source("../R/functions.R")################################
 
 pp=function(x,N=99){
   print(x,n=N)
@@ -460,7 +460,7 @@ ee %>%
 ```
 
 
-## Link labels
+## Label links
 
 ```{r }  
 e3 %>%
@@ -481,6 +481,11 @@ e3 %>%
   pipe_bundle_links() %>% 
   pipe_label_links("link_id",fun = "literal") %>%
   pipe_label_links("from_label",fun = "literal",clear_previous = F) %>%
+  make_interactive_map
+
+e3 %>%
+  pipe_bundle_links() %>% 
+  parse_commands("label links field=statement_id fun=unique clear_previous=F") %>%
   make_interactive_map
 
 

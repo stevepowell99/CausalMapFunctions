@@ -3098,8 +3098,8 @@ pipe_label_links <- function(graf,field="link_id",fun="count",value=NULL,add_fie
     add_field_name <- as.logical(add_field_name)
     clear_previous <- as.logical(clear_previous)
   }
-
   # clear=as.logical(clear)
+  clear_previous=as.logical(clear_previous)
   if(field %notin% link_colnames(graf)){warning("No such column");return(graf)}
   oldfun <- fun
   fun <- full_function_name(graf,fun)
