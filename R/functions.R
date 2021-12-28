@@ -4079,7 +4079,7 @@ make_print_map <- function(
   grv <-
     DiagrammeR::create_graph() %>%
     add_nodes_from_table(factors  %>% mutate(id=row_number()),label_col="label") %>%
-    add_edges_from_table(links,from_col="from",to_col="to",from_to_map = id_external) %>%
+    {if(nrow(links)>0) add_edges_from_table(.,links,from_col="from",to_col="to",from_to_map = id_external) else .}%>%
 
     add_global_graph_attrs("label", graph_title, "graph") %>%
     add_global_graph_attrs("layout", grv_layout, "graph") %>%
