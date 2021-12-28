@@ -92,10 +92,14 @@ If you filter the statements of a mapfile, e.g. show only statements with texts 
 
 
 ```{r }
-  # ll <- quip_example
+# ll <- quip_example
   # ee <- example2
-  ee <- load_premap("example2")%>% pipe_coerce_mapfile 
-  hz <- load_premap("health-zoom")%>% pipe_coerce_mapfile 
+  ee <- load_premap("example2")%>% pipe_coerce_mapfile
+```
+
+
+```{r }
+hz <- load_premap("health-zoom")%>% pipe_coerce_mapfile 
   so <- load_premap("stress-opposites")%>% pipe_coerce_mapfile 
   tt <- load_premap("cm1/tearfund-sl")%>% pipe_coerce_mapfile
   ll <- load_premap("quip-coded")%>% pipe_coerce_mapfile
@@ -226,16 +230,29 @@ ll %>%
     make_interactive_map
 ```
 
-Case insensitive
+
+#### Zero up and down
 
 ```{r }  
 ee %>%
-    pipe_find_factors(value="business") %>%
+    pipe_find_factors(value="rainfall",up=0,down=0,remove_isolated = T) %>%
+    make_interactive_map
+ee %>%
+    pipe_find_factors(value="rainfall",up=0,down=0,remove_isolated = F) %>%
     make_interactive_map
 
 ```
 
-Should these work?
+#### Case insensitive
+
+```{r }  
+ee %>%
+    pipe_find_factors(value="business|property") %>%
+    make_interactive_map
+
+```
+
+#### Should these work?
 
 ```{r }  
 ee %>%

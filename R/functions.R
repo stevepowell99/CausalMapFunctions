@@ -585,7 +585,7 @@ pipe_coerce_mapfile <- function(tables){
 
     if("factor_id" %notin% colnames(factors))  factors <-  factors %>%
         mutate(factor_id=row_number())
-    if(is.infinite(max(as.numeric(factors$factor_id))))  factors <-  factors %>%
+    if(suppressWarnings(is.infinite(max(as.numeric(factors$factor_id)))))  factors <-  factors %>%
         mutate(factor_id=row_number())
 
 
@@ -2383,10 +2383,10 @@ parse_commands <- function(graf=NULL,tex){
 #' pipe_find_factors(cashTransferMap,field="label",value="Cash",operator="contains")
 #' pipe_find_factors(cashTransferMap,field="id",value=10,operator="greater")
 #' pipe_find_factors(cashTransferMap,NULL,"purchase OR buy")
-pipe_find_factors <- function(graf,field="label",value,operator="contains",up=1,down=1,remove_isolated=T,highlight_only=F){
-# browser()
+pipe_find_factors <- function(graf,field="label",value,operator="contains",up=1,down=1,remove_isolated=F,highlight_only=F){
     # st <- attr(graf,"statements")
   df <- graf$factors %>% find_fun(field,value,operator)
+# browser()
   # pager <- df %>% attr("pager")
 
   if(df$found %>% sum %>% `==`(0)) return(pipe_update_mapfile(graf,factors=graf$factors %>% filter(F),links=graf$links %>% filter(F)))
