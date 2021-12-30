@@ -4,7 +4,7 @@ pkgdown_sha: ~
 articles:
   CausalMapFunctions: CausalMapFunctions.html
   examples: examples.html
-last_built: 2021-12-30T12:24Z
+last_built: 2021-12-30T12:43Z
 urls:
   reference: https://stevepowell99.github.io/CausalMapFunctions/reference
   article: https://stevepowell99.github.io/CausalMapFunctions/articles

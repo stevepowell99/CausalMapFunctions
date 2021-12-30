@@ -55,7 +55,8 @@ attr(graf,"meta") %>%
   map(~print_inner_filter(.) %>% 
       str_trim %>% 
       div(style=";")
-  ) %>% div(a("Link",href=paste0("https://causalmap.shinyapps.io/CausalMap2?story=",story,filters)),style="padding:10px;background-color:aliceblue;")
+  ) %>% div(style="padding:10px;background-color:aliceblue;")
+  # ) %>% div(a("Link",href=paste0("https://causalmap.shinyapps.io/CausalMap2?story=",story,filters)),style="padding:10px;background-color:aliceblue;")
 }
 
 make_interactive_map <- function(graf){
