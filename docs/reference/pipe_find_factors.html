@@ -70,7 +70,7 @@ When field is 'label', 'value' can contain a vector of search terms separated by
   operator <span class="op">=</span> <span class="st">"contains"</span>,
   up <span class="op">=</span> <span class="fl">1</span>,
   down <span class="op">=</span> <span class="fl">1</span>,
-  remove_isolated <span class="op">=</span> <span class="cn">T</span>,
+  remove_isolated <span class="op">=</span> <span class="cn">F</span>,
   highlight_only <span class="op">=</span> <span class="cn">F</span>
 <span class="op">)</span></code></pre></div>
     </div>
@@ -91,7 +91,7 @@ How to search.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A tidymap containing only matching factors; if `up`!=0 then also factors this number of steps
+    <p>A mapfile containing only matching factors; if `up`!=0 then also factors this number of steps
 upstream of the matching factors are also included and likewise for `down`!=0.
 The links are filtered correspondingly to return only the "ego network" i.e. links between the returned factors.
 If operator and field are both NULL, the value is treated as a simple search string for the field `label`.</p>
@@ -100,13 +100,13 @@ If operator and field are both NULL, the value is treated as a simple search str
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span class="fu">pipe_find_factors</span><span class="op">(</span><span class="va">cashTransferMap</span>,<span class="cn">NULL</span>,<span class="st">"Cash"</span><span class="op">)</span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in find_fun(., field, value, operator):</span> object 'cashTransferMap' not found</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in make_meta(graf, as.list(match.call())):</span> object 'cashTransferMap' not found</span>
 <span class="r-in"><span class="fu">pipe_find_factors</span><span class="op">(</span><span class="va">cashTransferMap</span>,field<span class="op">=</span><span class="st">"label"</span>,value<span class="op">=</span><span class="st">"Cash"</span>,operator<span class="op">=</span><span class="st">"contains"</span><span class="op">)</span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in find_fun(., field, value, operator):</span> object 'cashTransferMap' not found</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in make_meta(graf, as.list(match.call())):</span> object 'cashTransferMap' not found</span>
 <span class="r-in"><span class="fu">pipe_find_factors</span><span class="op">(</span><span class="va">cashTransferMap</span>,field<span class="op">=</span><span class="st">"id"</span>,value<span class="op">=</span><span class="fl">10</span>,operator<span class="op">=</span><span class="st">"greater"</span><span class="op">)</span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in find_fun(., field, value, operator):</span> object 'cashTransferMap' not found</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in make_meta(graf, as.list(match.call())):</span> object 'cashTransferMap' not found</span>
 <span class="r-in"><span class="fu">pipe_find_factors</span><span class="op">(</span><span class="va">cashTransferMap</span>,<span class="cn">NULL</span>,<span class="st">"purchase OR buy"</span><span class="op">)</span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in find_fun(., field, value, operator):</span> object 'cashTransferMap' not found</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in make_meta(graf, as.list(match.call())):</span> object 'cashTransferMap' not found</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>

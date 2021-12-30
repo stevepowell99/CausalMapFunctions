@@ -75,14 +75,12 @@
 <p>Load example data:</p>
 <pre><code><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org/reference/remote-reexports.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"stevepowell99/CausalMapFunctions"</span><span class="op">)</span>
 <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://stevepowell99.github.io/CausalMapFunctions">CausalMapFunctions</a></span><span class="op">)</span>
-<span class="va">cashTransferMap</span></code></pre>
+<span class="va">example2</span></code></pre>
 <p>Visualise it:</p>
-<pre><code><span class="va">cashTransferMap</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="va">make_vn</span></code></pre>
-<p>These functions are used in the <a href="https://causalmap.shinyapps.io/CausalMapViewer/" class="external-link">Causal Map Viewer</a> and are similar to those used in the <a href="http://causalmap.app" class="external-link">Causal Map app</a>. In our roadmap, these functions will eventually replace their counterparts in the Causal Map app.</p>
-<p>The main functions input and output augmented <a href="https://github.com/thomasp85/tidygraph" class="external-link">tidygraph</a> graphs. The package defines a kind of object called a tidymap which is just a tidygraph but with additional statements, sources and questions tables stored as attributes. This means that a tidymap has class = “tidymap” “tbl_graph” “igraph”, so igraph functions can be applied to it.</p>
-<p>Statement tables are used in Causal Map as the underlying data which is to be coded into causal links. So each link refers to a quote from a particular statement. Statements are optional and this package can be used without them. (If you know Tidygraph, You might expect an <code>activate(statements)</code> command but this is not implemented yet.)</p>
-<p>The package also contains some UI functions used in the Causal Map Viewer which provide plot and table outputs.</p>
-<p>In this package, nodes are called <code>factors</code> and the edges are called <code>links</code>.</p>
+<pre><code><span class="va">example2</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="va">make_interactive_map</span></code></pre>
+<p>These functions are used in the <a href="https://causalmap.shinyapps.io/CausalMap2/" class="external-link">Causal Map App</a>.</p>
+<p>There is more documentation of the functions in our <a href="articles/examples.html">Vignette</a>.</p>
+<p>There is extensive documentation of the app in our <a href="https://guide.causalmap.app/" class="external-link">Guide</a>.</p>
 <div class="section level2">
 <h2 id="motivation">Motivation<a class="anchor" aria-label="anchor" href="#motivation"></a>
 </h2>
@@ -100,49 +98,9 @@
 </h2>
 <ul>
 <li>As well as an interactive map, the package wraps DiagrammeR and igraph to produce left-to-right layouts which are particularly suitable for directed maps.</li>
-<li>The new metric <code>Path robustness</code> is implemented alongside familiar node and graph metrics.</li>
+<li>The package provides many new tools for analysing and aggregating causal maps such as <code>Path robustness</code>, alongside familiar node and graph metrics.</li>
 <li>For hierarchical coding, tools are provided to zoom in and out of individual hierarchies and entire maps.</li>
 </ul>
-</div>
-<div class="section level2">
-<h2 id="how-it-works">How it works<a class="anchor" aria-label="anchor" href="#how-it-works"></a>
-</h2>
-<p>A family of functions <code>pipe_*</code> are provided (manipulate, calculate, hide, combine…) to implement successive filtering operations on a tidymap. All these operations do not actually change the data.</p>
-<p>So you import/load data as a tidymap and all your work steps are then just applying successive filters.</p>
-<p>Each filter returns another tidymap, suitably filtered.</p>
-<p>All of these filters can be produced and edited either in a chain of actual R functions or in the simplified format which is processed by the parser.</p>
-<p>If you filter the factors of a tidymap, e.g. show only factors with labels beginning xyz,</p>
-<ul>
-<li>also the links are filtered (removing links to removed factors)</li>
-<li>the statements are not touched</li>
-</ul>
-<p>If you filter the links of a tidymap, e.g. show only links with hashtags containing xyz,</p>
-<ul>
-<li>the factors are not filtered (but using a different command you can remove any factors which no longer have any links)</li>
-<li>the statements are not touched</li>
-</ul>
-<p>If you filter the statements of a tidymap, e.g. show only statements with texts containing xyz,</p>
-<ul>
-<li>also the links are filtered (removing links to removed statements)</li>
-<li>the factors are filtered</li>
-</ul>
-<p>So your workflow is always:</p>
-<p>Import or load a tidymap / Filter it / Filter it / Filter it / Output an interactive map, a print map or a table.</p>
-</div>
-<div class="section level2">
-<h2 id="parser">Parser<a class="anchor" aria-label="anchor" href="#parser"></a>
-</h2>
-<p>There is also a parser which takes text strings with a simpler command syntax as input and outputs one of these main functions for each line of text. This parser is used to read text commands from the input window in Causal Map Viewer and manipulate the output map with the corresponding functions. The input text can also consist of several lines, and the commands are applied one by one in sequence, in a pipeline of commands, such that after each command, such as each command starts with the map defined by the previous line and produces a new one.</p>
-</div>
-<div class="section level2">
-<h2 id="output-functions">Output functions<a class="anchor" aria-label="anchor" href="#output-functions"></a>
-</h2>
-<p>There are three output functions which are thin wrappers around visNetwork, DiagrammeR and DT, allowing a graph to be displayed using any of these three visualisation engines.</p>
-<div class="section level3">
-<h3 id="additional-fields">Additional fields<a class="anchor" aria-label="anchor" href="#additional-fields"></a>
-</h3>
-<p>Some of the commands such as path tracing create additional fields or variables for each factor and/or link. For example, when filtering by label, fields are created which can then be used to apply formatting.</p>
-</div>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">

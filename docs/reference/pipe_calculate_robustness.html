@@ -72,7 +72,7 @@ to each of the factors for which `found_to` is true.</p>
     <div class="section level2">
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
     <dl><dt>graf</dt>
-<dd><p>A tidymap. To use this function, the factors table of this map must include
+<dd><p>A mapfile. To use this function, the factors table of this map must include
 two logical variables called `found_from` and `found_to`.
 If the links table contains an integer column `n`,
 these values are treated as the capacity of the links, otherwise the capacity for each link is taken as 1.
@@ -83,7 +83,7 @@ bundle_links()</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A tidymap with an additional attribute `flow`, a tibble (dataframe) in which
+    <p>A mapfile with an additional attribute `flow`, a tibble (dataframe) in which
 the columns are each of the factors for which `found_from` is true (if there is
 more than one such column, and additional "All sources" column is prepended);
 and in which the rows are each of the factors for which `found_to` is true (if there is

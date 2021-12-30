@@ -63,14 +63,14 @@
     <div class="section level2">
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
     <dl><dt>graf</dt>
-<dd><p>A tidymap representing a causal map.
-A tidymap is a tidygraph, which consists of a table of edges linked to a table of nodes,
+<dd><p>A mapfile representing a causal map.
+A mapfile is a tidygraph, which consists of a table of edges linked to a table of nodes,
 with an optional additional table of statements.
 In this package, nodes are called `factors` and edges are called `links.`</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A tidymap in which columns from the statements table are merged into the links table.</p>
+    <p>A mapfile in which columns from the statements table are merged into the links table.</p>
     </div>
 
     <div class="section level2">
@@ -79,7 +79,7 @@ In this package, nodes are called `factors` and edges are called `links.`</p></d
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>deprecated!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!</span>
 <span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in graf$questions %&gt;% {    if (is.null(.))         NULL    else {        if (filter)             filter(., question_id %in% statements_table(graf)$question_id)        else .    }}:</span> object 'cashTransferMap' not found</span>
 <span class="r-in"><span class="va">cashTransferMap</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu"><a href="pipe_find_statements.html">pipe_find_statements</a></span><span class="op">(</span>field<span class="op">=</span><span class="st">"text"</span>,value<span class="op">=</span><span class="st">"women"</span>,operator<span class="op">=</span><span class="st">"contains"</span><span class="op">)</span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in find_fun(., field, value, operator):</span> object 'cashTransferMap' not found</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in make_meta(graf, as.list(match.call())):</span> object 'cashTransferMap' not found</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>

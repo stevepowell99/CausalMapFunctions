@@ -26,6 +26,9 @@ pp=function(x,N=99){
   print(x,n=N)
 }
 
+replace_null <- function(x,replacement=0){
+  if(is.null(x)) replacement else x
+}
 
 
 print_inner_filter <- function(xx){
@@ -42,19 +45,25 @@ tibble(names=nams,vals=unlist(xx)) %>%
   paste0(fil," ",.)
 }
 print_filter <- function(graf){
+  # browser()
+  if(is.null(attr(graf,"meta")))return()
+story <- attr(graf,"meta")[[1]] %>% keep(~str_detect(.,"^load_mapfile")) %>% unlist %>% str_remove("load_mapfile *path=")
+input_ace <- attr(graf,"meta") %>% list_modify("load_mapfile" = NULL) %>% unlist %>% keep(.!=".") %>% map(~str_remove_all(.,"^pipe_") %>% str_replace("_"," ")) %>%  paste0(collapse = "\n")
+filters <- paste0("&filters=",URLencode(input_ace %>% replace_null(""),reserved=T))
+# browser()
 attr(graf,"meta") %>% 
-map(~print_inner_filter(.) %>% 
-    str_trim %>% 
-    div(style=";")
-) %>% div(style="padding:10px;background-color:aliceblue;")
+  map(~print_inner_filter(.) %>% 
+      str_trim %>% 
+      div(style=";")
+  ) %>% div(a("Link",href=paste0("https://causalmap.shinyapps.io/CausalMap2?story=",story,filters)),style="padding:10px;background-color:aliceblue;")
 }
 
-# make_interactive_map <- function(graf){
-#   tagList(print_filter(graf),CausalMapFunctions::make_interactive_map(graf))
-# }
-# make_print_map <- function(graf){
-#   tagList(print_filter(graf),CausalMapFunctions::make_print_map(graf))
-# }
+make_interactive_map <- function(graf){
+  tagList(print_filter(graf),CausalMapFunctions::make_interactive_map(graf))
+}
+make_print_map <- function(graf){
+  tagList(print_filter(graf),CausalMapFunctions::make_print_map(graf))
+}
 
 ```
 
@@ -112,6 +121,8 @@ example2 %>% make_interactive_map
 
 ```
 
+
+
 Your input mapfile should have the standard Causal Map [format](guide.causalmap.app/core-tables.html): you can see an example by downloading any of the files in Causal Map on the web.
 
 
@@ -122,18 +133,6 @@ Your input mapfile should have the standard Causal Map [format](guide.causalmap.
 # ll <- quip_example
   # ee <- example2
   ee <- load_mapfile("example2")%>% pipe_coerce_mapfile
-```
-
-
-```{r }
-hz <- load_mapfile("health-zoom")%>% pipe_coerce_mapfile 
-  so <- load_mapfile("stress-opposites")%>% pipe_coerce_mapfile 
-  tt <- load_mapfile("cm1/tearfund-sl")%>% pipe_coerce_mapfile
-  ll <- load_mapfile("quip-coded")%>% pipe_coerce_mapfile
-  oo <- load_mapfile("organisation1coded")%>% pipe_coerce_mapfile
-  e3 <- load_mapfile("example3-path-tracing")%>% pipe_coerce_mapfile
-  mm <- load_mapfile("save-the-children-mozambique-copy")%>% pipe_coerce_mapfile
-  hh <- load_mapfile("hannahcombiningopposites-sp-test")%>% pipe_coerce_mapfile
 ```
 
 ## Basic examples
@@ -152,6 +151,18 @@ hz <- load_mapfile("health-zoom")%>% pipe_coerce_mapfile
   ee %>%
     pipe_set_print(grv_layout="circo") %>%
     make_print_map()
+```
+
+
+```{r }
+hz <- load_mapfile("health-zoom")%>% pipe_coerce_mapfile 
+  so <- load_mapfile("stress-opposites")%>% pipe_coerce_mapfile 
+  tt <- load_mapfile("cm1/tearfund-sl")%>% pipe_coerce_mapfile
+  ll <- load_mapfile("quip-coded")%>% pipe_coerce_mapfile
+  oo <- load_mapfile("organisation1coded")%>% pipe_coerce_mapfile
+  e3 <- load_mapfile("example3-path-tracing")%>% pipe_coerce_mapfile
+  mm <- load_mapfile("save-the-children-mozambique-copy")%>% pipe_coerce_mapfile
+  hh <- load_mapfile("hannahcombiningopposites-sp-test")%>% pipe_coerce_mapfile
 ```
 
 
@@ -262,7 +273,7 @@ ee %>%
 
 ```{r }  
 ee %>%
-    pipe_find_factors(value=c("sea", "High"),operator="notcontains") %>%
+    pipe_find_factors(value="sea OR High",operator="notcontains") %>%
     make_interactive_map
 
 ```
@@ -289,7 +300,7 @@ ee %>% pipe_find_statements(value="1",operator="notequals",field="statement_id")
 
 ```{r }  
 ee %>%
-    pipe_find_factors(value=c("Coastal erosion"),operator="notequals") %>%
+    pipe_find_factors(value="Coastal erosion",operator="notequals") %>%
     make_interactive_map
 
 ```
@@ -301,7 +312,7 @@ Does work:
 
 ```{r }  
 ee %>%
-    pipe_find_factors(value=c("business", "property")) %>%
+    pipe_find_factors(value="business OR property") %>%
     make_interactive_map
 
 ```
@@ -941,7 +952,7 @@ ee %>%
 cat("Should this be possible?")
 
 ee %>%    
-  pipe_trace_paths(from = "High",to=c("Property","Business"),length = 5) %>% 
+  pipe_trace_paths(from = "High",to="Property OR Business",length = 5) %>% 
   make_interactive_map
 
 tt %>%
