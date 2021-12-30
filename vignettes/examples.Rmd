@@ -1,7 +1,6 @@
 ---
 title: "Causal Map Functions Vignette"
 author: "Steve Powell"
-date: "24/09/2021"
 output:
   html_document:
     toc: true
@@ -20,14 +19,46 @@ library(knitr)
 library(htmltools)
 library(kableExtra)
 library(scales)
-knitr::opts_chunk$set(echo = TRUE)
-#source("../R/functions.R")################################
+knitr::opts_chunk$set(echo = F)
+source("../R/functions.R")################################
 
 pp=function(x,N=99){
   print(x,n=N)
 }
 
+
+
+print_inner_filter <- function(xx){
+  # browser()
+xx$graf <- NULL
+fil <- xx[[1]] %>% unlist %>% str_remove_all("^pipe_") %>% str_replace("_"," ")
+xx <- xx[-1]
+nams=names(xx)
+tibble(names=nams,vals=unlist(xx)) %>% 
+  unite(filter,sep="=") %>% 
+  pull(filter) %>% 
+  unlist %>% 
+  paste0(.,collapse=" ") %>% 
+  paste0(fil," ",.)
+}
+print_filter <- function(graf){
+attr(graf,"meta") %>% 
+map(~print_inner_filter(.) %>% 
+    str_trim %>% 
+    div(style=";")
+) %>% div(style="padding:10px;background-color:aliceblue;")
+}
+
+# make_interactive_map <- function(graf){
+#   tagList(print_filter(graf),CausalMapFunctions::make_interactive_map(graf))
+# }
+# make_print_map <- function(graf){
+#   tagList(print_filter(graf),CausalMapFunctions::make_print_map(graf))
+# }
+
 ```
+
+You might need to wait a few seconds for all of the graphics in this file to load.
 
 ## Loading example datasets
 
@@ -41,30 +72,11 @@ The package ships with some example datasets, at the moment just these:
 
 which you can also view in Causal Map on the web.
 
-You can load the files like this:
 
-```{r }
-
-example2 <- load_premap("example2") %>% pipe_coerce_mapfile()#### should not be necessary TODO 
-
-example2
-
-example2 %>% summary
-
-```
-
-Visualise them like this:
+Visualise the files like this:
 
 ```{r }
 example2 %>% make_interactive_map
-
-```
-
-You can also load up an Excel file:
-
-```{r }
-# system.file("extdata", "quip-lorem", package = "CausalMapFunctions") %>% 
-#   get_mapfile_from_excel()
 
 ```
 
@@ -72,23 +84,6 @@ The file should have the standard Causal Map [format](guide.causalmap.app/core-t
 
 
 `pipe_coerce_mapfile` will also process a file with no factors and from_label and to_label columns as a named edgelist.
-
-
-If you filter the factors of a mapfile, e.g. show only factors with labels beginning xyz,
-
-- also the links are filtered (removing links to removed factors)
-- the statements are not touched
-
-If you filter the links of a mapfile, e.g. show only links with hashtags containing xyz,
-
-- the factors are not filtered (but using a different command you can remove any factors which no longer have any links)
-- the statements are not touched
-
-If you filter the statements of a mapfile, e.g. show only statements with texts containing xyz,
-
-- also the links are filtered (removing links to removed statements)
-- the factors are filtered
-
 
 
 ```{r }
@@ -111,69 +106,6 @@ hz <- load_premap("health-zoom")%>% pipe_coerce_mapfile
 
 ## Basic examples
 
-### Accessing the data 
-
-One column in one table
-
-```{r }  
-ll %>%
-    pipe_find_factors(value="economic") %>%
-    .$factors %>%
-    .$label %>% 
-  knitr::kable()
-```
-
-### Merging two maps 
-
-```{r }  
-if(T)merge_mapfile(ee,tt %>% pipe_select_factors(top=8)) %>% 
-  pipe_color_factors(field="map_id") %>% 
-  pipe_color_links(field="map_id",fun="unique") %>% 
-  make_interactive_map
-
-```
-
-Note warning if factor labels are shared
-
-
-```{r }  
-if(T)load_premap("example2") %>%
-  pipe_coerce_mapfile %>% 
-  pipe_merge_mapfile("example2") %>% 
-  pipe_color_factors(field="map_id") %>% 
-  pipe_color_links(field="map_id",fun="unique") %>% 
-  make_interactive_map
-
-```
-
-### Editing maps directly
-
-There is no guarantee that the resulting map is still a standard mapfile.
-
-```{r }  
-ee$factors$label[1] <- "Label changed"
-ee %>% make_interactive_map
-```
-
-### Editing maps with pipe_update_mapfile
-
-There is no guarantee that the resulting map is still a standard mapfile.
-
-```{r }  
-ee %>% 
-  pipe_update_mapfile(factors = ee$factors %>% mutate(label="one")) %>% 
-  make_interactive_map
-```
-
-Coercing to a standard mapfile:
-
-```{r }  
-ee %>% 
-  pipe_update_mapfile(factors = ee$factors %>% mutate(label="one")) %>% 
-  pipe_coerce_mapfile() %>% 
-  make_interactive_map
-```
-
 
 ### Interactive and Print maps
 
@@ -181,6 +113,7 @@ ee %>%
   ee %>%
     pipe_label_links("link_id",fun = "unique") %>%
     make_interactive_map
+  
   ee %>%
     pipe_label_links("link_id",fun = "unique") %>%
     make_print_map()
@@ -189,9 +122,27 @@ ee %>%
     make_print_map()
 ```
 
+
 ### Selecting and finding 
 
-factors links and statements
+
+If you filter the factors of a mapfile, e.g. show only factors with labels beginning xyz,
+
+- also the links are filtered (removing links to removed factors)
+- the statements are not touched
+
+If you filter the links of a mapfile, e.g. show only links with hashtags containing xyz,
+
+- the factors are not filtered (but using a different command you can remove any factors which no longer have any links)
+- the statements are not touched
+
+If you filter the statements of a mapfile, e.g. show only statements with texts containing xyz,
+
+- also the links are filtered (removing links to removed statements)
+- the factors are filtered
+
+
+
 
 ```{r }  
 ll %>%
@@ -1114,6 +1065,7 @@ graf$links %>% filter(statement_id %notin% graf$statements$statement_id) %>% nro
 
 ```{r}
 example2 %>% 
+  pipe_coerce_mapfile %>% 
   pipe_cluster_factors("Damage OR Flood") %>% 
   make_print_map
 ```
@@ -1129,5 +1081,121 @@ ee %>%
 
 
 
+## Data manipulation, file management etc
 
 
+
+### Accessing the data 
+
+One column in one table
+
+```{r }  
+ll %>%
+    pipe_find_factors(value="economic") %>%
+    .$factors %>%
+    .$label %>% 
+  knitr::kable()
+```
+
+### Merging two maps 
+
+```{r }  
+if(T)merge_mapfile(ee,tt %>% pipe_select_factors(top=8)) %>% 
+  pipe_color_factors(field="map_id") %>% 
+  pipe_color_links(field="map_id",fun="unique") %>% 
+  make_interactive_map
+
+```
+
+Note warning if factor labels are shared
+
+
+```{r }  
+if(T)load_premap("example2") %>%
+  pipe_coerce_mapfile %>% 
+  pipe_merge_mapfile("example2") %>% 
+  pipe_color_factors(field="map_id") %>% 
+  pipe_color_links(field="map_id",fun="unique") %>% 
+  make_interactive_map
+
+```
+
+### Editing maps directly
+
+There is no guarantee that the resulting map is still a standard mapfile.
+
+```{r }  
+ee$factors$label[1] <- "Label changed"
+ee %>% make_interactive_map
+```
+
+### Editing maps with pipe_update_mapfile
+
+There is no guarantee that the resulting map is still a standard mapfile.
+
+```{r }  
+ee %>% 
+  pipe_update_mapfile(factors = ee$factors %>% mutate(label="one")) %>% 
+  make_interactive_map
+```
+
+Coercing to a standard mapfile:
+
+```{r }  
+ee %>% 
+  pipe_update_mapfile(factors = ee$factors %>% mutate(label="one")) %>% 
+  pipe_coerce_mapfile() %>% 
+  make_interactive_map
+```
+
+### Printing the filters
+
+```{r}
+# example2 %>% 
+#   pipe_coerce_mapfile %>% 
+#   pipe_find_links(field = "link_id",value=1)  %>% 
+#   pipe_select_factors(20) %>%  
+#   pipe_remove_isolated() %>% 
+#   pipe_select_links(20) %>%  
+#   pipe_zoom_factors() %>% 
+#   pipe_find_statements(field = "text",value="Flo") %>% 
+#   pipe_find_factors(value="Flo") %>%
+#   pipe_remove_brackets("[") %>% 
+#   pipe_trace_robustness(from = "Flood",to="Damage") %>% 
+#   pipe_trace_paths(from = "Flood",to="Damage") %>% 
+#   pipe_combine_opposites() %>% 
+#   pipe_bundle_links() %>% 
+#   pipe_label_links() %>% 
+#   attr("meta") %>% 
+#   str
+# 
+# example2 %>%
+#   pipe_coerce_mapfile() %>%
+#   pipe_bundle_links() %>%
+#   pipe_scale_links() %>%
+#   pipe_label_links() %>%
+#   pipe_color_links() %>%
+#   pipe_scale_factors(field = "frequency") %>%
+#   pipe_label_factors() %>%
+#   pipe_color_factors() %>%
+#   pipe_color_borders() %>%
+#   pipe_mark_links() %>%
+#   pipe_show_continuity() %>%
+#   pipe_cluster_factors() %>%
+#   pipe_wrap_factors() %>%
+#   pipe_wrap_links() %>%
+#   print_filter()
+
+
+```
+
+
+
+
+You can also load up an Excel file:
+
+```{r }
+# system.file("extdata", "quip-lorem", package = "CausalMapFunctions") %>% 
+#   get_mapfile_from_excel()
+
+```

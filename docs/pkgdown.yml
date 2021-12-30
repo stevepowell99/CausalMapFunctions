@@ -1,7 +1,8 @@
-pandoc: 2.11.2
-pkgdown: 1.6.1
+pandoc: 2.14.0.3
+pkgdown: 2.0.1
 pkgdown_sha: ~
 articles:
-  CausalMapViewer: CausalMapViewer.html
-last_built: 2021-05-10T16:55Z
+  CausalMapFunctions: CausalMapFunctions.html
+  examples: examples.html
+last_built: 2021-12-30T09:34Z
 

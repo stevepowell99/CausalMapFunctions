@@ -1,1 +1,4 @@
-destination: docs
+url: https://stevepowell99.github.io/CausalMapFunctions/
+template:
+  bootstrap: 5
+
