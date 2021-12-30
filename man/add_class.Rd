@@ -4,7 +4,7 @@
 \alias{add_class}
 \title{Add class}
 \usage{
-add_class(x, cls = "tidymap")
+add_class(x, cls = "mapfile")
 }
 \description{
 Add class

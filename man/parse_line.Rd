@@ -9,7 +9,7 @@ parse_line(line, graf)
 \arguments{
 \item{line}{A line of text to be parsed}
 
-\item{graf}{A tidymap representing a causal map.}
+\item{graf}{A mapfile representing a causal map.}
 }
 \value{
 A list containing the function name and a list of parameters.

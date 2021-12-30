@@ -7,7 +7,7 @@
 make_interactive_map(graf, scale = 1, safe_limit = 200, rainbow = F)
 }
 \arguments{
-\item{graf}{A tidymap. The factors table and links table may contain additional formatting information like color.background.}
+\item{graf}{A mapfile. The factors table and links table may contain additional formatting information like color.background.}
 
 \item{scale}{Increase from the default 1 to make the map taller.}
 }
@@ -15,5 +15,5 @@ make_interactive_map(graf, scale = 1, safe_limit = 200, rainbow = F)
 A visnetwork
 }
 \description{
-Make a visNetwork (https://datastorm-open.github.io/visNetwork/) from a tidymap.
+Make a visNetwork (https://datastorm-open.github.io/visNetwork/) from a mapfile.
 }

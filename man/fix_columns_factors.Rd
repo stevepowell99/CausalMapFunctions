@@ -7,7 +7,7 @@
 fix_columns_factors(factors)
 }
 \value{
-A tidymap with a additional columns.
+A mapfile with a additional columns.
 }
 \description{
 Fix factors columns

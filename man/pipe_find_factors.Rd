@@ -11,7 +11,7 @@ pipe_find_factors(
   operator = "contains",
   up = 1,
   down = 1,
-  remove_isolated = T,
+  remove_isolated = F,
   highlight_only = F
 )
 }
@@ -28,7 +28,7 @@ How to search.}
 \item{down}{integer. Default is 0.}
 }
 \value{
-A tidymap containing only matching factors; if `up`!=0 then also factors this number of steps
+A mapfile containing only matching factors; if `up`!=0 then also factors this number of steps
 upstream of the matching factors are also included and likewise for `down`!=0.
 The links are filtered correspondingly to return only the "ego network" i.e. links between the returned factors.
 

@@ -7,15 +7,15 @@
 pipe_bundle_factors(graf, value = "")
 }
 \arguments{
-\item{graf}{A tidymap representing a causal map.
-A tidymap is a tidygraph, which consists of a table of edges linked to a table of nodes,
+\item{graf}{A mapfile representing a causal map.
+A mapfile is a tidygraph, which consists of a table of edges linked to a table of nodes,
 with an optional additional table of statements.
 In this package, nodes are called `factors` and edges are called `links.`}
 
 \item{value}{A search string.}
 }
 \value{
-A tidymap in which factors matching the search string are merged into one, with rerouted links.
+A mapfile in which factors matching the search string are merged into one, with rerouted links.
 If the search string is empty, factors with the same first word are grouped.
 }
 \description{

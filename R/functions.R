@@ -7,12 +7,12 @@
 # - note that some funs like zoom, bundle factor etc may have different ids from previous mapfile
 # - there should never be a need to apply pipe_coerce_mapfile twice
 
-summary.tidymap <- function (graf){
+summary.mapfile <- function (graf){
   list(colnames=graf %>% map(colnames) ,
        "Number of rows"=graf %>% map(nrow) %>% as_tibble
   )
 }
-print.tidymap <- function (graf, n=2,...)
+print.mapfile <- function (graf, n=2,...)
 {
   # browser()
   cat("Factors: ");graf$factors %>% as_tibble  %>% print(n=n)
@@ -91,7 +91,7 @@ standard_settings <- function()tibble(setting_id="background_colour",value="",ma
 #' @export
 #'
 #' @examples
-add_class <- function(x,cls="tidymap"){
+add_class <- function(x,cls="mapfile"){
   class(x) <- c(cls,class(x)) %>% unique
   x
 }
@@ -447,7 +447,7 @@ assemble_mapfile <- function(factors=NULL,links=NULL,statements=NULL,sources=NUL
 #' @export
 #'
 #' @examples
-load_premap <- function(path=NULL,connection=conn){
+load_mapfile <- function(path=NULL,connection=conn){
   graf <- NULL
   factors <- NULL
   links <- NULL
@@ -521,7 +521,7 @@ load_premap <- function(path=NULL,connection=conn){
   # browser()
   if(!is.null(graf$links)>0)graf$links <- graf$links %>% select(-any_of(c("link_id.1","statement_id.2","from.2","to.2","quote.2","frequency.1","weight.2","actualisation.2","strength.2","certainty.2","from_flipped.1","to_flipped.1","link_label.1","from_label.1","to_label.1","hashtags.2","link_memo.1","link_map_id.1","link_id.2","statement_id.3","from.3","to.3","quote.3","frequency.2","weight.3","actualisation.3","strength.3","certainty.3","from_flipped.2","to_flipped.2","link_label.2","from_label.2","to_label.2","hashtags.3","link_memo.2","link_map_id.2","statement_id.1","from.1","to.1","quote.1","weight.1","actualisation.1","strength.1","certainty.1","hashtags.1")))#FIXME TODO  this is just legacy/transition
   notify("Loading map")
-  return(graf  %>% pipe_coerce_mapfile() %>% add_meta(list(load_premap=list(graf="",glue("load_premap path={path}")))))
+  return(graf  %>% pipe_coerce_mapfile() %>% add_meta(list(load_mapfile=list(graf="",glue("load_mapfile path={path}")))))
 
 
 
@@ -830,7 +830,7 @@ pipe_update_mapfile <- function(map,
 #'
 #' @inheritParams parse_commands
 #'
-#' @return A tidymap with a additional columns.
+#' @return A mapfile with a additional columns.
 #' @export
 #'
 #'
@@ -853,7 +853,7 @@ fix_columns_factors <- function(factors){
 #'
 #' @inheritParams parse_commands
 #'
-#' @return A tidymap with a additional columns.
+#' @return A mapfile with a additional columns.
 #' @export
 #'
 #'
@@ -873,7 +873,7 @@ fix_columns_links <- function(links){
 #' #'
 #' #' @inheritParams parse_commands
 #' #'
-#' #' @return A tidymap with a additional columns.
+#' #' @return A mapfile with a additional columns.
 #' #' @export
 #' #'
 #' #'
@@ -1379,7 +1379,7 @@ make_igraph <- function(factors,links,use_labels=F){
 #'
 #' @inheritParams parse_commands
 #'
-#' @return A tidymap with a additional columns.
+#' @return A mapfile with a additional columns.
 #' @export
 #'
 #'
@@ -2085,14 +2085,14 @@ find_fun <- function(df,field=NULL,value,operator=NULL,what){
 
 }
 
-# exported tidymap utilities ---------------------------------------------------------
+# exported mapfile utilities ---------------------------------------------------------
 
 
 
-#' Extracting tibbles from A tidymap
+#' Extracting tibbles from A mapfile
 #'
 #' @inheritParams parse_commands
-#' @description These three functions extract tables of factors, links or statements from a tidymap.
+#' @description These three functions extract tables of factors, links or statements from a mapfile.
 #' @return A tibble.
 #' @name tibbles
 NULL
@@ -2196,7 +2196,7 @@ make_meta <- function(graf,lis){
 #' Parse line
 #'
 #' The engine for parse_commands
-#' @param graf A tidymap representing a causal map.
+#' @param graf A mapfile representing a causal map.
 #' @param line A line of text to be parsed
 #' @return A list containing the function name and a list of parameters.
 #' @export
@@ -2324,8 +2324,8 @@ parse_line <- function(line,graf){
 #' A parser which breaks a text input into individual commands and sends each
 #' command to one of the family of pipe_* functions.
 #'
-#' @param graf A tidymap representing a causal map.
-#' A tidymap is a tidygraph, which consists of a table of edges linked to a table of nodes,
+#' @param graf A mapfile representing a causal map.
+#' A mapfile is a tidygraph, which consists of a table of edges linked to a table of nodes,
 #' with an optional additional table of statements.
 #' In this package, nodes are called `factors` and edges are called `links.`
 #' @param tex A set of commands to parse, separated by linebreaks if there is more than one command.
@@ -2341,7 +2341,7 @@ parse_line <- function(line,graf){
 #' `search links TEXT ...` is parsed as `search links field=label value=TEXT operator=contains`.
 #' `search statements TEXT ...` is parsed as `search statements field=text value=TEXT operator=contains`.
 #'
-#' @return A tidymap, the result of successively applying the commands to the input graph.
+#' @return A mapfile, the result of successively applying the commands to the input graph.
 #' @export
 #' @examples
 #'cashTransferMap %>% parse_commands("select factors top=10 \n color factors field=n") %>% make_vn()
@@ -2393,7 +2393,7 @@ parse_commands <- function(graf=NULL,tex){
 #' Text searches are case-insensitive.
 
 #' @return
-#' A tidymap containing only matching factors; if `up`!=0 then also factors this number of steps
+#' A mapfile containing only matching factors; if `up`!=0 then also factors this number of steps
 #' upstream of the matching factors are also included and likewise for `down`!=0.
 #' The links are filtered correspondingly to return only the "ego network" i.e. links between the returned factors.
 
@@ -2454,7 +2454,7 @@ pipe_find_factors <- function(graf,field="label",value,operator="contains",up=1,
 #' Find links
 #'
 #' @inheritParams pipe_find_factors
-#' A tidymap containing only matching links. Factors are not removed, so this function may return maps with isolated factors,
+#' A mapfile containing only matching links. Factors are not removed, so this function may return maps with isolated factors,
 #' i.e. factors with no links.
 #' @export
 #'
@@ -2479,7 +2479,7 @@ pipe_find_links <- function(graf,field=NULL,value,operator="contains",remove_iso
 #' Find statements
 #'
 #' @inheritParams pipe_find_factors
-#' @return A tidymap filtered by statements.
+#' @return A mapfile filtered by statements.
 #' @export
 #'
 #' @examples
@@ -2518,7 +2518,11 @@ pipe_find_statements <- function(graf,field,value,operator="=",remove_isolated=T
 #'
 #' @examples
 #' select links top=20 should keep all the links within the 20 fattest bundles/sets of links with the most links in each bundle.
-#' But previously the algorithm actually combined them into 20 individual links (i.e. create radically fewer actual links) and just remembered the frequency. Now, it keeps the individual links (so a map with select links top =3 might still have 3000 actual links if there were 1000 from A to B and 1000 from B to C and 1000 from C to D. By default, the Interactive and Print maps would indeed combine these into three thick pipes for performance sake, but there would still be 3000 links there somewhere.
+#' But previously the algorithm actually combined them into 20 individual links (i.e. create radically fewer actual links)
+#' and just remembered the frequency.
+#' Now, it keeps the individual links (so a map with select links top =3 might still have 3000 actual links if there were 1000 from A to B
+#' and 1000 from B to C and 1000 from C to D. By default, the Interactive and
+#' Print maps would indeed combine these into three thick pipes for performance sake, but there would still be 3000 links there somewhere.
 pipe_select_links <- function(graf,top=NULL,bottom=NULL){
   meta <-   make_meta(graf,as.list(match.call()))
 
@@ -2673,7 +2677,7 @@ pipe_zoom_factors <- function(graf,level=1,separator=";",hide=T){
 #' @inheritParams parse_commands
 #' @param value A search string.
 #'
-#' @return A tidymap in which factors matching the search string are merged into one, with rerouted links.
+#' @return A mapfile in which factors matching the search string are merged into one, with rerouted links.
 #' If the search string is empty, factors with the same first word are grouped.
 #' @export
 #'
@@ -2881,7 +2885,7 @@ pipe_trace_paths <- function(graf,from,to,length=4){
 
 #' Calculate robustness
 #'
-#' @param graf A tidymap. To use this function, the factors table of this map must include
+#' @param graf A mapfile. To use this function, the factors table of this map must include
 #' two logical variables called `found_from` and `found_to`.
 #' If the links table contains an integer column `n`,
 #' these values are treated as the capacity of the links, otherwise the capacity for each link is taken as 1.
@@ -2894,7 +2898,7 @@ pipe_trace_paths <- function(graf,from,to,length=4){
 #'
 #' calculate_robustness() is used by pipe_trace_paths().
 #'
-#' @return A tidymap with an additional attribute `flow`, a tibble (dataframe) in which
+#' @return A mapfile with an additional attribute `flow`, a tibble (dataframe) in which
 #' the columns are each of the factors for which `found_from` is true (if there is
 #' more than one such column, and additional "All sources" column is prepended);
 #' and in which the rows are each of the factors for which `found_to` is true (if there is
@@ -2988,7 +2992,7 @@ pipe_merge_mapfile <- function(graf,path){
   # browser()
   meta <-   make_meta(graf,as.list(match.call()))
 
-  map2 <- load_premap(path=path)
+  map2 <- load_mapfile(path=path)
   graf <- graf
   merge_mapfile(graf,map2)%>%
     add_meta(meta)
@@ -3001,7 +3005,7 @@ pipe_merge_mapfile <- function(graf,path){
 #' @inheritParams parse_commands
 #' @param value c("[","(")
 #'
-#' @return A tidymap in which the factor labels have had any text enclosed with square brackets or round brackets removed, along with the brackets.
+#' @return A mapfile in which the factor labels have had any text enclosed with square brackets or round brackets removed, along with the brackets.
 #'
 #' @export
 #'
@@ -3032,7 +3036,7 @@ pipe_remove_brackets <- function(graf,value="["){
 #' @inheritParams parse_commands
 #' @param field
 #'
-#' @return A tidymap in which sets of coterminal, same-direction links are replaced with
+#' @return A mapfile in which sets of coterminal, same-direction links are replaced with
 #' one link (when `field` = 'n') or more than one link for each of the values of `field`
 #' present in the data. In each case, each new link has a field n representing the number
 #' of links it is replacing, unless the links it is replacing already had values n in which
@@ -3070,7 +3074,7 @@ pipe_bundle_links <- function(graf,field=NULL,group=field){
 #' @inheritParams parse_commands
 #' @param field A numerical field in the factor table which will control the scale.
 #'
-#' @return A tidymap with a new or overwritten column `size`in the factor table varying between .2 and 1.
+#' @return A mapfile with a new or overwritten column `size`in the factor table varying between .2 and 1.
 #' @export
 #'
 #'
@@ -3092,7 +3096,7 @@ pipe_scale_factors <- function(graf,field="frequency"){
 #' @inheritParams parse_commands
 #' @param field A numerical field in the link table which will control the scale (the width of the links).
 #'
-#' @return A tidymap with a new or overwritten column `width`in the link table varying between .2 and 1.
+#' @return A mapfile with a new or overwritten column `width`in the link table varying between .2 and 1.
 #' @export
 #'
 #' @examples
@@ -3155,7 +3159,7 @@ pipe_scale_links <- function(graf,field="link_id",fixed=NULL,fun="count",value=N
 #' @param clear Logical. Whether to clear any existing labels or to concatenate the new result after
 #' any existing labels. Default is `FALSE`.
 #'
-#' @return A tidymap with a column `label`. If `clear` is FALSE, the new label is concatenated
+#' @return A mapfile with a column `label`. If `clear` is FALSE, the new label is concatenated
 #' after any existing label. The new label is of the form `field: value`.
 #' @description For example it is possible to add the factor frequency to the factor labels.
 #'  More than one label can be added: Labels are additive and are applied one after the other.
@@ -3190,7 +3194,7 @@ pipe_label_factors <- function(graf,field="frequency",clear=F){
 #' @param clear Logical. Whether to clear any existing labels or to concatenate the new result after
 #' any existing labels.
 #'
-#' @return A tidymap with a column `label`. If `clear` is FALSE (the default), the new label is concatenated
+#' @return A mapfile with a column `label`. If `clear` is FALSE (the default), the new label is concatenated
 #' after any existing label. The new label is of the form `field: value`.
 #' @export
 #'
@@ -3428,7 +3432,7 @@ pipe_show_continuity <- function(graf,field="source_id",type="arrowtype"){
 #' @param hi Optionally, a color specification for the high end of the color range. Default is `blue`.
 #' @param mid  Optionally, a color specification for the middle of the color range. Default is `gray`.
 #'
-#' @return A tidymap with a new or overwritten column `color.background`in the factor table.
+#' @return A mapfile with a new or overwritten column `color.background`in the factor table.
 #' @export
 #'
 #'
@@ -3454,7 +3458,7 @@ pipe_color_factors <- function(graf,field="frequency",lo="#FCFDBF",hi="#5F187F",
 #' @param hi Optionally, a color specification for the high end of the color range. Default is `blue`.
 #' @param mid  Optionally, a color specification for the middle of the color range. Default is `gray`.
 #'
-#' @return A tidymap with a new or overwritten column `color.border`in the factor table.
+#' @return A mapfile with a new or overwritten column `color.border`in the factor table.
 #' @export
 #'
 #'
@@ -3483,7 +3487,7 @@ pipe_color_borders <- function(graf,field="frequency",lo="#FCFDBF",hi="#5F187F",
 #' @param hi Optionally, a color specification for the high end of the color range. Default is `blue`.
 #' @param mid  Optionally, a color specification for the middle of the color range. Default is `gray`.
 #'
-#' @return A tidymap with a new or overwritten column `color`in the link table.
+#' @return A mapfile with a new or overwritten column `color`in the link table.
 #' @export
 #'
 #'
@@ -3608,7 +3612,7 @@ pipe_cluster_factors <- function(graf,clusters=NULL){
 #' @inheritParams parse_commands
 #' @param length line length
 #'
-#' @return A tidymap with factor labels wrapped to `length`
+#' @return A mapfile with factor labels wrapped to `length`
 #' @export
 #'
 #'
@@ -3629,7 +3633,7 @@ pipe_wrap_factors <- function(graf,length=20){
 #' @inheritParams parse_commands
 #' @param length line length
 #'
-#' @return A tidymap with link labels wrapped to `length`
+#' @return A mapfile with link labels wrapped to `length`
 #' @export
 #'
 #'
@@ -3774,9 +3778,9 @@ prepare_visual_bundles <- function(graf,
 ## visNetwork --------------------------------------------------------------
 
 #' Make a visNetwork
-#' @description Make a visNetwork (https://datastorm-open.github.io/visNetwork/) from a tidymap.
+#' @description Make a visNetwork (https://datastorm-open.github.io/visNetwork/) from a mapfile.
 #'
-#' @param graf A tidymap. The factors table and links table may contain additional formatting information like color.background.
+#' @param graf A mapfile. The factors table and links table may contain additional formatting information like color.background.
 #' @param scale Increase from the default 1 to make the map taller.
 #'
 #' @return A visnetwork
@@ -4011,7 +4015,7 @@ vn_fan_edges <- function(edges){
 
 #' Settings for a Graphviz map
 #' @description Graphviz map: https://graphviz.org/documentation/
-#' @param graf A tidymap. Link and factor tables may contain columns to control formatting
+#' @param graf A mapfile. Link and factor tables may contain columns to control formatting
 #' such as `color.border`.
 #' @param maxwidth
 #' @param grv_layout What layout to use. Default is `dot`.
@@ -4090,7 +4094,7 @@ average_color <- function(colvec,combine_doubles=F){
 
 #' Make a Graphviz map
 #' @description Make a Graphviz map: https://graphviz.org/documentation/
-#' @param graf A tidymap. Link and factor tables may contain columns to control formatting
+#' @param graf A mapfile. Link and factor tables may contain columns to control formatting
 #' such as `color.border`.
 #' @param maxwidth
 #' @param grv_layout What layout to use. Default is `dot`.
@@ -4320,7 +4324,7 @@ get_robustness <- function(graf){
 #'
 #' @inheritParams parse_commands
 #'
-#' @return A tidymap in which columns from the statements table are merged into the links table.
+#' @return A mapfile in which columns from the statements table are merged into the links table.
 #' @export
 #'
 #' @examples

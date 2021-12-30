@@ -7,7 +7,7 @@
 pipe_calculate_robustness(graf)
 }
 \arguments{
-\item{graf}{A tidymap. To use this function, the factors table of this map must include
+\item{graf}{A mapfile. To use this function, the factors table of this map must include
 two logical variables called `found_from` and `found_to`.
 If the links table contains an integer column `n`,
 these values are treated as the capacity of the links, otherwise the capacity for each link is taken as 1.
@@ -17,7 +17,7 @@ bundle_links()}
 \item{field}{An optional field by which to split the robustness calculation.}
 }
 \value{
-A tidymap with an additional attribute `flow`, a tibble (dataframe) in which
+A mapfile with an additional attribute `flow`, a tibble (dataframe) in which
 the columns are each of the factors for which `found_from` is true (if there is
 more than one such column, and additional "All sources" column is prepended);
 and in which the rows are each of the factors for which `found_to` is true (if there is

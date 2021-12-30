@@ -14,8 +14,8 @@ pipe_color_factors(
 )
 }
 \arguments{
-\item{graf}{A tidymap representing a causal map.
-A tidymap is a tidygraph, which consists of a table of edges linked to a table of nodes,
+\item{graf}{A mapfile representing a causal map.
+A mapfile is a tidygraph, which consists of a table of edges linked to a table of nodes,
 with an optional additional table of statements.
 In this package, nodes are called `factors` and edges are called `links.`}
 
@@ -31,7 +31,7 @@ If it is character, the other parameters are ignored and a color-blind friendly 
 \item{fixed}{Optionally, a color specification which will be applied everywhere and overrides `field`.}
 }
 \value{
-A tidymap with a new or overwritten column `color.background`in the factor table.
+A mapfile with a new or overwritten column `color.background`in the factor table.
 }
 \description{
 Color factors (background color)

@@ -7,7 +7,7 @@
 fix_columns_links(links)
 }
 \value{
-A tidymap with a additional columns.
+A mapfile with a additional columns.
 }
 \description{
 Fix links columns

@@ -19,7 +19,7 @@ make_print_map(
 )
 }
 \arguments{
-\item{graf}{A tidymap. Link and factor tables may contain columns to control formatting
+\item{graf}{A mapfile. Link and factor tables may contain columns to control formatting
 such as `color.border`.}
 
 \item{grv_layout}{What layout to use. Default is `dot`.}

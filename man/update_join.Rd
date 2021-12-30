@@ -6,7 +6,7 @@
 #'
 #' @inheritParams parse_commands
 #'
-#' @return A tidymap with a additional columns.
+#' @return A mapfile with a additional columns.
 #' @export
 #'
 #'
@@ -25,7 +25,7 @@ update_join(old, new)
 #'
 #' @inheritParams parse_commands
 #'
-#' @return A tidymap with a additional columns.
+#' @return A mapfile with a additional columns.
 #' @export
 #'
 #'

@@ -7,8 +7,8 @@
 pipe_select_links(graf, top = NULL, bottom = NULL)
 }
 \arguments{
-\item{graf}{A tidymap representing a causal map.
-A tidymap is a tidygraph, which consists of a table of edges linked to a table of nodes,
+\item{graf}{A mapfile representing a causal map.
+A mapfile is a tidygraph, which consists of a table of edges linked to a table of nodes,
 with an optional additional table of statements.
 In this package, nodes are called `factors` and edges are called `links.`}
 

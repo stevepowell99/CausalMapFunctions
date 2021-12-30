@@ -7,15 +7,15 @@
 pipe_remove_brackets(graf, value = "[")
 }
 \arguments{
-\item{graf}{A tidymap representing a causal map.
-A tidymap is a tidygraph, which consists of a table of edges linked to a table of nodes,
+\item{graf}{A mapfile representing a causal map.
+A mapfile is a tidygraph, which consists of a table of edges linked to a table of nodes,
 with an optional additional table of statements.
 In this package, nodes are called `factors` and edges are called `links.`}
 
 \item{value}{c("[","(")}
 }
 \value{
-A tidymap in which the factor labels have had any text enclosed with square brackets or round brackets removed, along with the brackets.
+A mapfile in which the factor labels have had any text enclosed with square brackets or round brackets removed, along with the brackets.
 }
 \description{
 Remove bracketed expressions

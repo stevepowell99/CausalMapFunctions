@@ -7,8 +7,8 @@
 parse_commands(graf = NULL, tex)
 }
 \arguments{
-\item{graf}{A tidymap representing a causal map.
-A tidymap is a tidygraph, which consists of a table of edges linked to a table of nodes,
+\item{graf}{A mapfile representing a causal map.
+A mapfile is a tidygraph, which consists of a table of edges linked to a table of nodes,
 with an optional additional table of statements.
 In this package, nodes are called `factors` and edges are called `links.`}
 
@@ -26,7 +26,7 @@ This parser also provides some abbreviated formats.
 `search statements TEXT ...` is parsed as `search statements field=text value=TEXT operator=contains`.}
 }
 \value{
-A tidymap, the result of successively applying the commands to the input graph.
+A mapfile, the result of successively applying the commands to the input graph.
 }
 \description{
 A parser which breaks a text input into individual commands and sends each

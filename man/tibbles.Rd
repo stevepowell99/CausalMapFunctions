@@ -9,7 +9,7 @@
 \alias{questions_table}
 \alias{settings_table}
 \alias{links_table_full}
-\title{Extracting tibbles from A tidymap}
+\title{Extracting tibbles from A mapfile}
 \usage{
 factors_table(graf)
 
@@ -26,8 +26,8 @@ settings_table(graf)
 links_table_full(graf)
 }
 \arguments{
-\item{graf}{A tidymap representing a causal map.
-A tidymap is a tidygraph, which consists of a table of edges linked to a table of nodes,
+\item{graf}{A mapfile representing a causal map.
+A mapfile is a tidygraph, which consists of a table of edges linked to a table of nodes,
 with an optional additional table of statements.
 In this package, nodes are called `factors` and edges are called `links.`}
 }
@@ -35,5 +35,5 @@ In this package, nodes are called `factors` and edges are called `links.`}
 A tibble.
 }
 \description{
-These three functions extract tables of factors, links or statements from a tidymap.
+These three functions extract tables of factors, links or statements from a mapfile.
 }

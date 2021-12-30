@@ -7,15 +7,15 @@
 pipe_wrap_links(graf, length = 20)
 }
 \arguments{
-\item{graf}{A tidymap representing a causal map.
-A tidymap is a tidygraph, which consists of a table of edges linked to a table of nodes,
+\item{graf}{A mapfile representing a causal map.
+A mapfile is a tidygraph, which consists of a table of edges linked to a table of nodes,
 with an optional additional table of statements.
 In this package, nodes are called `factors` and edges are called `links.`}
 
 \item{length}{line length}
 }
 \value{
-A tidymap with link labels wrapped to `length`
+A mapfile with link labels wrapped to `length`
 }
 \description{
 Wrap link labels

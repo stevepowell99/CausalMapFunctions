@@ -4,18 +4,18 @@
 \alias{pipe_bundle_links}
 \title{Bundle links}
 \usage{
-pipe_bundle_links(graf, group = NULL)
+pipe_bundle_links(graf, field = NULL, group = field)
 }
 \arguments{
-\item{graf}{A tidymap representing a causal map.
-A tidymap is a tidygraph, which consists of a table of edges linked to a table of nodes,
+\item{graf}{A mapfile representing a causal map.
+A mapfile is a tidygraph, which consists of a table of edges linked to a table of nodes,
 with an optional additional table of statements.
 In this package, nodes are called `factors` and edges are called `links.`}
 
 \item{field}{}
 }
 \value{
-A tidymap in which sets of coterminal, same-direction links are replaced with
+A mapfile in which sets of coterminal, same-direction links are replaced with
 one link (when `field` = 'n') or more than one link for each of the values of `field`
 present in the data. In each case, each new link has a field n representing the number
 of links it is replacing, unless the links it is replacing already had values n in which

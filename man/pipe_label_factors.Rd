@@ -7,8 +7,8 @@
 pipe_label_factors(graf, field = "frequency", clear = F)
 }
 \arguments{
-\item{graf}{A tidymap representing a causal map.
-A tidymap is a tidygraph, which consists of a table of edges linked to a table of nodes,
+\item{graf}{A mapfile representing a causal map.
+A mapfile is a tidygraph, which consists of a table of edges linked to a table of nodes,
 with an optional additional table of statements.
 In this package, nodes are called `factors` and edges are called `links.`}
 
@@ -18,7 +18,7 @@ In this package, nodes are called `factors` and edges are called `links.`}
 any existing labels. Default is `FALSE`.}
 }
 \value{
-A tidymap with a column `label`. If `clear` is FALSE, the new label is concatenated
+A mapfile with a column `label`. If `clear` is FALSE, the new label is concatenated
 after any existing label. The new label is of the form `field: value`.
 }
 \description{

@@ -20,7 +20,7 @@ library(htmltools)
 library(kableExtra)
 library(scales)
 knitr::opts_chunk$set(echo = F)
-source("../R/functions.R")################################
+#source("../R/functions.R")################################
 
 pp=function(x,N=99){
   print(x,n=N)
@@ -60,6 +60,38 @@ map(~print_inner_filter(.) %>%
 
 You might need to wait a few seconds for all of the graphics in this file to load.
 
+## How it works
+
+You import a mapfile from a local excel file, from a S3 store, or from sql using `load_mapfile()`
+
+A family of functions `pipe_*` are provided (manipulate, calculate, hide, combine...) to implement successive filtering operations on a mapfile. These operations do not change the underlying data. 
+
+So you import/load data as a mapfile and all your work steps are then just applying successive filters.
+
+Each filter returns another mapfile, suitably filtered. 
+
+Mapfiles, which are just lists of tables (actually, `tibbles`) with the class `mapfile`. 
+
+Statement tables are used in Causal Map as the underlying data which is to be coded into causal links. So each link refers to a quote from a particular statement. Statements are optional and this package can be used without them.
+
+In this package, nodes are called `factors` and the edges are called `links`.
+
+
+## Parser
+
+All of these filters can be produced and edited either in a chain of actual R functions or in the simplified text format which is processed by the parser: `parse_commands`.
+
+This parser takes text strings with a simpler command syntax as input and outputs one of these main functions for each line of text. This parser is used to read text commands from the input window in Causal Map Viewer and manipulate the output map with the corresponding functions. The input text can also consist of several lines, and the commands are applied one by one in sequence, in a pipeline of commands, such that after each command, such as each command starts with the map defined by the previous line and produces a new one. 
+
+## Output functions
+
+There are three output functions which are thin wrappers around visNetwork, DiagrammeR and DT, allowing a graph to be displayed using any of these three visualisation engines. 
+
+
+### Additional fields
+
+Some of the commands such as path tracing create additional fields or variables for each factor and/or link. For example, when filtering by label, fields are created which can then be used to apply formatting. 
+
 ## Loading example datasets
 
 (After loading CausalMapFunctions library)
@@ -75,12 +107,12 @@ which you can also view in Causal Map on the web.
 
 Visualise the files like this:
 
-```{r }
+```{r echo=T}
 example2 %>% make_interactive_map
 
 ```
 
-The file should have the standard Causal Map [format](guide.causalmap.app/core-tables.html): you can see an example by downloading any of the files in Causal Map on the web.
+Your input mapfile should have the standard Causal Map [format](guide.causalmap.app/core-tables.html): you can see an example by downloading any of the files in Causal Map on the web.
 
 
 `pipe_coerce_mapfile` will also process a file with no factors and from_label and to_label columns as a named edgelist.
@@ -89,19 +121,19 @@ The file should have the standard Causal Map [format](guide.causalmap.app/core-t
 ```{r }
 # ll <- quip_example
   # ee <- example2
-  ee <- load_premap("example2")%>% pipe_coerce_mapfile
+  ee <- load_mapfile("example2")%>% pipe_coerce_mapfile
 ```
 
 
 ```{r }
-hz <- load_premap("health-zoom")%>% pipe_coerce_mapfile 
-  so <- load_premap("stress-opposites")%>% pipe_coerce_mapfile 
-  tt <- load_premap("cm1/tearfund-sl")%>% pipe_coerce_mapfile
-  ll <- load_premap("quip-coded")%>% pipe_coerce_mapfile
-  oo <- load_premap("organisation1coded")%>% pipe_coerce_mapfile
-  e3 <- load_premap("example3-path-tracing")%>% pipe_coerce_mapfile
-  mm <- load_premap("save-the-children-mozambique-copy")%>% pipe_coerce_mapfile
-  hh <- load_premap("hannahcombiningopposites-sp-test")%>% pipe_coerce_mapfile
+hz <- load_mapfile("health-zoom")%>% pipe_coerce_mapfile 
+  so <- load_mapfile("stress-opposites")%>% pipe_coerce_mapfile 
+  tt <- load_mapfile("cm1/tearfund-sl")%>% pipe_coerce_mapfile
+  ll <- load_mapfile("quip-coded")%>% pipe_coerce_mapfile
+  oo <- load_mapfile("organisation1coded")%>% pipe_coerce_mapfile
+  e3 <- load_mapfile("example3-path-tracing")%>% pipe_coerce_mapfile
+  mm <- load_mapfile("save-the-children-mozambique-copy")%>% pipe_coerce_mapfile
+  hh <- load_mapfile("hannahcombiningopposites-sp-test")%>% pipe_coerce_mapfile
 ```
 
 ## Basic examples
@@ -1083,8 +1115,6 @@ ee %>%
 
 ## Data manipulation, file management etc
 
-
-
 ### Accessing the data 
 
 One column in one table
@@ -1111,7 +1141,7 @@ Note warning if factor labels are shared
 
 
 ```{r }  
-if(T)load_premap("example2") %>%
+if(T)load_mapfile("example2") %>%
   pipe_coerce_mapfile %>% 
   pipe_merge_mapfile("example2") %>% 
   pipe_color_factors(field="map_id") %>% 
