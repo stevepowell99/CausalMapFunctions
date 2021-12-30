@@ -15,4 +15,3 @@ config - ignored.yml
 config.yml
 
 *.dcf
-docs
