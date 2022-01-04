@@ -13,6 +13,8 @@ output:
 
 
 ```{r setup, include=FALSE}
+# devtools::load_all();devtools::document();pkgdown::build_site(lazy=F)
+
 options(dplyr.summarise.inform = FALSE)
 library(CausalMapFunctions)
 library(knitr)
@@ -189,6 +191,10 @@ If you filter the statements of a mapfile, e.g. show only statements with texts 
 
 
 ```{r }  
+ll %>%
+    pipe_select_factors(15) %>%
+    make_interactive_map
+
 ll %>%
     pipe_select_factors(15) %>%
     make_interactive_map

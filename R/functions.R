@@ -904,7 +904,21 @@ pipe_recalculate_all <- function(graf){
 #'
 #' @param graf
 #'
-#' @return
+#' @return A mapfile whose factors table contains the following fields.
+#' betweenness: the number of paths going through the factor.
+#' betweenness_rank: the rank of the betweenness.
+#' in_degree: the number of incoming links.
+#' out_degree: the number of outgoing links.
+#' role: the number of incoming links minus the number of incoming links. High values are drivers, low values are outcomes
+#' frequency: the number of links.
+#' driver_score: how strongly is this factor a driver?
+#' outcome_score: how strongly is this factor an outcome?
+#' driver_rank: rank of driver_score.
+#' outcome_rank: rank of outcome_score.
+#' is_opposable: does the factor label contain a ~.
+#' zoom_level: number of ; separators in factor label, plus 1.
+#' top_level_label: the label of the factor's ultimate parent in the hierarchy, if any.
+#' top_level_frequency: the number of links to and from the top level factor.
 #' @export
 #'
 #' @examples
@@ -2417,14 +2431,10 @@ parse_commands <- function(graf=NULL,tex){
 
 # main pipe functions ----------------------------------------------------
 
-# pipe_page_factors <- function(...)pipe_find_factors(pager=T,...)
-# pipe_page_statements <- function(...)pipe_find_statements(pager=T,...)
-# pipe_page_links <- function(...)pipe_find_links(pager=T,...)
-#
+
 
 #' Find factors
 #'
-#' @inheritParams pipe_find_factors
 #' @param field Field (column, variable) to search
 #' @param value Value to search for
 #' @param operator c('contains','notcontains','=','notequals','greater','less','starts','ends').
@@ -2432,11 +2442,9 @@ parse_commands <- function(graf=NULL,tex){
 #' @param up integer. Default is 0.
 #' @param down integer. Default is 0.
 #' @description Fields may be from the original data and/or fields created by the app, e.g. `n` (frequency).
-
 #' When field is 'label', 'value' can contain a vector of search terms separated by ' OR '.
 #'
 #' Text searches are case-insensitive.
-
 #' @return
 #' A mapfile containing only matching factors; if `up`!=0 then also factors this number of steps
 #' upstream of the matching factors are also included and likewise for `down`!=0.
@@ -2447,10 +2455,10 @@ parse_commands <- function(graf=NULL,tex){
 #' @export
 #'
 #' @examples
-#' pipe_find_factors(cashTransferMap,NULL,"Cash")
-#' pipe_find_factors(cashTransferMap,field="label",value="Cash",operator="contains")
-#' pipe_find_factors(cashTransferMap,field="id",value=10,operator="greater")
-#' pipe_find_factors(cashTransferMap,NULL,"purchase OR buy")
+#' pipe_find_factors(example2,field="label",value="Flood",operator="contains")
+#' pipe_find_factors(example2,value="Flood") %>% make_interactive_map
+#' pipe_find_factors(example2,value="Flood")
+#' pipe_find_factors(example2,field="id",value=5,operator="greater")
 pipe_find_factors <- function(graf,field="label",value,operator="contains",up=1,down=1,remove_isolated=F,highlight_only=F){
     # st <- attr(graf,"statements")
   meta <-   make_meta(graf,as.list(match.call()))
@@ -2499,14 +2507,11 @@ pipe_find_factors <- function(graf,field="label",value,operator="contains",up=1,
 #' Find links
 #'
 #' @inheritParams pipe_find_factors
-#' A mapfile containing only matching links. Factors are not removed, so this function may return maps with isolated factors,
+#' @return A mapfile containing only matching links. Factors are not removed, so this function may return maps with isolated factors,
 #' i.e. factors with no links.
 #' @export
 #'
 #' @examples
-#' pipe_find_links(cashTransferMap,value="Cash")
-#' pipe_find_links(cashTransferMap,field="label",value="Cash",operator="contains")
-#' pipe_find_links(cashTransferMap,field="from",value="12",operator="greater")
 pipe_find_links <- function(graf,field=NULL,value,operator="contains",remove_isolated=T,highlight_only=F){
   # browser()
   meta <-   make_meta(graf,as.list(match.call()))

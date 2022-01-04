@@ -10,7 +10,21 @@ pipe_recalculate_factors(graf)
 \item{graf}{}
 }
 \value{
-
+A mapfile whose factors table contains the following fields.
+betweenness: the number of paths going through the factor.
+betweenness_rank: the rank of the betweenness.
+in_degree: the number of incoming links.
+out_degree: the number of outgoing links.
+role: the number of incoming links minus the number of incoming links. High values are drivers, low values are outcomes
+frequency: the number of links.
+driver_score: how strongly is this factor a driver?
+outcome_score: how strongly is this factor an outcome?
+driver_rank: rank of driver_score.
+outcome_rank: rank of outcome_score.
+is_opposable: does the factor label contain a ~.
+zoom_level: number of ; separators in factor label, plus 1.
+top_level_label: the label of the factor's ultimate parent in the hierarchy, if any.
+top_level_frequency: the number of links to and from the top level factor.
 }
 \description{
 Title

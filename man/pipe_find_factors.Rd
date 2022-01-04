@@ -41,8 +41,8 @@ When field is 'label', 'value' can contain a vector of search terms separated by
 Text searches are case-insensitive.
 }
 \examples{
-pipe_find_factors(cashTransferMap,NULL,"Cash")
-pipe_find_factors(cashTransferMap,field="label",value="Cash",operator="contains")
-pipe_find_factors(cashTransferMap,field="id",value=10,operator="greater")
-pipe_find_factors(cashTransferMap,NULL,"purchase OR buy")
+pipe_find_factors(example2,field="label",value="Flood",operator="contains")
+pipe_find_factors(example2,value="Flood") \%>\% make_interactive_map
+pipe_find_factors(example2,value="Flood")
+pipe_find_factors(example2,field="id",value=5,operator="greater")
 }

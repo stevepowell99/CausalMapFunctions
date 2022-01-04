@@ -13,11 +13,18 @@ pipe_find_links(
   highlight_only = F
 )
 }
+\arguments{
+\item{field}{Field (column, variable) to search}
+
+\item{value}{Value to search for}
+
+\item{operator}{c('contains','notcontains','=','notequals','greater','less','starts','ends').
+How to search.}
+}
+\value{
+A mapfile containing only matching links. Factors are not removed, so this function may return maps with isolated factors,
+i.e. factors with no links.
+}
 \description{
 Find links
-}
-\examples{
-pipe_find_links(cashTransferMap,value="Cash")
-pipe_find_links(cashTransferMap,field="label",value="Cash",operator="contains")
-pipe_find_links(cashTransferMap,field="from",value="12",operator="greater")
 }
