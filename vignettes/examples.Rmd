@@ -72,7 +72,7 @@ You might need to wait a few seconds for all of the graphics in this file to loa
 
 ## How it works
 
-You import a mapfile from a local excel file, from a S3 store, or from sql using `load_mapfile()`
+You import a mapfile from a built-in example file, a local excel file, from a S3 store, or from sql using `load_mapfile()`
 
 A family of functions `pipe_*` are provided (manipulate, calculate, hide, combine...) to implement successive filtering operations on a mapfile. These operations do not change the underlying data. 
 
@@ -118,7 +118,7 @@ which you can also view in Causal Map on the web.
 Visualise the files like this:
 
 ```{r echo=T}
-example2 %>% make_interactive_map
+example2 %>% pipe_coerce_mapfile() %>% make_interactive_map
 
 ```
 
@@ -133,7 +133,7 @@ Your input mapfile should have the standard Causal Map [format](guide.causalmap.
 ```{r }
 # ll <- quip_example
   # ee <- example2
-  ee <- load_mapfile("example2")%>% pipe_coerce_mapfile
+  ee <- load_mapfile("example2")
 ```
 
 ## Basic examples
@@ -645,6 +645,22 @@ ll %>%
 ```
 
 
+## Recalculating
+
+```{r}
+ll %>% 
+  pipe_find_factors(value="WASH") %>% 
+  pipe_color_factors(field="betweenness") %>% 
+  make_interactive_map
+
+ll %>% 
+  pipe_find_factors(value="WASH") %>% 
+  pipe_recalculate_factors() %>% 
+  pipe_color_factors(field="betweenness") %>% 
+  make_interactive_map
+
+```
+
 ## Mark links
 
 ```{r}
@@ -1108,7 +1124,7 @@ graf$links %>% filter(statement_id %notin% graf$statements$statement_id) %>% nro
 ## Cluster factors
 
 ```{r}
-example2 %>% 
+ee %>% 
   pipe_coerce_mapfile %>% 
   pipe_cluster_factors("Damage OR Flood") %>% 
   make_print_map

@@ -26,5 +26,9 @@ Select links
 }
 \examples{
 select links top=20 should keep all the links within the 20 fattest bundles/sets of links with the most links in each bundle.
-But previously the algorithm actually combined them into 20 individual links (i.e. create radically fewer actual links) and just remembered the frequency. Now, it keeps the individual links (so a map with select links top =3 might still have 3000 actual links if there were 1000 from A to B and 1000 from B to C and 1000 from C to D. By default, the Interactive and Print maps would indeed combine these into three thick pipes for performance sake, but there would still be 3000 links there somewhere.
+But previously the algorithm actually combined them into 20 individual links (i.e. create radically fewer actual links)
+and just remembered the frequency.
+Now, it keeps the individual links (so a map with select links top =3 might still have 3000 actual links if there were 1000 from A to B
+and 1000 from B to C and 1000 from C to D. By default, the Interactive and
+Print maps would indeed combine these into three thick pipes for performance sake, but there would still be 3000 links there somewhere.
 }

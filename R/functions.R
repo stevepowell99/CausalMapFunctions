@@ -521,7 +521,11 @@ load_mapfile <- function(path=NULL,connection=conn){
   # browser()
   if(!is.null(graf$links)>0)graf$links <- graf$links %>% select(-any_of(c("link_id.1","statement_id.2","from.2","to.2","quote.2","frequency.1","weight.2","actualisation.2","strength.2","certainty.2","from_flipped.1","to_flipped.1","link_label.1","from_label.1","to_label.1","hashtags.2","link_memo.1","link_map_id.1","link_id.2","statement_id.3","from.3","to.3","quote.3","frequency.2","weight.3","actualisation.3","strength.3","certainty.3","from_flipped.2","to_flipped.2","link_label.2","from_label.2","to_label.2","hashtags.3","link_memo.2","link_map_id.2","statement_id.1","from.1","to.1","quote.1","weight.1","actualisation.1","strength.1","certainty.1","hashtags.1")))#FIXME TODO  this is just legacy/transition
   notify("Loading map")
-  return(graf  %>% pipe_coerce_mapfile() %>% add_meta(list(load_mapfile=list(graf="",glue("load_mapfile path={path}")))))
+  return(graf  %>%
+           pipe_coerce_mapfile() %>%
+           pipe_recalculate_all() %>%
+
+           add_meta(list(load_mapfile=list(graf="",glue("load_mapfile path={path}")))))
 
 
 
@@ -718,19 +722,34 @@ pipe_coerce_mapfile <- function(tables){
     suppressMessages
 
   # browser()
+#
+#
+#   if(nrow(factors)>0){
+#     links <- add_labels_to_links(links,factors)
+#     links <- add_simple_bundle_to_links(links)
+#
+#
+#
+#
+#   factors <- add_metrics_to_factors(factors,links)
+#   links <- add_metrics_to_links(links)
+#   }
 
 
-  if(nrow(factors)>0){
-    links <- add_labels_to_links(links,factors)
-    links <- add_simple_bundle_to_links(links)
 
 
+  attr(links,"flow") <- flow
 
 
-  factors <- add_metrics_to_factors(factors,links)
-  }
+  graf <- assemble_mapfile(factors,links,statements,sources,questions,settings) %>%
+    # pipe_remove_orphaned_links() %>%
+    add_class()
 
+  attr(graf,"meta") <- attr(tables,"meta")
+graf
+}
 
+add_metrics_to_links <- function(links){
   # for show_continuity, need to store all the before and after link ids in each link.
 
   before_ids <-
@@ -747,20 +766,10 @@ pipe_coerce_mapfile <- function(tables){
   links <-
     links %>%
     select(-any_of("before_id")) %>%
-  select(-any_of("after_id")) %>%
-  left_join(before_ids,by="from") %>%
+    select(-any_of("after_id")) %>%
+    left_join(before_ids,by="from") %>%
     left_join(after_ids,by="to")
-
-
-  attr(links,"flow") <- flow
-
-
-  graf <- assemble_mapfile(factors,links,statements,sources,questions,settings) %>%
-    # pipe_remove_orphaned_links() %>%
-    add_class()
-
-  attr(graf,"meta") <- attr(tables,"meta")
-graf
+  links
 }
 
 add_simple_bundle_to_links <- function(links){
@@ -838,15 +847,22 @@ pipe_update_mapfile <- function(map,
 fix_columns_factors <- function(factors){
   if(!("color.background" %in% colnames(factors))) factors <- factors %>% mutate(color.background="#ffffff")
   if(!("color.border" %in% colnames(factors))) factors <- factors %>% mutate(color.border="#ffffff")
-  if(!("frequency" %in% colnames(factors))) factors <- factors %>% mutate(frequency=1L)
-  if(!("in_degree" %in% colnames(factors))) factors <- factors %>% mutate(in_degree=1L)
-  if(!("out_degree" %in% colnames(factors))) factors <- factors %>% mutate(out_degree=1L)
   if(!("size" %in% colnames(factors))) factors <- factors %>% mutate(size=1L)
   if(!("cluster" %in% colnames(factors))) factors <- factors %>% mutate(cluster="")
   if(!("found" %in% colnames(factors))) factors <- factors %>% mutate(found=1L)
   if(!("found_type" %in% colnames(factors))) factors <- factors %>% mutate(found_type="")
 
-  factors
+  factors # add_metrics_to_factors(factorslinks)
+}
+
+recalculate_links <- function(factors,links){
+  links <- links %>%
+    add_labels_to_links(factors) %>%
+    add_simple_bundle_to_links() %>%
+    add_metrics_to_links()
+
+
+  links
 }
 
 #' Fix links columns
@@ -869,21 +885,49 @@ fix_columns_links <- function(links){
   links
 }
 
-#' #' Fix columns
-#' #'
-#' #' @inheritParams parse_commands
-#' #'
-#' #' @return A mapfile with a additional columns.
-#' #' @export
-#' #'
-#' #'
-#' #' @examples
-#' pipe_fix_columns <- function(graf){
-#'   graf %>% update_mapfile(
-#'     factors = graf$factors %>% fix_columns_factors(),
-#'     links = graf$links %>% fix_columns_links()
-#'   )
-#' }
+#' Fix columns
+#'
+#' @inheritParams parse_commands
+#'
+#' @return A mapfile with a additional columns.
+#' @export
+#'
+#'
+#' @examples
+pipe_recalculate_all <- function(graf){
+  graf %>%
+    pipe_recalculate_factors %>%
+    pipe_recalculate_links
+
+}
+#' Title
+#'
+#' @param graf
+#'
+#' @return
+#' @export
+#'
+#' @examples
+pipe_recalculate_factors <- function(graf){
+  graf %>%
+    pipe_update_mapfile(
+    factors = add_metrics_to_factors(graf$factors,graf$links)
+    )
+}
+#' Title
+#'
+#' @param graf
+#'
+#' @return
+#' @export
+#'
+#' @examples
+pipe_recalculate_links <- function(graf){
+  graf %>%
+    pipe_update_mapfile(
+    links = graf$links %>% recalculate_links(graf$factors,.)
+    )
+}
 
 
 update_join <- function(old,new){
@@ -996,6 +1040,7 @@ update_join <- function(old,new){
 #'
 #' }
 add_metrics_to_factors <- function(factors,links){
+# browser()
   ig <- make_igraph(factors,links)
 
 
@@ -1003,6 +1048,7 @@ add_metrics_to_factors <- function(factors,links){
   factors$betweenness_rank <- factors$betweenness %>% rank
   factors$in_degree=ig %>% igraph::degree(mode = "in")
   factors$out_degree=ig %>% igraph::degree(mode = "out")
+  factors$role <- factors$in_degree-factors$out_degree
   factors$frequency <- factors$in_degree+factors$out_degree
   factors$driver_score=factors$out_degree-factors$in_degree*2
   factors$outcome_score=factors$in_degree-factors$out_degree*2
@@ -1011,7 +1057,6 @@ add_metrics_to_factors <- function(factors,links){
   factors$is_opposable=str_detect(factors$label,"^~")
   factors$zoom_level=str_count(factors$label,";")+1
   factors$top_level_label=zoom_inner(factors$label)
-# browser()
   factors <- factors %>%
     group_by(top_level_label) %>%
     mutate(top_level_frequency=sum(frequency)) %>%
