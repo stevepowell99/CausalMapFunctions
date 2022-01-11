@@ -3713,8 +3713,7 @@ pipe_wrap_factors <- function(graf,length=20){
   graf %>%
     pipe_update_mapfile(
       factors=graf$factors %>%
-        mutate(label=str_remove_all(label,"\n")) %>%
-        mutate(label=str_wrap(label,length))
+        mutate(factor_wrap=length)
     )%>%
     finalise(info)
 }
@@ -3735,10 +3734,7 @@ pipe_wrap_links <- function(graf,length=20){
   graf %>%
     pipe_update_mapfile(links=
                  graf$links %>%
-                 # mutate(label=str_remove_all(link_label,"\n")) %>%
-                 # mutate(label=str_wrap(link_label,length)) %>%
-                 mutate(link_label=str_remove_all(link_label,"\n")) %>%
-                 mutate(link_label=str_wrap(link_label,length))
+                 mutate(link_wrap=length)
     )%>%
     finalise(info)
 }
@@ -3898,12 +3894,20 @@ make_interactive_map <- function(graf,scale=1,safe_limit=200,rainbow=F){
 if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- graf %>% pipe_update_mapfile(factors=.$factors %>% arrange((size))) %>% pipe_remove_orphaned_links()#because this is the way to get the most important ones in front
 }
   nodes <- graf$factors %>% mutate(value=size*10) %>%
-    select(any_of(xc("factor_id factor_memo  label color.background color.border title group value hidden size"))) %>% ### restrictive in attempt to reduce random freezes
+    select(any_of(xc("factor_id factor_memo factor_wrap label color.background color.border title group value hidden size"))) %>% ### restrictive in attempt to reduce random freezes
     fix_columns_factors()
-  nodes <- nodes %>%     mutate(label=add_default_wrap(label) )
+
+  # browser()
+  if("factor_wrap" %in% colnames(nodes))nodes <- nodes %>%
+    mutate(label=str_wrap(label,max(factor_wrap))) else nodes <-
+    nodes %>%     mutate(label=add_default_wrap(label) )
 
   edges <- graf$links %>% select(-any_of("label")) %>% rename(label=link_label) %>%
     fix_columns_links()
+
+  if("link_wrap" %in% colnames(edges))edges <- edges %>%
+    mutate(label=str_wrap(label,max(link_wrap))) else edges <-
+    edges %>%     mutate(label=add_default_wrap(label) )
 
     #message("3vn")
 
@@ -4266,7 +4270,7 @@ make_print_map <- function(
     mutate(fontsize=(size+4)*25) %>%
     mutate(fontcolor="black") %>%
     # mutate(xlabel="blue") %>%
-    select(any_of(xc("label size tooltip fillcolor color fontsize fontcolor cluster penwidth")))
+    select(any_of(xc("label size tooltip factor_wrap fillcolor color fontsize fontcolor cluster penwidth")))
 
   # %>%
   #   mutate(factor_id=factor_id)
@@ -4293,7 +4297,7 @@ make_print_map <- function(
 
   # mutate_all(first_map)%>%
   links <- links %>%
-    select(any_of(xc("from to color simple_bundle width link_label width from_label headlabel taillabel arrowhead arrowtail to_label"))) %>%
+    select(any_of(xc("from to color link_wrap simple_bundle width link_label width from_label headlabel taillabel arrowhead arrowtail to_label"))) %>%
     rename(label=link_label) %>%
     mutate(from=as.numeric(from))%>%
     mutate(to=as.numeric(to))%>%
@@ -4309,6 +4313,19 @@ make_print_map <- function(
   if(all(factors$cluster==""))factors$cluster=NULL
 # browser()
   # factors$cluster <- factors$cluster %>% replace_na("")
+
+  if("factor_wrap" %in% colnames(factors))factors <- factors %>%
+    mutate(label=str_wrap(label,max(factor_wrap))) else factors <-
+    factors %>%     mutate(label=add_default_wrap(label) )
+
+  edges <- graf$links %>% select(-any_of("label")) %>% rename(label=link_label) %>%
+    fix_columns_links()
+
+  if("link_wrap" %in% colnames(links))links <- links %>%
+    mutate(label=str_wrap(label,max(link_wrap))) else links <-
+    links %>%     mutate(label=add_default_wrap(label) )
+
+
 
   grv <-
     DiagrammeR::create_graph() %>%

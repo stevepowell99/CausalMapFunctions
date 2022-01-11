@@ -25,7 +25,7 @@ library(DBI)
 library(kableExtra)
 library(scales)
 knitr::opts_chunk$set(echo = F)
-source("../R/functions.R")################################
+#source("../R/functions.R")################################
 
 config = configr::read.config("../config.yml")$default
 
@@ -425,7 +425,7 @@ e3  %>%
 
 ```
 
-Note this doe sn'twork in the app:
+Note this doesn't work in the app:
 
 ```{r }  
 e3  %>% 
@@ -458,14 +458,23 @@ ll %>%
 
 ```
 
+### Wrap factors
+
 ```{r }
 ll %>%
     pipe_select_factors(5) %>%
     pipe_color_links(value="count: link_id") %>%
     pipe_wrap_factors(5) %>%
     make_interactive_map
+ll %>%
+    pipe_select_factors(5) %>%
+    pipe_color_links(value="count: link_id") %>%
+    pipe_wrap_factors(5) %>%
+    make_print_map
 
 ```
+
+### Wrap links
 
 ```{r }  
 
@@ -473,6 +482,11 @@ ee %>%
     pipe_label_links("from_label",fun = "unique") %>%
     pipe_wrap_links(6) %>%
     make_interactive_map
+
+ee %>%
+    pipe_label_links("from_label",fun = "unique") %>%
+    pipe_wrap_links(6) %>%
+    make_print_map
 
 ```
 
