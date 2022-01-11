@@ -12,17 +12,31 @@ output:
 ---
 
 
-```{r setup, include=FALSE}
+```{r setup, cache=F}
 # devtools::load_all();devtools::document();pkgdown::build_site(lazy=F)
 
 options(dplyr.summarise.inform = FALSE)
 library(CausalMapFunctions)
 library(knitr)
 library(htmltools)
+library(configr)
+library(dbplyr)
+library(DBI)
 library(kableExtra)
 library(scales)
 knitr::opts_chunk$set(echo = F)
 #source("../R/functions.R")################################
+
+config = configr::read.config("../config.yml")$default
+
+conn <- dbConnect(
+  drv = RMySQL::MySQL(max.con=100, fetch.default.rec=1000),
+  dbname = "cm2assets",
+  host = config$sql$host,
+  port = config$sql$port,
+  username = config$sql$username,
+  password = config$sql$password
+)
 
 pp=function(x,N=99){
   print(x,n=N)
@@ -33,6 +47,10 @@ replace_null <- function(x,replacement=0){
 }
 
 
+append_rows <- function(val,name){
+  val <- val %>% mutate_all(clean_send)
+  dbWriteTable(con=conn,name = local(name),value=local(val) ,append=TRUE,row.names=FALSE)
+}
 print_inner_filter <- function(xx){
   # browser()
 xx$graf <- NULL
@@ -47,18 +65,33 @@ tibble(names=nams,vals=unlist(xx)) %>%
   paste0(fil," ",.)
 }
 print_filter <- function(graf){
+  
+  if(!exists("xtitle"))xtitle <- ""
+  if(!exists("xdescription"))xdescription <- ""
+  
+  if(is.null(attr(graf,"info")))return()
   # browser()
-  if(is.null(attr(graf,"meta")))return()
-story <- attr(graf,"meta")[[1]] %>% keep(~str_detect(.,"^load_mapfile")) %>% unlist %>% str_remove("load_mapfile *path=")
-input_ace <- attr(graf,"meta") %>% list_modify("load_mapfile" = NULL) %>% unlist %>% keep(.!=".") %>% map(~str_remove_all(.,"^pipe_") %>% str_replace("_"," ")) %>%  paste0(collapse = "\n")
+story <- attr(graf,"info")[[1]] %>% keep(~str_detect(.,"^load_mapfile")) %>% unlist %>% str_remove("load_mapfile *path=")
+input_ace <- attr(graf,"info") %>% list_modify("load_mapfile" = NULL) %>% unlist %>% keep(.!=".") %>% map(~str_remove_all(.,"^pipe_") %>% str_replace("_"," ")) %>%  paste0(collapse = "\n")
 filters <- paste0("&filters=",URLencode(input_ace %>% replace_null(""),reserved=T))
-# browser()
-attr(graf,"meta") %>% 
+
+message("appending")
+append_rows(
+  tibble(likes=1,recommended=T,filter=input_ace %>% replace_null(""),hidden=F,title=xtitle %>%    replace_null(""),description=xdescription %>% replace_null(""),date=time_stamp(),project=story)
+  ,"shortlinks")
+
+
+attr(graf,"info") %>% 
   map(~print_inner_filter(.) %>% 
       str_trim %>% 
       div(style=";")
-  ) %>% div(style="padding:10px;background-color:aliceblue;")
-  # ) %>% div(a("Link",href=paste0("https://causalmap.shinyapps.io/CausalMap2?story=",story,filters)),style="padding:10px;background-color:aliceblue;")
+  ) %>%  tagList %>% div(style="padding:10px;background-color:aliceblue;") %>% div(
+    if(xtitle!="")h5(xtitle),
+    if(xdescription!="")p(xdescription),                                                                     
+    .,
+    a("Link",href=paste0("https://causalmap.shinyapps.io/CausalMap2?story=",story,filters)),style="padding:10px;background-color:aliceblue;")
+
+
 }
 
 make_interactive_map <- function(graf){
@@ -67,6 +100,16 @@ make_interactive_map <- function(graf){
 make_print_map <- function(graf){
   tagList(print_filter(graf),CausalMapFunctions::make_print_map(graf))
 }
+clean_send <- function(vec){
+  if(vec %>% unique %>% `%in%`(c(F,T)) %>% all) vec <- as.numeric(vec)
+  if(F & is.character(vec)) {
+    # Encoding(vec)="UTF-8"
+    vec <- stri_enc_toascii(vec)
+  }
+  vec
+}
+
+
 
 ```
 
@@ -144,13 +187,18 @@ Your input mapfile should have the standard Causal Map [format](guide.causalmap.
 ### Interactive and Print maps
 
 ```{r }  
+xtitle <- "Interactive"
+xdescription <- ""
   ee %>%
     pipe_label_links("link_id",fun = "unique") %>%
     make_interactive_map
   
+xtitle <- "Print"
   ee %>%
     pipe_label_links("link_id",fun = "unique") %>%
     make_print_map()
+  
+xdescription <- "Set a different print layout"
   ee %>%
     pipe_set_print(grv_layout="circo") %>%
     make_print_map()
@@ -190,7 +238,8 @@ If you filter the statements of a mapfile, e.g. show only statements with texts 
 
 
 
-```{r }  
+```{r first}
+
 ll %>%
     pipe_select_factors(15) %>%
     make_interactive_map
@@ -651,7 +700,7 @@ ll %>%
 ```
 
 
-## Recalculating
+## Recalculating - shouldn't make any difference now as factor and link fields are recalculated after every transform; but before and afterids are added only on load_mapfile.
 
 ```{r}
 ll %>% 
@@ -1230,7 +1279,7 @@ ee %>%
 #   pipe_combine_opposites() %>% 
 #   pipe_bundle_links() %>% 
 #   pipe_label_links() %>% 
-#   attr("meta") %>% 
+#   attr("info") %>% 
 #   str
 # 
 # example2 %>%

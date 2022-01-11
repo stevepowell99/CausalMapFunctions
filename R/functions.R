@@ -7,6 +7,31 @@
 # - note that some funs like zoom, bundle factor etc may have different ids from previous mapfile
 # - there should never be a need to apply pipe_coerce_mapfile twice
 
+library(igraph)
+library(configr)
+library(DiagrammeR)
+library(visNetwork)
+library(tidyverse)
+#library(tidygraph)
+library(scales)
+library(htmltools)
+library(paws)
+library(DT)
+library(jsonlite)
+library(DBI)
+library(shiny)
+
+config = configr::read.config("config.yml")$default
+
+conn <- dbConnect(
+  drv = RMySQL::MySQL(max.con=100, fetch.default.rec=1000),
+  dbname = config$sql$dbname,
+  host = config$sql$host,
+  port = config$sql$port,
+  username = config$sql$username,
+  password = config$sql$password
+)
+
 summary.mapfile <- function (graf){
   list(colnames=graf %>% map(colnames) ,
        "Number of rows"=graf %>% map(nrow) %>% as_tibble
@@ -31,7 +56,7 @@ colnames.cm <- function (graf){graf %>% map(colnames)}
 
 notify <- function(text){
   # browser()
-  safely(~showNotification(ui=text))()$result
+  if(exists("sess")){if(sess$is_admin %>% replace_null(F))safely(~showNotification(ui=text))()$result}
 
 }
 #' Add attribute
@@ -48,8 +73,13 @@ add_attribute <- function(graf,value,attr="flow"){
   attr(graf,attr) <- value
   graf
 }
-add_meta <- function(graf,value){
-  attr(graf,"meta") <- value
+
+finalise_transforms <- function(graf,value){
+  attr(graf,"info") <- value
+  graf %>%     pipe_recalculate_all()
+}
+finalise <- function(graf,value){
+  attr(graf,"info") <- value
   graf
 }
 
@@ -102,19 +132,6 @@ operator_list=c("=", "less", "greater", "notcontains", "notequals", "notequal", 
 buck <- "causalmap"
 table_list <- c("factors","links","statements","sources","questions","settings") #has to be in Viewer as well
 
-library(igraph)
-library(configr)
-library(DiagrammeR)
-library(visNetwork)
-library(tidyverse)
-#library(tidygraph)
-library(scales)
-library(htmltools)
-library(paws)
-library(DT)
-library(jsonlite)
-library(DBI)
-library(shiny)
 #library(tidygraph)
 
 s3 <- paws::s3()
@@ -518,14 +535,22 @@ load_mapfile <- function(path=NULL,connection=conn){
 
   }
 
-  # browser()
-  if(!is.null(graf$links)>0)graf$links <- graf$links %>% select(-any_of(c("link_id.1","statement_id.2","from.2","to.2","quote.2","frequency.1","weight.2","actualisation.2","strength.2","certainty.2","from_flipped.1","to_flipped.1","link_label.1","from_label.1","to_label.1","hashtags.2","link_memo.1","link_map_id.1","link_id.2","statement_id.3","from.3","to.3","quote.3","frequency.2","weight.3","actualisation.3","strength.3","certainty.3","from_flipped.2","to_flipped.2","link_label.2","from_label.2","to_label.2","hashtags.3","link_memo.2","link_map_id.2","statement_id.1","from.1","to.1","quote.1","weight.1","actualisation.1","strength.1","certainty.1","hashtags.1")))#FIXME TODO  this is just legacy/transition
+  if(!is.null(graf$links)){
+    graf$links <- graf$links %>% select(-any_of(c("link_id.1","statement_id.2","from.2","to.2","quote.2","frequency.1","weight.2","actualisation.2","strength.2","certainty.2","from_flipped.1","to_flipped.1","link_label.1","from_label.1","to_label.1","hashtags.2","link_memo.1","link_map_id.1","link_id.2","statement_id.3","from.3","to.3","quote.3","frequency.2","weight.3","actualisation.3","strength.3","certainty.3","from_flipped.2","to_flipped.2","link_label.2","from_label.2","to_label.2","hashtags.3","link_memo.2","link_map_id.2","statement_id.1","from.1","to.1","quote.1","weight.1","actualisation.1","strength.1","certainty.1","hashtags.1")))#FIXME TODO  this is just legacy/transition
+  }
+  if(!is.null(graf$links)){
+    graf$links <- graf$links  %>%
+      add_before_and_after_ids_to_links()
+  }
   notify("Loading map")
+  # browser()
   return(graf  %>%
            pipe_coerce_mapfile() %>%
-           pipe_recalculate_all() %>%
 
-           add_meta(list(load_mapfile=list(graf="",glue("load_mapfile path={path}")))))
+           pipe_recalculate_all()         %>%
+
+           finalise(list(load_mapfile=list(graf="",glue::glue("load_mapfile path={path}"))))
+         )
 
 
 
@@ -732,7 +757,7 @@ pipe_coerce_mapfile <- function(tables){
 #
 #
 #   factors <- add_metrics_to_factors(factors,links)
-#   links <- add_metrics_to_links(links)
+#   links <- add_before_and_after_ids_to_links(links)
 #   }
 
 
@@ -745,11 +770,11 @@ pipe_coerce_mapfile <- function(tables){
     # pipe_remove_orphaned_links() %>%
     add_class()
 
-  attr(graf,"meta") <- attr(tables,"meta")
+  attr(graf,"info") <- attr(tables,"info")
 graf
 }
 
-add_metrics_to_links <- function(links){
+add_before_and_after_ids_to_links <- function(links){
   # for show_continuity, need to store all the before and after link ids in each link.
 
   before_ids <-
@@ -858,8 +883,7 @@ fix_columns_factors <- function(factors){
 recalculate_links <- function(factors,links){
   links <- links %>%
     add_labels_to_links(factors) %>%
-    add_simple_bundle_to_links() %>%
-    add_metrics_to_links()
+    add_simple_bundle_to_links()
 
 
   links
@@ -2246,9 +2270,9 @@ add_call <- function(graf,lis){
   attr(graf,"call") <- c(attr(graf,"call"),lis %>% (function(x)list(x) %>% set_names(x[[1]])))
   graf
 }
-make_meta <- function(graf,lis){
+make_info <- function(graf,lis){
 
-  c(attr(graf,"meta"),lis %>% (function(x)list(x) %>% set_names(x[[1]])))
+  c(attr(graf,"info"),lis %>% (function(x)list(x) %>% set_names(x[[1]])))
 
 }
 
@@ -2461,7 +2485,7 @@ parse_commands <- function(graf=NULL,tex){
 #' pipe_find_factors(example2,field="id",value=5,operator="greater")
 pipe_find_factors <- function(graf,field="label",value,operator="contains",up=1,down=1,remove_isolated=F,highlight_only=F){
     # st <- attr(graf,"statements")
-  meta <-   make_meta(graf,as.list(match.call()))
+  info <-   make_info(graf,as.list(match.call()))
 
   df <- graf$factors %>% find_fun(field,value,operator)
 # browser()
@@ -2469,7 +2493,7 @@ pipe_find_factors <- function(graf,field="label",value,operator="contains",up=1,
 
   if(df$found %>% sum %>% `==`(0)) {
   graf <- (pipe_update_mapfile(graf,factors=graf$factors %>% filter(F),links=graf$links %>% filter(F)))
-  return( graf  %>% add_meta(meta)
+  return( graf  %>% finalise_transforms(info)
 )
   }
 
@@ -2477,7 +2501,7 @@ pipe_find_factors <- function(graf,field="label",value,operator="contains",up=1,
 
   if(operator=="notcontains" | operator=="notequals"){
   graf <- pipe_update_mapfile(graf,factors=df %>% filter(found)) %>% pipe_coerce_mapfile()
-  return(graf %>% add_meta(meta))
+  return(graf %>% finalise_transforms(info))
 
   }
 
@@ -2485,7 +2509,7 @@ pipe_find_factors <- function(graf,field="label",value,operator="contains",up=1,
 
   if(highlight_only){
   graf <- (pipe_update_mapfile(graf,factors=df,links=graf$links))
-  return(graf %>% add_meta(meta))
+  return(graf %>% finalise_transforms(info))
 
   }
 
@@ -2501,7 +2525,7 @@ pipe_find_factors <- function(graf,field="label",value,operator="contains",up=1,
       graf %>% filter(F)
   }} %>% pipe_coerce_mapfile()
 
-  return(graf %>% add_meta(meta))
+  return(graf %>% finalise_transforms(info))
 }
 
 #' Find links
@@ -2514,14 +2538,14 @@ pipe_find_factors <- function(graf,field="label",value,operator="contains",up=1,
 #' @examples
 pipe_find_links <- function(graf,field=NULL,value,operator="contains",remove_isolated=T,highlight_only=F){
   # browser()
-  meta <-   make_meta(graf,as.list(match.call()))
+  info <-   make_info(graf,as.list(match.call()))
 
   graf$links <- graf$links %>% find_fun(field,value,operator)
   if(!highlight_only) graf$links <- graf$links %>% filter(found)
 
   if(remove_isolated) graf <- pipe_remove_isolated(graf)
 
-  add_meta(graf,meta)
+  finalise_transforms(graf,info)
 
 
 }
@@ -2534,7 +2558,7 @@ pipe_find_links <- function(graf,field=NULL,value,operator="contains",remove_iso
 #'
 #' @examples
 pipe_find_statements <- function(graf,field,value,operator="=",remove_isolated=T){
-  meta <-   make_meta(graf,as.list(match.call()))
+  info <-   make_info(graf,as.list(match.call()))
   statements <- graf$statements %>% find_fun(field,value,operator)  %>%
     filter(found)
 
@@ -2548,7 +2572,7 @@ pipe_find_statements <- function(graf,field,value,operator="=",remove_isolated=T
            {if(remove_isolated) pipe_remove_isolated(.) else .}
   )
   # browser()
-  add_meta(graf,meta)
+  finalise_transforms(graf,info)
 
 
 
@@ -2574,7 +2598,7 @@ pipe_find_statements <- function(graf,field,value,operator="=",remove_isolated=T
 #' and 1000 from B to C and 1000 from C to D. By default, the Interactive and
 #' Print maps would indeed combine these into three thick pipes for performance sake, but there would still be 3000 links there somewhere.
 pipe_select_links <- function(graf,top=NULL,bottom=NULL){
-  meta <-   make_meta(graf,as.list(match.call()))
+  info <-   make_info(graf,as.list(match.call()))
 
   links <- graf$links %>%
     unite(bundle,from,to,remove = F,sep = " / ") %>%
@@ -2597,7 +2621,7 @@ pipe_select_links <- function(graf,top=NULL,bottom=NULL){
   graf <- pipe_update_mapfile(graf,links=links) %>%
     pipe_remove_isolated
 
-  add_meta(graf,meta)
+  finalise_transforms(graf,info)
 
 }
 
@@ -2621,7 +2645,7 @@ nrow_links_table <- function(graf)
 #'
 #' @examples
 pipe_select_factors <- function(graf,top=10,bottom=NULL,all=F,field="frequency"){
-  meta <-   make_meta(graf,as.list(match.call()))
+  info <-   make_info(graf,as.list(match.call()))
 
 # browser()
   graf$factors <-
@@ -2632,7 +2656,7 @@ pipe_select_factors <- function(graf,top=10,bottom=NULL,all=F,field="frequency")
 
 
   graf <- graf %>% pipe_remove_isolated_links() %>% pipe_remove_orphaned_links()
-  add_meta(graf,meta)
+  finalise_transforms(graf,info)
 
 
 
@@ -2649,7 +2673,7 @@ pipe_select_factors <- function(graf,top=10,bottom=NULL,all=F,field="frequency")
 #' This can be useful after any function like pipe_select_links() which remove links.
 #' @examples
 pipe_remove_isolated <- function(graf){
-  meta <-   make_meta(graf,as.list(match.call()))
+  info <-   make_info(graf,as.list(match.call()))
 
 
   factors <- graf$factors %>%
@@ -2662,20 +2686,20 @@ pipe_remove_isolated <- function(graf){
     pipe_remove_isolated_links()
   # browser()
 
-  add_meta(graf,meta)
+  finalise_transforms(graf,info)
 
 
 }
 
 pipe_remove_isolated_links <- function(graf,labels=F){
-  meta <-   make_meta(graf,as.list(match.call()))
+  info <-   make_info(graf,as.list(match.call()))
 
 
   if(labels)graf <- graf %>% pipe_update_mapfile(factors=graf$factors,
                                 links=graf$links %>% filter(from_label %in% graf$factors$label & to_label %in% graf$factors$label)) else
                                   graf <- graf %>% pipe_update_mapfile(factors=graf$factors,
                                                       links=graf$links %>% filter(from %in% graf$factors$factor_id & to %in% graf$factors$factor_id))
-  add_meta(graf,meta)
+  finalise_transforms(graf,info)
 
 }
 
@@ -2699,7 +2723,7 @@ pipe_remove_isolated_links <- function(graf,labels=F){
 #'
 #' @examples
 pipe_zoom_factors <- function(graf,level=1,separator=";",hide=T){
-  meta <-   make_meta(graf,as.list(match.call()))
+  info <-   make_info(graf,as.list(match.call()))
   level=as.numeric(level)
   hide=as.logical(hide)
 
@@ -2717,7 +2741,7 @@ pipe_zoom_factors <- function(graf,level=1,separator=";",hide=T){
     pipe_compact_mapfile %>%
     pipe_coerce_mapfile()
 
-  add_meta(graf,meta)
+  finalise_transforms(graf,info)
 
 
 }
@@ -2733,7 +2757,7 @@ pipe_zoom_factors <- function(graf,level=1,separator=";",hide=T){
 #'
 #' @examples
 pipe_bundle_factors <- function(graf,value=""){
-  meta <-   make_meta(graf,as.list(match.call()))
+  info <-   make_info(graf,as.list(match.call()))
   value <- value %>% make_search %>% paste0(collapse="|")
   graf <- pipe_update_mapfile(graf,factors = graf$factors %>%
                mutate(
@@ -2745,7 +2769,7 @@ pipe_bundle_factors <- function(graf,value=""){
     pipe_compact_mapfile() %>%
     pipe_coerce_mapfile()
 
-  add_meta(graf,meta)
+  finalise_transforms(graf,info)
 }
 
 
@@ -2767,7 +2791,7 @@ pipe_bundle_factors <- function(graf,value=""){
 #'
 #' @examples
 pipe_trace_robustness <- function(graf,from,to,length=4,field=NULL){
-  meta <-   make_meta(graf,as.list(match.call()))
+  info <-   make_info(graf,as.list(match.call()))
 
   # browser()
  if(from=="" | to==""){notify("blank from or to factor; robustness calculation may not be correct")}# this should be possible but atm results are horrible
@@ -2776,10 +2800,10 @@ pipe_trace_robustness <- function(graf,from,to,length=4,field=NULL){
     return(graf %>%
       pipe_trace_paths(from=from,to=to,length=length) %>%
       pipe_calculate_robustness() %>%
-        add_meta(meta)
+        finalise_transforms(info)
     )
   } else {if(field %notin% link_colnames(graf)) {warning("Field not found");return(graf %>% make_empty_graf%>%
-                                                                                     add_meta(meta))}
+                                                                                     finalise_transforms(info))}
   else {
 
     # actually we only want to calculate the robustness, the map will be the same as if we were not using a field
@@ -2835,7 +2859,7 @@ pipe_trace_robustness <- function(graf,from,to,length=4,field=NULL){
   graf %>%
       pipe_trace_paths(from=from,to=to,length=length) %>%   # to get the ordinary map
       pipe_update_mapfile(.,links=add_attribute(.$links,res,"flow"))%>%
-    add_meta(meta)
+    finalise_transforms(info)
 
 }
 }
@@ -2855,7 +2879,7 @@ pipe_trace_robustness <- function(graf,from,to,length=4,field=NULL){
 #'
 #' @examples
 pipe_trace_paths <- function(graf,from,to,length=4){
-  meta <-   make_meta(graf,as.list(match.call()))
+  info <-   make_info(graf,as.list(match.call()))
 
   if(is.na(length)) {notify("You have to specify length");return(graf)}
   if(0==(length)) {notify("You have to specify length greater than 0");return(graf)}
@@ -2865,7 +2889,7 @@ pipe_trace_paths <- function(graf,from,to,length=4){
   from <- from %>%  str_replace_all(" OR ","|") %>% str_split(.,"\\|") %>% `[[`(1) %>% map(make_search ) %>% tolower
   to <- to %>%  str_replace_all(" OR ","|") %>% str_split(.,"\\|") %>% `[[`(1) %>% map(make_search ) %>% tolower
   if(from[[1]]=="" & to[[1]]=="") return(graf%>%
-                                           add_meta(meta))
+                                           finalise_transforms(info))
 
   links <- graf$links %>%
     select(from,to,everything())
@@ -2883,7 +2907,7 @@ pipe_trace_paths <- function(graf,from,to,length=4){
 # browser()
 
   if(!any(factors$found_from) | !any(factors$found_to)) return(graf %>% pipe_update_mapfile(factors=graf$factors %>% filter(F))%>%
-                                                                 add_meta(meta))
+                                                                 finalise_transforms(info))
 
   tmp <- pipe_normalise_factors_links(assemble_mapfile(factors,links))
   factors <- tmp$factors
@@ -2908,7 +2932,7 @@ pipe_trace_paths <- function(graf,from,to,length=4){
     # if(sum(found_from,na.rm=T)*sum(found_to,na.rm=T)>10){
     notify("too much to trace")
     return(graf%>%
-             add_meta(meta))
+             finalise_transforms(info))
   }
 
 
@@ -2922,7 +2946,7 @@ pipe_trace_paths <- function(graf,from,to,length=4){
   pipe_update_mapfile(graf,factors=factors,links=links) %>%
     pipe_remove_orphaned_links %>%
     pipe_remove_isolated_links()%>%
-    add_meta(meta)
+    finalise_transforms(info)
   # browser()
   # pipe_update_mapfile(graf,factors=factors_table(graf %>% filter(label!="_super_sink_" & label!="_super_origin_")))  %>%
   #   pipe_clean_map
@@ -2969,7 +2993,7 @@ pipe_trace_paths <- function(graf,from,to,length=4){
 #' @examples
 #' if(F)cashTransferMap %>% pipe_trace_paths(from="Cash",to="Increa",length=4) %>% pipe_merge_statements %>% pipe_calculate_robustness(field="#SourceID") %>% attr("flow")
 pipe_calculate_robustness <- function(graf){
-    meta <-   make_meta(graf,as.list(match.call()))
+    info <-   make_info(graf,as.list(match.call()))
 
   res <- list()
   # browser()
@@ -2980,7 +3004,7 @@ pipe_calculate_robustness <- function(graf){
 
   res$summary <- (calculate_robustness_inner(graf))
   graf %>% pipe_update_mapfile(.,links=add_attribute(graf$links,res,"flow"))%>%
-    add_meta(meta)
+    finalise_transforms(info)
 
 }
 
@@ -2996,7 +3020,7 @@ pipe_calculate_robustness <- function(graf){
 #'
 #' @examples
 pipe_combine_opposites <- function(graf,flipchar="~",add_colors=T){
-  meta <-   make_meta(graf,as.list(match.call()))
+  info <-   make_info(graf,as.list(match.call()))
   # browser()
   if(add_colors)notify("Also adding colours; you can turn this off with 'combine opposites add_colors=FALSE'")
   factors <-
@@ -3023,7 +3047,7 @@ pipe_combine_opposites <- function(graf,flipchar="~",add_colors=T){
   graf %>%
     pipe_update_mapfile(factors=factors,links=links) %>%
     pipe_compact_mapfile()%>%
-    add_meta(meta)
+    finalise_transforms(info)
 
 
 }
@@ -3040,12 +3064,12 @@ pipe_combine_opposites <- function(graf,flipchar="~",add_colors=T){
 #' @examples
 pipe_merge_mapfile <- function(graf,path){
   # browser()
-  meta <-   make_meta(graf,as.list(match.call()))
+  info <-   make_info(graf,as.list(match.call()))
 
   map2 <- load_mapfile(path=path)
   graf <- graf
   merge_mapfile(graf,map2)%>%
-    add_meta(meta)
+    finalise_transforms(info)
 
 
 }
@@ -3062,7 +3086,7 @@ pipe_merge_mapfile <- function(graf,path){
 #'
 #' @examples
 pipe_remove_brackets <- function(graf,value="["){
-  meta <-   make_meta(graf,as.list(match.call()))
+  info <-   make_info(graf,as.list(match.call()))
 
   if(value=="[")graf <- graf %>% pipe_update_mapfile(factors=graf$factors %>%
                                       mutate(label=str_remove_all(label,"\\[.*?\\]")))
@@ -3071,7 +3095,7 @@ pipe_remove_brackets <- function(graf,value="["){
   else if(value=="(")graf <- graf %>% pipe_update_mapfile(factors=graf$factors %>%
                                            mutate(label=str_remove_all(label,"\\(.*?\\)")))
 
-  add_meta(graf,meta)
+  finalise_transforms(graf,info)
 
 }
 # zero_to_one <- function(vec)(vec-min(vec,na.rm=T))/(max(vec,na.rm=T)-min(vec,na.rm=T))
@@ -3099,7 +3123,7 @@ pipe_remove_brackets <- function(graf,value="["){
 #' # or, counting sources rather than statements:
 #' if(F)cashTransferMap %>% pipe_merge_statements() %>%  pipe_select_factors(10) %>% pipe_bundle_links(group="1. Sex",counter="#SourceID")%>% pipe_label_links(field = "frequency") %>% pipe_color_links(field="1. Sex") %>% pipe_scale_links() %>%  make_print_map()
 pipe_bundle_links <- function(graf,field=NULL,group=field){
-    meta <-   make_meta(graf,as.list(match.call()))
+    info <-   make_info(graf,as.list(match.call()))
 
   links <- graf$links %>% ungroup
   coln <- colnames(links)
@@ -3112,7 +3136,7 @@ pipe_bundle_links <- function(graf,field=NULL,group=field){
                           links=links %>%
                         {if(is.null(group))group_by(.,from,to) else group_by(.,from,to,!!(sym(group)))} %>%
                         add_attribute(group,attr = "group"))%>%
-             add_meta(meta))
+             finalise(info))
 
 
 }
@@ -3130,7 +3154,7 @@ pipe_bundle_links <- function(graf,field=NULL,group=field){
 #'
 #' @examples
 pipe_scale_factors <- function(graf,field="frequency"){
-    meta <-   make_meta(graf,as.list(match.call()))
+    info <-   make_info(graf,as.list(match.call()))
 
   # browser()
   if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
@@ -3138,7 +3162,7 @@ pipe_scale_factors <- function(graf,field="frequency"){
   if(class =="character"){warning("No such column");return(graf)}
   graf %>%
     pipe_update_mapfile(factors=graf$factors %>% mutate(size=create_sizes(UQ(sym(field)),field=field,type="scale_factors")))%>%
-    add_meta(meta)
+    finalise(info)
 
 }
 #' Scale factors
@@ -3151,7 +3175,7 @@ pipe_scale_factors <- function(graf,field="frequency"){
 #'
 #' @examples
 pipe_scale_links <- function(graf,field="link_id",fixed=NULL,fun="count",value=NULL){
-    meta <-   make_meta(graf,as.list(match.call()))
+    info <-   make_info(graf,as.list(match.call()))
 
 
   if(!is.null(value)){
@@ -3197,7 +3221,7 @@ pipe_scale_links <- function(graf,field="link_id",fixed=NULL,fun="count",value=N
   }
 
   graf  %>% pipe_update_mapfile(links=links)%>%
-    add_meta(meta)
+    finalise(info)
 
 }
 
@@ -3222,7 +3246,7 @@ pipe_scale_links <- function(graf,field="link_id",fixed=NULL,fun="count",value=N
 #'
 #' @examples
 pipe_label_factors <- function(graf,field="frequency",clear=F){
-    meta <-   make_meta(graf,as.list(match.call()))
+    info <-   make_info(graf,as.list(match.call()))
 
   # browser()
   clear=as.logical(clear)
@@ -3232,7 +3256,7 @@ pipe_label_factors <- function(graf,field="frequency",clear=F){
   graf %>%
     pipe_update_mapfile(factors=graf$factors %>%
                  mutate(label=paste0((if(clear)NULL else paste0(label,". ")) %>% keep(.!=""),field,": ",UQ(sym(field)),". ")))%>%
-    add_meta(meta)
+    finalise(info)
 }
 
 
@@ -3251,7 +3275,7 @@ pipe_label_factors <- function(graf,field="frequency",clear=F){
 #'
 #' @examples
 pipe_label_links <- function(graf,field="link_id",fun="count",value=NULL,add_field_name=F,clear_previous=T){
-    meta <-   make_meta(graf,as.list(match.call()))
+    info <-   make_info(graf,as.list(match.call()))
 
   if(!is.null(value)){
     tmp <- str_match(value,"(^.*?):(.*)")
@@ -3317,7 +3341,7 @@ pipe_label_links <- function(graf,field="link_id",fun="count",value=NULL,add_fie
   }
 
   graf %>% pipe_update_mapfile(links=links)%>%
-    add_meta(meta)
+    finalise(info)
 }
 
 
@@ -3334,7 +3358,7 @@ pipe_label_links <- function(graf,field="link_id",fun="count",value=NULL,add_fie
 #'
 #' @examples
 pipe_mark_links <- function(graf,field="source_id",add_field_name=F,show_number=F){
-    meta <-   make_meta(graf,as.list(match.call()))
+    info <-   make_info(graf,as.list(match.call()))
   links <- graf$links
   ogroups <- groups(links)
   if(length(ogroups)==0){
@@ -3397,7 +3421,7 @@ pipe_mark_links <- function(graf,field="source_id",add_field_name=F,show_number=
     mutate(headlabel=if_else(to %in% links$from,headlabel,""))
 
   graf %>% pipe_update_mapfile(links=links)%>%
-    add_meta(meta)
+    finalise(info)
 }
 
 
@@ -3411,7 +3435,7 @@ pipe_mark_links <- function(graf,field="source_id",add_field_name=F,show_number=
 #'
 #' @examples
 pipe_show_continuity <- function(graf,field="source_id",type="arrowtype"){
-    meta <-   make_meta(graf,as.list(match.call()))
+    info <-   make_info(graf,as.list(match.call()))
 
   links <- graf$links
 
@@ -3468,7 +3492,7 @@ pipe_show_continuity <- function(graf,field="source_id",type="arrowtype"){
 
 
   graf %>% pipe_update_mapfile(links=links)%>%
-    add_meta(meta)
+    finalise(info)
 }
 
 
@@ -3488,15 +3512,15 @@ pipe_show_continuity <- function(graf,field="source_id",type="arrowtype"){
 #'
 #' @examples
 pipe_color_factors <- function(graf,field="frequency",lo="#FCFDBF",hi="#5F187F",mid="#D3436E",fixed=NULL){
-    meta <-   make_meta(graf,as.list(match.call()))
+    info <-   make_info(graf,as.list(match.call()))
 
   if(field %notin% factor_colnames(graf)){warning("No such column");return(graf%>%
-                                                                             add_meta(meta))}
+                                                                             finalise(info))}
   if(!is.null(fixed)) factors <- graf$factors %>%
       mutate(color.background=fixed) else  factors <- graf$factors %>%
           mutate(color.background=create_colors(UQ(sym(field)),lo=lo,hi=hi,mid=mid,type="color_factors",field=field))
       graf %>% pipe_update_mapfile(factors=factors)%>%
-        add_meta(meta)
+        finalise(info)
 }
 #' Color factors (border color)
 #'
@@ -3514,17 +3538,17 @@ pipe_color_factors <- function(graf,field="frequency",lo="#FCFDBF",hi="#5F187F",
 #'
 #' @examples
 pipe_color_borders <- function(graf,field="frequency",lo="#FCFDBF",hi="#5F187F",mid="#D3436E",fixed=NULL){
-    meta <-   make_meta(graf,as.list(match.call()))
+    info <-   make_info(graf,as.list(match.call()))
 
   if(field %notin% factor_colnames(graf)){warning("No such column");return(graf%>%
-                                                                             add_meta(meta))}
+                                                                             finalise(info))}
 
   # browser()
   if(!is.null(fixed)) factors <- graf$factors %>% mutate(color.border=fixed) else
     factors <- graf$factors %>%
       mutate(color.border=create_colors(UQ(sym(field)),lo=lo,hi=hi,mid=mid,type="color_borders",field=field))
   graf %>% pipe_update_mapfile(factors=factors)%>%
-    add_meta(meta)
+    finalise(info)
 }
 
 #' Color links
@@ -3543,7 +3567,7 @@ pipe_color_borders <- function(graf,field="frequency",lo="#FCFDBF",hi="#5F187F",
 #'
 #' @examples
 pipe_color_links <- function(graf,field="link_id",lo="#FCFDBF",hi="#5F187F",mid="#D3436E",fixed=NULL,fun="count",value=NULL){
-  meta <-   make_meta(graf,as.list(match.call()))
+  info <-   make_info(graf,as.list(match.call()))
 
   # browser()
   if(!is.null(value)){
@@ -3558,14 +3582,14 @@ pipe_color_links <- function(graf,field="link_id",lo="#FCFDBF",hi="#5F187F",mid=
   } else{
 
   if(field %notin% link_colnames(graf)){warning("No such column");return(graf%>%
-                                                                           add_meta(meta))}
+                                                                           finalise(info))}
   links <- graf$links
   oldfun <- fun
   fun <- full_function_name(links,fun)
 
 
   if(field %notin% colnames(links)){warning("No such column");return(graf%>%
-                                                                       add_meta(meta))}
+                                                                       finalise(info))}
 
   if(!is_grouped_df(links)) {
     did_group <- T
@@ -3592,7 +3616,7 @@ pipe_color_links <- function(graf,field="link_id",lo="#FCFDBF",hi="#5F187F",mid=
 }
 
   graf  %>% pipe_update_mapfile(links=links)%>%
-    add_meta(meta)
+    finalise(info)
 
 }
 
@@ -3611,7 +3635,7 @@ pipe_color_links <- function(graf,field="link_id",lo="#FCFDBF",hi="#5F187F",mid=
 #'
 #' @examples
 pipe_cluster_factors <- function(graf,clusters=NULL){
-    meta <-   make_meta(graf,as.list(match.call()))
+    info <-   make_info(graf,as.list(match.call()))
 
 
 
@@ -3650,10 +3674,10 @@ pipe_cluster_factors <- function(graf,clusters=NULL){
       mutate(cluster=ifelse(cluster=="",NA,cluster))    %>%
       mutate(cluster=str_remove_all(cluster,"\\\\"))
     graf %>% pipe_update_mapfile(factors=graf$factors %>% mutate(cluster = nodes$cluster))%>%
-      add_meta(meta)
+      finalise(info)
     }
   } else graf%>%
-      add_meta(meta)
+      finalise(info)
 }
 
 
@@ -3668,7 +3692,7 @@ pipe_cluster_factors <- function(graf,clusters=NULL){
 #'
 #' @examples
 pipe_wrap_factors <- function(graf,length=20){
-    meta <-   make_meta(graf,as.list(match.call()))
+    info <-   make_info(graf,as.list(match.call()))
 
   graf %>%
     pipe_update_mapfile(
@@ -3676,7 +3700,7 @@ pipe_wrap_factors <- function(graf,length=20){
         mutate(label=str_remove_all(label,"\n")) %>%
         mutate(label=str_wrap(label,length))
     )%>%
-    add_meta(meta)
+    finalise(info)
 }
 #' Wrap link labels
 #'
@@ -3689,7 +3713,7 @@ pipe_wrap_factors <- function(graf,length=20){
 #'
 #' @examples
 pipe_wrap_links <- function(graf,length=20){
-  meta <-   make_meta(graf,as.list(match.call()))
+  info <-   make_info(graf,as.list(match.call()))
 
   # browser()
   graf %>%
@@ -3700,7 +3724,7 @@ pipe_wrap_links <- function(graf,length=20){
                  mutate(link_label=str_remove_all(link_label,"\n")) %>%
                  mutate(link_label=str_wrap(link_label,length))
     )%>%
-    add_meta(meta)
+    finalise(info)
 }
 
 # outputs -----------------------------------------------------------------
