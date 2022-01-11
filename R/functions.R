@@ -918,6 +918,7 @@ fix_columns_links <- function(links){
 #'
 #'
 #' @examples
+#' ## PROBABLY DON'T NEED THESE NOW
 pipe_recalculate_all <- function(graf){
   graf %>%
     pipe_recalculate_factors %>%
