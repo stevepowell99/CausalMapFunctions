@@ -1079,7 +1079,6 @@ update_join <- function(old,new){
 #'
 #' }
 add_metrics_to_factors <- function(factors,links){
-# browser()
   ig <- make_igraph(factors,links)
 
 
@@ -1095,20 +1094,30 @@ add_metrics_to_factors <- function(factors,links){
   factors$outcome_rank=(max(factors$outcome_score,na.rm=T)-factors$outcome_score) %>% rank(ties.method = "min")
   factors$is_opposable=str_detect(factors$label,"^~")
   factors$zoom_level=str_count(factors$label,";")+1
-  factors$top_level_label=zoom_inner(factors$label)
+
+# browser()
+
+  if(nrow(factors)>0){
+    factors$top_level_label=zoom_inner(factors$label)
   factors <- factors %>%
     group_by(top_level_label) %>%
     mutate(top_level_frequency=sum(frequency)) %>%
     ungroup
-
+}
 
   return(factors)
 
 }
 add_labels_to_links <- function(links,factors){
+  # browser()
+if(nrow(links)>0 & nrow(factors)>0){
 links %>% mutate(from_label= recode(as.numeric(from),!!!factors$label %>% set_names(factors$factor_id))) %>%
   mutate(to_label= recode(as.numeric(to),!!!factors$label %>% set_names(factors$factor_id)))
-}
+} else {
+links %>% mutate(from_label= "") %>%
+  mutate(to_label= "")
+}}
+
 factors_links_from_named_edgelist <- function(links){
   tmp <- c(links$from_label,links$to_label) %>% unique
 
@@ -2815,7 +2824,6 @@ pipe_trace_robustness <- function(graf,from,to,length=4,field=NULL){
 
     if("" %in% vec){warning("Vector contains an empty string");vec <- vec %>% keep(.!="")}
 
-    # browser()
     res <-
       vec %>%
       set_names %>%
@@ -2825,8 +2833,15 @@ pipe_trace_robustness <- function(graf,from,to,length=4,field=NULL){
         pipe_trace_paths(from=from,to=to,length=length) %>%
         pipe_calculate_robustness() %>%
         get_robustness
-    ) %>%
+    )
+
+    # browser()
+    if(length(res[[1]])==0) {graf <- (graf %>% make_empty_graf);res <- NULL} else{
+
+    res <-
+      res %>%
       keep(~!is.na(.[[1]][[1]]))
+    }
     if(length(res)==0) {graf <- (graf %>% make_empty_graf);res <- NULL} else{
 
     field_survivors <- names(res) %>% unique
