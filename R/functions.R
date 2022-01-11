@@ -21,16 +21,16 @@ library(jsonlite)
 library(DBI)
 library(shiny)
 
-config = configr::read.config("config.yml")$default
-
-conn <- dbConnect(
-  drv = RMySQL::MySQL(max.con=100, fetch.default.rec=1000),
-  dbname = config$sql$dbname,
-  host = config$sql$host,
-  port = config$sql$port,
-  username = config$sql$username,
-  password = config$sql$password
-)
+# config = configr::read.config("config.yml")$default
+#
+# conn <- dbConnect(
+#   drv = RMySQL::MySQL(max.con=100, fetch.default.rec=1000),
+#   dbname = config$sql$dbname,
+#   host = config$sql$host,
+#   port = config$sql$port,
+#   username = config$sql$username,
+#   password = config$sql$password
+# )
 
 summary.mapfile <- function (graf){
   list(colnames=graf %>% map(colnames) ,
