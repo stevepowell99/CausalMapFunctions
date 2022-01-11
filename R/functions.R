@@ -539,19 +539,19 @@ load_mapfile <- function(path=NULL,connection=conn){
     graf$links <- graf$links %>% select(-any_of(c("link_id.1","statement_id.2","from.2","to.2","quote.2","frequency.1","weight.2","actualisation.2","strength.2","certainty.2","from_flipped.1","to_flipped.1","link_label.1","from_label.1","to_label.1","hashtags.2","link_memo.1","link_map_id.1","link_id.2","statement_id.3","from.3","to.3","quote.3","frequency.2","weight.3","actualisation.3","strength.3","certainty.3","from_flipped.2","to_flipped.2","link_label.2","from_label.2","to_label.2","hashtags.3","link_memo.2","link_map_id.2","statement_id.1","from.1","to.1","quote.1","weight.1","actualisation.1","strength.1","certainty.1","hashtags.1")))#FIXME TODO  this is just legacy/transition
   }
   if(!is.null(graf$links)){
-    graf$links <- graf$links  %>%
-      add_before_and_after_ids_to_links()
+  # browser()
   }
   notify("Loading map")
-  # browser()
   return(graf  %>%
            pipe_coerce_mapfile() %>%
+           pipe_update_mapfile(links=.$links  %>%
+                                 add_before_and_after_ids_to_links()
+           ) %>%
 
-           pipe_recalculate_all()         %>%
+           pipe_recalculate_all() %>%
 
            finalise(list(load_mapfile=list(graf="",glue::glue("load_mapfile path={path}"))))
          )
-
 
 
 
