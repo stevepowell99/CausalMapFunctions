@@ -1110,6 +1110,14 @@ links %>% mutate(from_label= "") %>%
 }}
 
 
+#' Title
+#'
+#' @param graf
+#'
+#' @return
+#' @export
+#'
+#' @examples
 make_mentions_tabl <- function(graf){
   # browser()
   graf$links <- add_labels_to_links(graf$links,factors=graf$factors)
@@ -1144,12 +1152,19 @@ tmp <-   mapfile %>%
 if(nrow(tmp)==0) res <- mapfile$factors %>% mutate(from_source_count=0,to_source_count=0,`source_count`=0) else
 res <-
   tmp %>%
-    # filter(direction!="either") %>%
-    left_join_safe(mapfile$statements %>% select(any_of(c("statement_id","source_id")))) %>%
-    group_by(factor_id,direction) %>%
+  # filter(direction!="either") %>%
+  left_join_safe(mapfile$statements %>% select(any_of(c("statement_id","source_id")))) %>%
+  group_by(factor_id,direction) %>%
   # this is where the overlap stuff should fit in!!
-    summarise(n__=length(unique(source_id))) %>% #,froms_=list(source_id),tos_=list(source_id)) %>%
-    # mutate(overlap=intersect((froms_),tos_)) %>%
+  summarise(
+    n__=length(unique(source_id))
+    # ,
+    # froms_=if_else(direction=="influence",list(source_id),list(rep("influence__",n()))),
+    # tos_=if_else(direction=="consequence",list(source_id),list(rep("consequence__",n())))
+  )%>%
+  # mutate(overlap=map(1,~intersect(unlist(froms_),unlist(tos_))))
+
+# %>%
     pivot_wider(names_from=2,values_from=3,values_fill = 0) %>%
     select(from_source_count=consequence,to_source_count=influence,`source_count`=either) %>%
     left_join_safe(mapfile$factors,.) %>%
