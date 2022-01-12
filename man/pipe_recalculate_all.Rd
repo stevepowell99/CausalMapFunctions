@@ -18,3 +18,6 @@ A mapfile with a additional columns.
 \description{
 Fix columns
 }
+\examples{
+## PROBABLY DON'T NEED THESE NOW
+}
