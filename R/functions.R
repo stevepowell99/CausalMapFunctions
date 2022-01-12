@@ -539,9 +539,9 @@ load_mapfile <- function(path=NULL,connection=conn){
     graf$links <- graf$links %>% select(-any_of(c("link_id.1","statement_id.2","from.2","to.2","quote.2","frequency.1","weight.2","actualisation.2","strength.2","certainty.2","from_flipped.1","to_flipped.1","link_label.1","from_label.1","to_label.1","hashtags.2","link_memo.1","link_map_id.1","link_id.2","statement_id.3","from.3","to.3","quote.3","frequency.2","weight.3","actualisation.3","strength.3","certainty.3","from_flipped.2","to_flipped.2","link_label.2","from_label.2","to_label.2","hashtags.3","link_memo.2","link_map_id.2","statement_id.1","from.1","to.1","quote.1","weight.1","actualisation.1","strength.1","certainty.1","hashtags.1")))#FIXME TODO  this is just legacy/transition
   }
   if(!is.null(graf$links)){
-  # browser()
   }
   notify("Loading map")
+  # browser()
   return(graf  %>%
            pipe_coerce_mapfile() %>%
            pipe_update_mapfile(links=.$links  %>%
@@ -867,6 +867,7 @@ fix_columns_factors <- function(factors){
 }
 
 recalculate_links <- function(factors,links){
+  # browser()
   links <- links %>%
     add_labels_to_links(factors) %>%
     add_simple_bundle_to_links()
@@ -906,8 +907,9 @@ fix_columns_links <- function(links){
 #' @examples
 #' ## PROBABLY DON'T NEED THESE NOW
 pipe_recalculate_all <- function(graf){
+  # browser()
   graf %>%
-    pipe_recalculate_factors %>%
+    pipe_recalculate_factors  %>%
     pipe_recalculate_links
 
 }
@@ -934,10 +936,11 @@ pipe_recalculate_all <- function(graf){
 #'
 #' @examples
 pipe_recalculate_factors <- function(graf){
+  # browser()
   graf %>%
     pipe_update_mapfile(
     factors = add_metrics_to_factors(graf$factors,graf$links)
-    ) %>%
+    )  %>%
     pipe_add_factor_source_counts()
 }
 #' Title
@@ -1066,6 +1069,7 @@ update_join <- function(old,new){
 #'
 #' }
 add_metrics_to_factors <- function(factors,links){
+  # browser()
   ig <- make_igraph(factors,links)
 
 
@@ -1108,6 +1112,7 @@ links %>% mutate(from_label= "") %>%
 
 make_mentions_tabl <- function(graf){
   # browser()
+  graf$links <- add_labels_to_links(graf$links,factors=graf$factors)
   influence <- graf$links %>% mutate(factor_id=from %>% as.integer,label=from_label,direction="influence")
   consequence <- graf$links %>% mutate(factor_id=to %>% as.integer,label=to_label,direction="consequence")
 
@@ -1116,7 +1121,7 @@ make_mentions_tabl <- function(graf){
   both <- bind_rows(consequence,influence,either_from,either_to)
   graf %>%
     # pipe_coerce_mapfile %>%
-    factors_table %>%
+    .$factors %>%
     mutate(label=str_replace_all(label,"\n"," ")) %>%
     # select(factor_id,everything()) %>%
     select(-any_of("id")) %>%
@@ -1126,21 +1131,35 @@ make_mentions_tabl <- function(graf){
 }
 
 pipe_add_factor_source_counts <- function(mapfile){
-  mapfile %>%
+
+  info <-   make_info(mapfile,as.list(match.call()))
+
+  # tmp <-
+  # browser()
+tmp <-   mapfile %>%
     make_mentions_tabl() %>%
+    select(factor_id,link_id,direction,any_of("statement_id")) %>%
+    filter(!is.na(link_id))
+
+if(nrow(tmp)==0) res <- mapfile$factors %>% mutate(from_source_count=0,to_source_count=0,`source_count`=0) else
+res <-
+  tmp %>%
     # filter(direction!="either") %>%
-    select(link_id,direction,factor_id,statement_id) %>%
-    filter(!is.na(link_id)) %>%
-    left_join_safe(mapfile$statements %>% select(statement_id,source_id)) %>%
+    left_join_safe(mapfile$statements %>% select(any_of(c("statement_id","source_id")))) %>%
     group_by(factor_id,direction) %>%
-    summarise(n__=length(unique(source_id))) %>%
+  # this is where the overlap stuff should fit in!!
+    summarise(n__=length(unique(source_id))) %>% #,froms_=list(source_id),tos_=list(source_id)) %>%
+    # mutate(overlap=intersect((froms_),tos_)) %>%
     pivot_wider(names_from=2,values_from=3,values_fill = 0) %>%
-    select(from_source_count=consequence,to_source_count=influence,total_source_count=either) %>%
+    select(from_source_count=consequence,to_source_count=influence,`source_count`=either) %>%
     left_join_safe(mapfile$factors,.) %>%
-    mutate(total_source_count=replace_na(total_source_count,0)) %>%
+    mutate(`source_count`=replace_na(`source_count`,0)) %>%
     mutate(from_source_count=replace_na(from_source_count,0)) %>%
-    mutate(to_source_count=replace_na(to_source_count,0)) %>%
-    pipe_update_mapfile(mapfile,factors=.)
+    mutate(to_source_count=replace_na(to_source_count,0))
+
+res %>%
+    pipe_update_mapfile(mapfile,factors=.) %>% finalise(info)
+# browser()
 }
 
 factors_links_from_named_edgelist <- function(links){
@@ -2593,6 +2612,7 @@ pipe_find_links <- function(graf,field=NULL,value,operator="contains",remove_iso
 #'
 #' @examples
 pipe_find_statements <- function(graf,field,value,operator="=",remove_isolated=T){
+  # browser()
   info <-   make_info(graf,as.list(match.call()))
   statements <- graf$statements %>% find_fun(field,value,operator)  %>%
     filter(found)
@@ -2606,7 +2626,6 @@ pipe_find_statements <- function(graf,field,value,operator="=",remove_isolated=T
            ) %>%
            {if(remove_isolated) pipe_remove_isolated(.) else .}
   )
-  # browser()
   finalise_transforms(graf,info)
 
 
@@ -2711,6 +2730,7 @@ pipe_remove_isolated <- function(graf){
   info <-   make_info(graf,as.list(match.call()))
 
 
+  # browser()
   factors <- graf$factors %>%
     filter(factor_id %in% get_all_link_ids(graf$links))
 
@@ -2719,7 +2739,6 @@ pipe_remove_isolated <- function(graf){
   graf <- graf %>%
     pipe_update_mapfile(factors=factors,links=graf$links) %>%
     pipe_remove_isolated_links()
-  # browser()
 
   finalise_transforms(graf,info)
 
@@ -2728,7 +2747,7 @@ pipe_remove_isolated <- function(graf){
 
 pipe_remove_isolated_links <- function(graf,labels=F){
   info <-   make_info(graf,as.list(match.call()))
-
+# browser()
 
   if(labels)graf <- graf %>% pipe_update_mapfile(factors=graf$factors,
                                 links=graf$links %>% filter(from_label %in% graf$factors$label & to_label %in% graf$factors$label)) else

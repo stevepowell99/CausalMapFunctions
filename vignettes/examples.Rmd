@@ -25,7 +25,7 @@ library(DBI)
 library(kableExtra)
 library(scales)
 knitr::opts_chunk$set(echo = F,warning=F,message=F)
-#source("../R/functions.R")################################
+source("../R/functions.R")################################
 
 config = configr::read.config("../config.yml")$default
 
