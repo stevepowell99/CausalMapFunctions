@@ -746,21 +746,6 @@ pipe_coerce_mapfile <- function(tables){
     left_join_safe(statements, by="statement_id") %>%
     suppressMessages
 
-  # browser()
-#
-#
-#   if(nrow(factors)>0){
-#     links <- add_labels_to_links(links,factors)
-#     links <- add_simple_bundle_to_links(links)
-#
-#
-#
-#
-#   factors <- add_metrics_to_factors(factors,links)
-#   links <- add_before_and_after_ids_to_links(links)
-#   }
-
-
 
 
   attr(links,"flow") <- flow
@@ -877,7 +862,8 @@ fix_columns_factors <- function(factors){
   if(!("found" %in% colnames(factors))) factors <- factors %>% mutate(found=1L)
   if(!("found_type" %in% colnames(factors))) factors <- factors %>% mutate(found_type="")
 
-  factors # add_metrics_to_factors(factorslinks)
+  factors
+
 }
 
 recalculate_links <- function(factors,links){
@@ -951,7 +937,8 @@ pipe_recalculate_factors <- function(graf){
   graf %>%
     pipe_update_mapfile(
     factors = add_metrics_to_factors(graf$factors,graf$links)
-    )
+    ) %>%
+    pipe_add_factor_source_counts()
 }
 #' Title
 #'
@@ -1088,10 +1075,10 @@ add_metrics_to_factors <- function(factors,links){
   factors$out_degree=ig %>% igraph::degree(mode = "out")
   factors$role <- factors$in_degree-factors$out_degree
   factors$frequency <- factors$in_degree+factors$out_degree
-  factors$driver_score=factors$out_degree-factors$in_degree*2
-  factors$outcome_score=factors$in_degree-factors$out_degree*2
-  factors$driver_rank=(max(factors$driver_score,na.rm=T)-factors$driver_score) %>% rank(ties.method = "min")
-  factors$outcome_rank=(max(factors$outcome_score,na.rm=T)-factors$outcome_score) %>% rank(ties.method = "min")
+  factors$driver_score=factors$out_degree-factors$in_degree*2 %>% suppressWarnings()
+  factors$outcome_score=factors$in_degree-factors$out_degree*2 %>% suppressWarnings()
+  factors$driver_rank=(max(factors$driver_score,na.rm=T)-factors$driver_score) %>% rank(ties.method = "min") %>% suppressWarnings()
+  factors$outcome_rank=(max(factors$outcome_score,na.rm=T)-factors$outcome_score) %>% rank(ties.method = "min") %>% suppressWarnings()
   factors$is_opposable=str_detect(factors$label,"^~")
   factors$zoom_level=str_count(factors$label,";")+1
 
@@ -1117,6 +1104,44 @@ links %>% mutate(from_label= recode(as.numeric(from),!!!factors$label %>% set_na
 links %>% mutate(from_label= "") %>%
   mutate(to_label= "")
 }}
+
+
+make_mentions_tabl <- function(graf){
+  # browser()
+  influence <- graf$links %>% mutate(factor_id=from %>% as.integer,label=from_label,direction="influence")
+  consequence <- graf$links %>% mutate(factor_id=to %>% as.integer,label=to_label,direction="consequence")
+
+  either_from <- influence %>% mutate(direction="either")
+  either_to <- consequence %>% mutate(direction="either")
+  both <- bind_rows(consequence,influence,either_from,either_to)
+  graf %>%
+    # pipe_coerce_mapfile %>%
+    factors_table %>%
+    mutate(label=str_replace_all(label,"\n"," ")) %>%
+    # select(factor_id,everything()) %>%
+    select(-any_of("id")) %>%
+    left_join_safe(both,by=xc("factor_id label"),suffix=xc(".factors .links")) %>%
+    mutate(mentions="any") %>%  ## this is actually just a hack so we can use this field in the Mentions table
+    select(link_id,label,direction,mentions,everything())
+}
+
+pipe_add_factor_source_counts <- function(mapfile){
+  mapfile %>%
+    make_mentions_tabl() %>%
+    # filter(direction!="either") %>%
+    select(link_id,direction,factor_id,statement_id) %>%
+    filter(!is.na(link_id)) %>%
+    left_join_safe(mapfile$statements %>% select(statement_id,source_id)) %>%
+    group_by(factor_id,direction) %>%
+    summarise(n__=length(unique(source_id))) %>%
+    pivot_wider(names_from=2,values_from=3,values_fill = 0) %>%
+    select(from_source_count=consequence,to_source_count=influence,total_source_count=either) %>%
+    left_join_safe(mapfile$factors,.) %>%
+    mutate(total_source_count=replace_na(total_source_count,0)) %>%
+    mutate(from_source_count=replace_na(from_source_count,0)) %>%
+    mutate(to_source_count=replace_na(to_source_count,0)) %>%
+    pipe_update_mapfile(mapfile,factors=.)
+}
 
 factors_links_from_named_edgelist <- function(links){
   tmp <- c(links$from_label,links$to_label) %>% unique

@@ -12,7 +12,7 @@ output:
 ---
 
 
-```{r setup, cache=F}
+```{r setup, cache=F,include=F}
 # devtools::load_all();devtools::document();pkgdown::build_site(lazy=F)
 
 options(dplyr.summarise.inform = FALSE)
@@ -24,7 +24,7 @@ library(dbplyr)
 library(DBI)
 library(kableExtra)
 library(scales)
-knitr::opts_chunk$set(echo = F)
+knitr::opts_chunk$set(echo = F,warning=F,message=F)
 #source("../R/functions.R")################################
 
 config = configr::read.config("../config.yml")$default
@@ -297,26 +297,11 @@ ee %>%
 
 ```{r }  
 ee %>%
-    pipe_find_factors(value="business|property") %>%
+    pipe_find_factors(value="business") %>%
     make_interactive_map
 
 ```
 
-#### Should these work?
-
-```{r }  
-ee %>%
-    pipe_find_factors(value="business|property") %>%
-    make_interactive_map
-
-```
-
-```{r }  
-ee %>%
-    pipe_find_factors(value="business OR property") %>%
-    make_interactive_map
-
-```
 
 ### notcontains
 
@@ -327,12 +312,8 @@ ee %>%
 
 ```
 
-```{r }  
-ee %>%
-    pipe_find_factors(value="sea OR High",operator="notcontains") %>%
-    make_interactive_map
 
-```
+
 ```{r }  
 ee %>% pipe_find_statements(value="1",operator="notcontains",field="statement_id")%>%
     make_interactive_map
@@ -362,13 +343,21 @@ ee %>%
 ```
 
 
+### OR
 
-
-Does work:
+Does not work in functions, but works when parsed:
 
 ```{r }  
 ee %>%
     pipe_find_factors(value="business OR property") %>%
+    make_interactive_map
+
+```
+
+
+```{r }  
+ee %>%
+    parse_commands("find factors field=label operator=contains value=Business OR Property") %>%
     make_interactive_map
 
 ```
