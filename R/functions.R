@@ -1717,6 +1717,19 @@ full_function_name <- function(df,nam){
 
 }
 
+#' Title
+#'
+#' @param id
+#' @param label
+#'
+#' @return
+#' @export
+#'
+#' @examples
+js_button <- function(id,label){
+  as.character(shiny::actionButton(inputId = id, label = label,class="linky")) %>% HTML
+}
+
 collapse_unique <- function(vec){
   paste0(unique(vec),collapse="; ")# %>% as_numeric_if_all
 }
@@ -3803,17 +3816,17 @@ pipe_wrap_links <- function(graf,length=20){
 
 
 factor_click_focus <- function(id){
-  as.character(shiny::actionButton(inputId = paste0('factor_click_focus_',id), label = "Focus",class="linky"))
+  js_button(paste0('factor_click_focus_',id), label = "Focus")
 }
 
 factor_click_edit <- function(id){
-  as.character(shiny::actionButton(inputId = paste0('factor_click_edit_',id), label = "Rename",class="linky"))
+  js_button(paste0('factor_click_edit_',id), label = "Rename")
 }
 factor_click_delete <- function(id){
-  as.character(shiny::actionButton(inputId = paste0('factor_click_delete_',id), label = "Delete factor from entire map",class="linky"))
+  js_button(paste0('factor_click_delete_',id), label = "Delete factor across the whole map")
 }
 factor_click_edit <- function(id){
-  as.character(shiny::actionButton(inputId = paste0('factor_click_edit_',id), label = "Edit factor",class="linky"))
+  js_button(paste0('factor_click_edit_',id), label = "Edit factor")
 }
 factor_click_name <- function(val){
   as.character(shiny::textInput(inputId = paste0('factor_click_name'),
