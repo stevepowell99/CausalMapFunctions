@@ -25,18 +25,18 @@ library(DBI)
 library(kableExtra)
 library(scales)
 knitr::opts_chunk$set(echo = F,warning=F,message=F)
-source("../R/functions.R")################################
+#source("../R/functions.R")################################
 
-config = configr::read.config("../config.yml")$default
-
-conn <- dbConnect(
-  drv = RMySQL::MySQL(max.con=100, fetch.default.rec=1000),
-  dbname = "cm2assets",
-  host = config$sql$host,
-  port = config$sql$port,
-  username = config$sql$username,
-  password = config$sql$password
-)
+# config = configr::read.config("../config.yml")$default
+# 
+# conn <- dbConnect(
+#   drv = RMySQL::MySQL(max.con=100, fetch.default.rec=1000),
+#   dbname = "cm2assets",
+#   host = config$sql$host,
+#   port = config$sql$port,
+#   username = config$sql$username,
+#   password = config$sql$password
+# )
 
 pp=function(x,N=99){
   print(x,n=N)
@@ -696,6 +696,20 @@ ll %>%
   pipe_find_factors(value="sed yield",down=0) %>%
   pipe_bundle_links(field="1. Sex") %>% 
   pipe_label_links(field="1. Sex",fun="unique") %>% 
+  pipe_color_links(field="source_id",fun="surprise") %>%  
+  pipe_scale_links(field="source_id",fun="count") %>%  
+  make_print_map
+
+```
+
+
+### Using initials to shorten the labels
+
+```{r}
+oo %>%    
+  pipe_find_factors(value="crops",down=0) %>%
+  pipe_bundle_links(field="Sex of the respondent") %>% 
+  pipe_label_links(field="Sex of the respondent",fun="initials") %>% 
   pipe_color_links(field="source_id",fun="surprise") %>%  
   pipe_scale_links(field="source_id",fun="count") %>%  
   make_print_map

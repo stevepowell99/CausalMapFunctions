@@ -1706,6 +1706,7 @@ full_function_name <- function(df,nam){
 
   if(is_grouped_df(df) & nam=="unique") "collapse_unique"
   else if(!is_grouped_df(df) & (nam=="unique" | nam=="literal")) "identity"
+  else if(nam=="initials")"initials"
   else if(nam=="mean")"getmean"
   else if(nam=="sum")"getsum"
   else if(nam=="median")"getmedian"
@@ -1749,7 +1750,35 @@ first_map <- function(vec,fun){
 }
 
 literal <- function(lis){
+  # browser()
   paste0(lis,collapse = "; ")
+}
+initials <- function(lis){
+  oldlen <- length(unique(lis))
+  nch <- 1
+  new <- str_sub(lis,1,nch)
+
+  # shorten so still unique
+  # browser()
+  while(length(unique(str_sub(lis,1,nch)))!=oldlen){
+    nch <- nch+1
+    new <- str_sub(lis,1,nch)
+  }
+
+  oldlen <- length(unique(new))
+  # now strip any non-unique leading chars
+  # nch <- 1
+
+  # if(length(unique(str_sub(new,5)))==oldlen)return(new)
+
+  if(length(unique(new))==1) return(new)
+  while(length(unique(str_sub(new,2)))==oldlen){
+    # browser()
+    # nch <- nch+1
+    new <- str_sub(new,2)
+  }
+
+  new
 }
 
 
@@ -3389,6 +3418,7 @@ pipe_label_links <- function(graf,field="link_id",fun="count",value=NULL,add_fie
 
   if(field %notin% colnames(links)){warning("No such column");return(graf)}
 
+  # browser()
   links <- links %>%
     mutate(new_link_label=exec(fun,!!sym(field)))
 
