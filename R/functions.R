@@ -1754,13 +1754,15 @@ literal <- function(lis){
   paste0(lis,collapse = "; ")
 }
 initials <- function(lis){
+  # browser()
   oldlen <- length(unique(lis))
   nch <- 1
   new <- str_sub(lis,1,nch)
 
   # shorten so still unique
-  # browser()
-  while(length(unique(str_sub(lis,1,nch)))!=oldlen){
+  while(
+    length(unique(str_sub(lis,1,nch)))!=oldlen
+        ){
     nch <- nch+1
     new <- str_sub(lis,1,nch)
   }
@@ -1772,9 +1774,17 @@ initials <- function(lis){
   # if(length(unique(str_sub(new,5)))==oldlen)return(new)
 
   if(length(unique(new))==1) return(new)
-  while(length(unique(str_sub(new,2)))==oldlen){
-    # browser()
-    # nch <- nch+1
+  # browser()
+
+# strip identical leading chars
+  while(length(unique(str_sub(new,2)))==oldlen
+        &
+        length(unique(str_sub(new,1,1)))==1 # only strip leading chars if they are the same
+        ){
+
+  # if(min(nchar(new))<4) return(new)
+
+
     new <- str_sub(new,2)
   }
 
@@ -3422,6 +3432,12 @@ pipe_label_links <- function(graf,field="link_id",fun="count",value=NULL,add_fie
   links <- links %>%
     mutate(new_link_label=exec(fun,!!sym(field)))
 
+  if(oldfun=="initials"){
+    # browser()
+    links$new_link_label <- initials(links[,field] %>% unlist %>% unname)
+
+  # links$new_link_label=format(100*as.numeric(links$link_label)/links$group_baseline,digits=0) %>% paste0(links$link_label," (",.,"%)")
+  }
   if(oldfun=="percent"){
     links <- get_percentages(links,field)
 
