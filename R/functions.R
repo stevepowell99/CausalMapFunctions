@@ -32,6 +32,9 @@ library(shiny)
 #   password = config$sql$password
 # )
 
+
+
+
 summary.mapfile <- function (graf){
   list(colnames=graf %>% map(colnames) ,
        "Number of rows"=graf %>% map(nrow) %>% as_tibble
@@ -74,13 +77,17 @@ add_attribute <- function(graf,value,attr="flow"){
   graf
 }
 
-finalise_transforms <- function(graf,value){
-  attr(graf,"info") <- value
-  graf %>%     pipe_recalculate_all()
-}
 finalise <- function(graf,value){
+  message("finalise")
+  # simply reattaches the info list back to the graf. so you may need to update info during a function.
   attr(graf,"info") <- value
   graf
+}
+finalise_transforms <- function(graf,value){
+  message("finalise transforms")
+  # simply reattaches the info list back to the graf and also does a final recalculation - only used for pipe functions which do any transformations of the graf
+  attr(graf,"info") <- value
+  graf %>%     pipe_recalculate_all()
 }
 
 lcollapse <- function(x)map(x,~paste0(.,collapse=":"))%>% unlist(recursive=F)
@@ -567,13 +574,14 @@ load_mapfile <- function(path=NULL,connection=conn){
 #' @examples
 pipe_coerce_mapfile <- function(tables){
 
-  factors <- tables$factors #%>% replace_null(standard_factors())
+say()
+
+    factors <- tables$factors #%>% replace_null(standard_factors())
   links <- tables$links #%>% replace_null(standard_links())
   statements <- tables$statements #%>% replace_null(standard_statements())
   sources <- tables$sources #%>% replace_null(standard_sources())
   questions <- tables$questions #%>% replace_null(standard_questions())
   settings <- tables$settings #%>% replace_null(standard_settings())
-# browser()
   tmp <- pipe_remove_orphaned_links(list(factors=factors,links=links))
   factors <- tmp$factors
   links <- tmp$links
@@ -818,6 +826,8 @@ pipe_update_mapfile <- function(map,
                            clean=T,
                            all=T){
   # browser()
+
+  message("pipe update")
   if(!is.null(tables)){
     factors <- tables$factors
     links <- tables$links
@@ -836,11 +846,9 @@ pipe_update_mapfile <- function(map,
     questions = questions %>% replace_null(map$questions) ,
     settings = settings %>% replace_null(map$settings)
   )
+  # browser()
   attr(map2,"call") <- attr(map,"call")
   map2
-
-  # %>%
-  #   pipe_coerce_mapfile
 
 }
 
@@ -855,6 +863,7 @@ pipe_update_mapfile <- function(map,
 #'
 #' @examples
 fix_columns_factors <- function(factors){
+  message("fix col factors")
   if(!("color.background" %in% colnames(factors))) factors <- factors %>% mutate(color.background="#ffffff")
   if(!("color.border" %in% colnames(factors))) factors <- factors %>% mutate(color.border="#ffffff")
   if(!("size" %in% colnames(factors))) factors <- factors %>% mutate(size=1L)
@@ -868,6 +877,7 @@ fix_columns_factors <- function(factors){
 
 recalculate_links <- function(factors,links){
   # browser()
+  message("recalc links")
   links <- links %>%
     add_labels_to_links(factors) %>%
     add_simple_bundle_to_links()
@@ -907,6 +917,7 @@ fix_columns_links <- function(links){
 #' @examples
 #' ## PROBABLY DON'T NEED THESE NOW
 pipe_recalculate_all <- function(graf){
+  message("recalc all")
   # browser()
   graf %>%
     pipe_recalculate_factors  %>%
@@ -937,11 +948,15 @@ pipe_recalculate_all <- function(graf){
 #' @examples
 pipe_recalculate_factors <- function(graf){
   # browser()
+  message("pipe recalc factors")
+  info <-   make_info(graf,as.list(match.call()))
+
   graf %>%
     pipe_update_mapfile(
     factors = add_metrics_to_factors(graf$factors,graf$links)
     )  %>%
-    pipe_add_factor_source_counts()
+    pipe_add_factor_source_counts() %>%
+    finalise(info)
 }
 #' Title
 #'
@@ -952,10 +967,12 @@ pipe_recalculate_factors <- function(graf){
 #'
 #' @examples
 pipe_recalculate_links <- function(graf){
+  info <-   make_info(graf,as.list(match.call()))
+
   graf %>%
     pipe_update_mapfile(
     links = graf$links %>% recalculate_links(graf$factors,.)
-    )
+    ) %>% finalise(info)
 }
 
 
@@ -1069,7 +1086,6 @@ update_join <- function(old,new){
 #'
 #' }
 add_metrics_to_factors <- function(factors,links){
-  # browser()
   ig <- make_igraph(factors,links)
 
 
@@ -1139,11 +1155,11 @@ make_mentions_tabl <- function(graf){
 }
 
 pipe_add_factor_source_counts <- function(mapfile){
+  # browser()
 
   info <-   make_info(mapfile,as.list(match.call()))
 
   # tmp <-
-  # browser()
 tmp <-   mapfile %>%
     make_mentions_tabl() %>%
     select(factor_id,link_id,direction,any_of("statement_id")) %>%
@@ -1152,7 +1168,6 @@ tmp <-   mapfile %>%
 if(nrow(tmp)==0) res <- mapfile$factors %>% mutate(from_source_count=0,to_source_count=0,`source_count`=0) else
 res <-
   tmp %>%
-  # filter(direction!="either") %>%
   left_join_safe(mapfile$statements %>% select(any_of(c("statement_id","source_id")))) %>%
   group_by(factor_id,direction) %>%
   # this is where the overlap stuff should fit in!!
@@ -1166,7 +1181,7 @@ res <-
 
 # %>%
     pivot_wider(names_from=2,values_from=3,values_fill = 0) %>%
-    select(from_source_count=consequence,to_source_count=influence,`source_count`=either) %>%
+    select(from_source_count=consequence,to_source_count=influence,`source_count`=either,factor_id) %>%
     left_join_safe(mapfile$factors,.) %>%
     mutate(`source_count`=replace_na(`source_count`,0)) %>%
     mutate(from_source_count=replace_na(from_source_count,0)) %>%
@@ -1292,206 +1307,6 @@ assemble_mapfile(
 #     )
 # }
 
-
-## this used to be assemble_mapfile!!
-#' Clean map
-#'
-#' @param factors
-#' @param links
-#' @param statements
-#' @param sources
-#' @param questions
-#' @param settings
-#'
-#' @return A clean map in which all issues have been resolved.
-#' @export
-#'
-#' @examples
-# pipe_clean_map <- function(tables=NULL){
-#   if(!is.null(tables)){
-#     factors <- tables$factors
-#     links <- tables$links
-#     statements <- tables$statements
-#     sources <- tables$sources
-#     questions <- tables$questions
-#     settings <- tables$settings
-#   }
-#   flow <- attr(links,"flow")
-#   if(is.null(factors) & is.null(links)){
-#     factors=standard_factors()
-#     links=standard_links()
-#   }
-#   # browser()
-#   if(!is.null(links)){
-#     links <-  links %>%
-#       add_column(.name_repair="minimal",!!!standard_links())   %>%
-#       select(which(!duplicated(colnames(.)))) %>%
-#       select(-starts_with("color")) %>%
-#       mutate(link_id=row_number())%>%
-#       mutate(link_id0=row_number())%>%
-#       filter(!is.na(from) & !is.na(to))
-#
-#     links[,colnames(standard_links())] <- map(colnames(standard_links()),
-#                                                   ~coerceValue(links[[.]],standard_links()[[.]])
-#     )
-#
-#   }
-#   if(is.null(factors) & !is.null(links)){
-#   # browser()
-#     if(all(links$from==1) & all(links$to==1))# then these must have been blank
-#
-#
-#     factors <- tibble(factor_id=get_all_link_ids(links),factor_id0=factor_id,label=factor_id) %>% fix_columns_factors()
-#   }
-#   if(!is.null(factors)){
-#     factors <-  factors %>%
-#       {if("factor_id" %notin% colnames(.)) mutate(.,factor_id=row_number()) else .} %>%
-#       add_column(.name_repair="minimal",!!!standard_factors())  %>%
-#       select(which(!duplicated(colnames(.)))) %>%
-#       select(-starts_with("color")) %>%
-#       # select(-any_of(xc("color.border color.background"))) %>%
-#       filter(!is.na(factor_id)) #TODO warning
-#
-#     factors[,colnames(standard_factors())] <- map(colnames(standard_factors()),
-#       ~coerceValue(factors[[.]],standard_factors()[[.]])
-#     )
-#     if(!is.null(factors$size))factors$size <- factors$size %>% replace_na(1)
-#     factors$factor_id0 <- factors$factor_id
-#
-#   }
-#   if(!is.null(factors) & is.null(links)){
-#     links <- standard_links()
-#   }
-#
-#
-#   missing_links <-
-#     c(links$from,links$to) %>%
-#     unique %>%
-#     keep(. %notin% factors$factor_id) %>%
-#     keep(!is.na(.))
-#
-#
-#   if(length(missing_links)>0){
-#     notify("missing factor ids")
-#     warning("missing factor ids")
-#     # browser()
-#     links <- links %>%
-#       filter(from %notin% missing_links & to %notin% missing_links)
-#     # factors <- factors %>%
-#     #   bind_rows(tibble(factor_id=missing_links,label=as.character(missing_links)))
-#   }
-#   # browser()
-#   if(F & !identical(factors$factor_id,row_index(factors))){
-#     res <- normalise_id(factors,links,"factor_id","from","to")
-#     factors <- res$main
-#     links <- res$referring
-#     notify("Normalising factor ids")
-#   }
-#
-#   factors <- factors %>% mutate(factor_id=as.integer(factor_id))
-#   links <- links %>% mutate(from=as.integer(from),to=as.integer(to))
-#
-#
-#   statements <- statements %>%
-#     replace_null(empty_tibble) %>%
-#     add_column(.name_repair="minimal",!!!standard_statements()) %>%
-#     select(which(!duplicated(colnames(.)))) # %>% select(any_of(colnames(standard_statements())))
-#
-#
-#   statements[,colnames(standard_statements())] <- map(colnames(standard_statements()),
-#                                                 ~coerceValue(statements[[.]],standard_statements()[[.]])
-#   )
-#
-#
-# # browser()
-#   if(T){
-#   tmp <- compact_factors_links(factors,links)
-#   factors <- tmp$factors
-#   links <- tmp$links
-# }
-#   # browser()
-#   sources <- sources %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_sources()) %>% select(which(!duplicated(colnames(.)))) #%>% select(any_of(colnames(standard_sources())))
-#   questions <- questions %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_questions()) %>% select(which(!duplicated(colnames(.))))#%>% select(any_of(colnames(standard_questions())))
-#   settings <- settings %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_settings()) %>% select(any_of(colnames(standard_settings())))
-#   settings <- settings %>% mutate_all(as.character)
-#
-#   sources[,colnames(standard_sources())] <- map(colnames(standard_sources()),
-#                                                 ~coerceValue(sources[[.]],standard_sources()[[.]])
-#   )
-#   questions[,colnames(standard_questions())] <- map(colnames(standard_questions()),
-#                                                 ~coerceValue(questions[[.]],standard_questions()[[.]])
-#   )
-#
-#
-#   if(sources$source_id  %>% replace_zero(F) %>% duplicated() %>% any){
-#     warning("multiple IDs")
-#     notify("multiple IDs")
-#   }
-#
-#
-#   if(questions$question_id   %>% replace_zero(F) %>% duplicated() %>% any){
-#
-#     warning("multiple IDs")
-#     notify("multiple IDs")
-#   }
-#
-#   if(T){if(!is.null(statements)){if(!identical(statements$statement_id,row_index(statements))){
-#     statements <- filter(statements,!is.na(statement_id))
-#     res <- normalise_id(statements,links,"statement_id")
-#     statements <- res$main
-#     links <- res$referring
-#     notify("Normalising statement ids")
-#   }}
-# }
-#   if(is.character(links$statement_id))links <- links %>% mutate(statement_id=as.integer(statement_id))
-#   if(is.character(statements$statement_id))statements <- statements %>% mutate(statement_id=as.integer(statement_id))
-#
-#   # browser()
-#   sources$source_id <- coerceValue(sources$source_id,statements$source_id)
-#   questions$question_id <- coerceValue(questions$question_id,statements$question_id)
-#   links$statement_id <- coerceValue(links$statement_id,statements$statement_id)
-#
-#   # statements <- statements %>%
-#   #     safely(~left_join_safe(sources %>% rename_with(~paste0("r.",.),!matches("source_id"))),otherwise=.)() %>% pluck("result") %>%
-#   #     safely(~left_join_safe(questions %>% rename_with(~paste0("q.",.),!matches("question_id"))),otherwise=.)() %>% pluck("result")
-#
-#   # browser()
-#   statements <- statements %>%
-#     left_join_safe(sources,by="source_id") %>% suppressMessages %>%
-#     left_join_safe(questions,by="question_id") %>% suppressMessages
-#
-#   links <- links %>%
-#     left_join_safe(statements, by="statement_id") %>%
-#     suppressMessages
-#
-#   if(nrow(links)==0 | nrow(factors)==0){
-#     links <-
-#       links %>% mutate(from_label= "",to_label="",bundle="")
-#
-#   } else
-#     links <-
-#     links %>% mutate(from_label= recode(from,!!!factors$label %>% set_names(factors$factor_id))) %>%
-#     mutate(to_label= recode(to,!!!factors$label %>% set_names(factors$factor_id))) %>%
-#     unite(bundle,from_label,to_label,remove = F,sep = " / ") %>%
-#     select(from_label,to_label,statement_id,quote,everything())
-#
-#   ig <- make_igraph(factors,links)
-#   # ig <- make_igraph_from_links(links)
-#
-#   factors$betweenness <- igraph::centr_betw(ig)$res %>% round(2)
-#   factors$betweenness_rank <- factors$betweenness %>% rank
-#   factors$in_degree=ig %>% igraph::degree(mode = "in")
-#   factors$out_degree=ig %>% igraph::degree(mode = "out")
-#   factors$frequency <- factors$in_degree+factors$out_degree
-#
-#   attr(links,"flow") <- flow
-#
-#
-#   assemble_mapfile(factors,links,statements,sources,questions,settings)
-#   # %>%
-#   #   pipe_fix_columns()
-#
-# }
 
 
 
@@ -2278,13 +2093,7 @@ find_fun <- function(df,field=NULL,value,operator=NULL,what){
               if(operator %in% xc("starts start")){df <- df %>%  mutate(found=str_detect(tolower(unwrap(UQ(sym(field)))),paste0("^",value %>% paste0(collapse="|"))))} else
                 if(operator %in% xc("ends end")){df <- df %>%  mutate(found=str_detect(tolower(unwrap(UQ(sym(field)))),paste0(value %>% paste0(collapse="|"),"$")))}
 
-  #
-  #   if(pager & operator %in% xc("= equals equal")){
-  #     vec <- df[,field] %>% unique
-  #     pager_current <- which(value_original==vec) %>% min
-  #     attr(df,"pager") <- list(pager=vec,pager_current=pager_current)
-  #   }
-  # browser()
+
   df
 
 }
@@ -2392,6 +2201,8 @@ add_call <- function(graf,lis){
   graf
 }
 make_info <- function(graf,lis){
+  message("make info")
+  # takes the list - which will usuall be the current call, names it, and adds to existing graf info
 
   c(attr(graf,"info"),lis %>% (function(x)list(x) %>% set_names(x[[1]])))
 
@@ -2606,6 +2417,7 @@ parse_commands <- function(graf=NULL,tex){
 #' pipe_find_factors(example2,field="id",value=5,operator="greater")
 pipe_find_factors <- function(graf,field="label",value,operator="contains",up=1,down=1,remove_isolated=F,highlight_only=F){
     # st <- attr(graf,"statements")
+  message("find factors")
   info <-   make_info(graf,as.list(match.call()))
 
   df <- graf$factors %>% find_fun(field,value,operator)
@@ -2614,8 +2426,7 @@ pipe_find_factors <- function(graf,field="label",value,operator="contains",up=1,
 
   if(df$found %>% sum %>% `==`(0)) {
   graf <- (pipe_update_mapfile(graf,factors=graf$factors %>% filter(F),links=graf$links %>% filter(F)))
-  return( graf  %>% finalise_transforms(info)
-)
+  return( graf  %>% finalise_transforms(info))
   }
 
 
@@ -2768,13 +2579,13 @@ nrow_links_table <- function(graf)
 pipe_select_factors <- function(graf,top=10,bottom=NULL,all=F,field="frequency"){
   info <-   make_info(graf,as.list(match.call()))
 
-# browser()
   graf$factors <-
     factors_table(graf) %>%
     arrange(desc(UQ(sym(field)))) %>%
     {if(!is.null(top))slice(.,1:top) else slice(.,(nrow_factors_table(graf)+1-bottom):nrow_factors_table(graf))} %>%
     arrange(factor_id)
 
+# browser()
 
   graf <- graf %>% pipe_remove_isolated_links() %>% pipe_remove_orphaned_links()
   finalise_transforms(graf,info)
@@ -2807,7 +2618,7 @@ pipe_remove_isolated <- function(graf){
     pipe_update_mapfile(factors=factors,links=graf$links) %>%
     pipe_remove_isolated_links()
 
-  finalise_transforms(graf,info)
+  finalise(graf,info)
 
 
 }
@@ -2820,7 +2631,7 @@ pipe_remove_isolated_links <- function(graf,labels=F){
                                 links=graf$links %>% filter(from_label %in% graf$factors$label & to_label %in% graf$factors$label)) else
                                   graf <- graf %>% pipe_update_mapfile(factors=graf$factors,
                                                       links=graf$links %>% filter(from %in% graf$factors$factor_id & to %in% graf$factors$factor_id))
-  finalise_transforms(graf,info)
+  finalise(graf,info)
 
 }
 
@@ -2848,9 +2659,8 @@ pipe_zoom_factors <- function(graf,level=1,separator=";",hide=T){
   level=as.numeric(level)
   hide=as.logical(hide)
 
-  # flow=attr(graf,"flow")
-  # statements <- graf %>% statements_table()
-  if(level>0) graf <-
+
+    if(level>0) graf <-
     graf %>%
     pipe_update_mapfile(
       factors = graf$factors %>%
@@ -2914,21 +2724,25 @@ pipe_bundle_factors <- function(graf,value=""){
 pipe_trace_robustness <- function(graf,from,to,length=4,field=NULL){
   info <-   make_info(graf,as.list(match.call()))
 
-  # browser()
  if(from=="" | to==""){notify("blank from or to factor; robustness calculation may not be correct")}# this should be possible but atm results are horrible
   if(is.null(field)){
 
+  # browser()
     return(graf %>%
       pipe_trace_paths(from=from,to=to,length=length) %>%
       pipe_calculate_robustness() %>%
-        finalise_transforms(info)
+        finalise(.,c(info,list(flow=.$links %>% attr("flow"))))
     )
-  } else {if(field %notin% link_colnames(graf)) {warning("Field not found");return(graf %>% make_empty_graf%>%
-                                                                                     finalise_transforms(info))}
-  else {
+  }
 
-    # actually we only want to calculate the robustness, the map will be the same as if we were not using a field
+  if(field %notin% link_colnames(graf)) {
+    warning("Field not found");return(graf %>% make_empty_graf%>%
+                                        finalise(info))}
+  # actually we only want to calculate the robustness, the map will be the same as if we were not using a field
 
+
+
+  # get a vector of all the values of the field
     vec <- graf$links %>%
       pull(UQ(sym(field))) %>%
       unique
@@ -2981,14 +2795,15 @@ pipe_trace_robustness <- function(graf,from,to,length=4,field=NULL){
 
 
 
-}
-  }
+    }
+    # browser()
+info <- c(info,flow=res)
   graf %>%
       pipe_trace_paths(from=from,to=to,length=length) %>%   # to get the ordinary map
       pipe_update_mapfile(.,links=add_attribute(.$links,res,"flow"))%>%
-    finalise_transforms(info)
+    finalise(info)
 
-}
+
 }
 
 #' Trace paths
@@ -3063,9 +2878,7 @@ pipe_trace_paths <- function(graf,from,to,length=4){
   }
 
 
-  # all_flows <- calculate_robustness(graf)
 
-  # notify(glue("Number of cuts is {res$cut %>% length}"))
   factors <- factors %>%
     filter(label!="_super_sink_" & label!="_super_origin_")
 
@@ -3073,7 +2886,7 @@ pipe_trace_paths <- function(graf,from,to,length=4){
   pipe_update_mapfile(graf,factors=factors,links=links) %>%
     pipe_remove_orphaned_links %>%
     pipe_remove_isolated_links()%>%
-    finalise_transforms(info)
+    finalise(info)
   # browser()
   # pipe_update_mapfile(graf,factors=factors_table(graf %>% filter(label!="_super_sink_" & label!="_super_origin_")))  %>%
   #   pipe_clean_map
@@ -3123,15 +2936,14 @@ pipe_calculate_robustness <- function(graf){
     info <-   make_info(graf,as.list(match.call()))
 
   res <- list()
-  # browser()
   if("found_from" %notin% factor_colnames(graf)) {warning("No found_from column");return(graf)}  # if("found_from" %notin% factor_colnames(graf)) {warning("No found_from column");return(graf)}
   if("found_to" %notin% factor_colnames(graf)) {warning("No found_to column");return(graf)}
   # if(field %>% replace_null("")=="")field <- NULL
-  # browser()
 
   res$summary <- (calculate_robustness_inner(graf))
-  graf %>% pipe_update_mapfile(.,links=add_attribute(graf$links,res,"flow"))%>%
-    finalise_transforms(info)
+  graf %>%
+    finalise(info) %>% pipe_update_mapfile(.,links=add_attribute(graf$links,res,"flow"))
+  # browser()
 
 }
 
@@ -3861,6 +3673,12 @@ pipe_wrap_links <- function(graf,length=20){
 
 
 
+factor_click_origin <- function(id){
+  js_button(paste0('factor_click_origin_',id), label = "Trace from here (origin)")
+}
+factor_click_target <- function(id){
+  js_button(paste0('factor_click_target_',id), label = "Trace to here (target)")
+}
 factor_click_focus <- function(id){
   js_button(paste0('factor_click_focus_',id), label = "Focus")
 }
@@ -4088,6 +3906,10 @@ if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- gr
       # "</br>",
       "</br>",
       map(factor_id,factor_click_focus),
+      "</br>",
+      map(factor_id,factor_click_origin),
+      "</br>",
+      map(factor_id,factor_click_target),
       "</br>",
       map(factor_id,factor_click_edit),
       "</br>",
@@ -4536,7 +4358,9 @@ strip_symbols <- function(vec) vec %>%
 #'
 #' @examples
 get_robustness <- function(graf){
-   attr(graf$links,"flow")$summary
+  # browser()
+   # attr(graf$links,"flow")$summary
+  attr(graf,"info")$flow$summary
 }
 
 
