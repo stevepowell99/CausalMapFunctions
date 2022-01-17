@@ -32,6 +32,7 @@ library(shiny)
 #   password = config$sql$password
 # )
 
+if(Sys.getenv("USERDOMAIN")=="LAPTOP-F57J1GK6")smessage <- message else smessage <- function(...){wqertyasdf <- 99}
 
 
 
@@ -78,13 +79,13 @@ add_attribute <- function(graf,value,attr="flow"){
 }
 
 finalise <- function(graf,value){
-  message("finalise")
+  smessage("finalise")
   # simply reattaches the info list back to the graf. so you may need to update info during a function.
   attr(graf,"info") <- value
   graf
 }
 finalise_transforms <- function(graf,value){
-  message("finalise transforms")
+  smessage("finalise transforms")
   # simply reattaches the info list back to the graf and also does a final recalculation - only used for pipe functions which do any transformations of the graf
   attr(graf,"info") <- value
   graf %>%     pipe_recalculate_all()
@@ -574,7 +575,7 @@ load_mapfile <- function(path=NULL,connection=conn){
 #' @examples
 pipe_coerce_mapfile <- function(tables){
 
-say()
+# say()
 
     factors <- tables$factors #%>% replace_null(standard_factors())
   links <- tables$links #%>% replace_null(standard_links())
@@ -827,7 +828,7 @@ pipe_update_mapfile <- function(map,
                            all=T){
   # browser()
 
-  message("pipe update")
+  smessage("pipe update")
   if(!is.null(tables)){
     factors <- tables$factors
     links <- tables$links
@@ -863,7 +864,7 @@ pipe_update_mapfile <- function(map,
 #'
 #' @examples
 fix_columns_factors <- function(factors){
-  message("fix col factors")
+  smessage("fix col factors")
   if(!("color.background" %in% colnames(factors))) factors <- factors %>% mutate(color.background="#ffffff")
   if(!("color.border" %in% colnames(factors))) factors <- factors %>% mutate(color.border="#ffffff")
   if(!("size" %in% colnames(factors))) factors <- factors %>% mutate(size=1L)
@@ -877,7 +878,7 @@ fix_columns_factors <- function(factors){
 
 recalculate_links <- function(factors,links){
   # browser()
-  message("recalc links")
+  smessage("recalc links")
   links <- links %>%
     add_labels_to_links(factors) %>%
     add_simple_bundle_to_links()
@@ -917,7 +918,7 @@ fix_columns_links <- function(links){
 #' @examples
 #' ## PROBABLY DON'T NEED THESE NOW
 pipe_recalculate_all <- function(graf){
-  message("recalc all")
+  smessage("recalc all")
   # browser()
   graf %>%
     pipe_recalculate_factors  %>%
@@ -948,7 +949,7 @@ pipe_recalculate_all <- function(graf){
 #' @examples
 pipe_recalculate_factors <- function(graf){
   # browser()
-  message("pipe recalc factors")
+  smessage("pipe recalc factors")
   info <-   make_info(graf,as.list(match.call()))
 
   graf %>%
@@ -2201,7 +2202,7 @@ add_call <- function(graf,lis){
   graf
 }
 make_info <- function(graf,lis){
-  message("make info")
+  smessage("make info")
   # takes the list - which will usuall be the current call, names it, and adds to existing graf info
 
   c(attr(graf,"info"),lis %>% (function(x)list(x) %>% set_names(x[[1]])))
@@ -2417,7 +2418,7 @@ parse_commands <- function(graf=NULL,tex){
 #' pipe_find_factors(example2,field="id",value=5,operator="greater")
 pipe_find_factors <- function(graf,field="label",value,operator="contains",up=1,down=1,remove_isolated=F,highlight_only=F){
     # st <- attr(graf,"statements")
-  message("find factors")
+  smessage("find factors")
   info <-   make_info(graf,as.list(match.call()))
 
   df <- graf$factors %>% find_fun(field,value,operator)
@@ -2722,16 +2723,18 @@ pipe_bundle_factors <- function(graf,value=""){
 #'
 #' @examples
 pipe_trace_robustness <- function(graf,from,to,length=4,field=NULL){
+  # browser()
   info <-   make_info(graf,as.list(match.call()))
 
  if(from=="" | to==""){notify("blank from or to factor; robustness calculation may not be correct")}# this should be possible but atm results are horrible
   if(is.null(field)){
 
-  # browser()
     return(graf %>%
       pipe_trace_paths(from=from,to=to,length=length) %>%
-      pipe_calculate_robustness() %>%
-        finalise(.,c(info,list(flow=.$links %>% attr("flow"))))
+      pipe_calculate_robustness()
+
+      # %>%
+      #   finalise(info)
     )
   }
 
@@ -2797,7 +2800,7 @@ pipe_trace_robustness <- function(graf,from,to,length=4,field=NULL){
 
     }
     # browser()
-info <- c(info,flow=res)
+info <- c(info,list(flow=res))
   graf %>%
       pipe_trace_paths(from=from,to=to,length=length) %>%   # to get the ordinary map
       pipe_update_mapfile(.,links=add_attribute(.$links,res,"flow"))%>%
@@ -2940,10 +2943,12 @@ pipe_calculate_robustness <- function(graf){
   if("found_to" %notin% factor_colnames(graf)) {warning("No found_to column");return(graf)}
   # if(field %>% replace_null("")=="")field <- NULL
 
-  res$summary <- (calculate_robustness_inner(graf))
-  graf %>%
-    finalise(info) %>% pipe_update_mapfile(.,links=add_attribute(graf$links,res,"flow"))
+  res$summary <- calculate_robustness_inner(graf)
+
   # browser()
+  graf %>%
+    finalise(.,(info %>% c(list(flow=res)))) #%>% pipe_update_mapfile(.,links=add_attribute(graf$links,res,"flow"))
+    # finalise(info) %>% pipe_update_mapfile(.,links=add_attribute(graf$links,res,"flow"))
 
 }
 
@@ -3825,7 +3830,7 @@ make_interactive_map <- function(graf,scale=1,safe_limit=200,rainbow=F){
 
   }
 
-    #message("2vn")
+    #smessage("2vn")
 
 if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- graf %>% pipe_update_mapfile(factors=.$factors %>% arrange((size))) %>% pipe_remove_orphaned_links()#because this is the way to get the most important ones in front
 }
@@ -3845,7 +3850,7 @@ if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- gr
     mutate(label=str_wrap(label,max(link_wrap))) else edges <-
     edges %>%     mutate(label=add_default_wrap(label) )
 
-    #message("3vn")
+    #smessage("3vn")
 
   if(is_grouped_df(edges)){
     # browser()
@@ -3854,7 +3859,7 @@ if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- gr
     ungroup
     }
 
-    #message("4vn")
+    #smessage("4vn")
 
 
     if(rainbow){
@@ -3872,7 +3877,7 @@ if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- gr
       T ~ edges$color
     )
 }
-    #message("5vn")
+    #smessage("5vn")
 
   edges$width <- as.numeric(edges$width)
   edges$label[is.na(edges$label )] <- ""
@@ -3892,7 +3897,7 @@ if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- gr
     nodes <- data.frame(nodes, layout)
     ############## don't get tempted to use the internal visnetwork layout functions - problems with fitting to screen, and they are slower ....
   }
-    #message("6vn")
+    #smessage("6vn")
   nodes <- nodes %>%   mutate(id=factor_id)
   edges <- edges %>%   mutate(id=NULL) # id would be necessary for getting ids from clicks etc, but seems to stop tooltip from working
  # browser()
@@ -3919,7 +3924,7 @@ if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- gr
       "</br>",
       paste0("ID:", factor_id)
     ))
-    #message("7vn")
+    #smessage("7vn")
   edges <-
     edges %>% mutate(title=paste0(
       map(link_id,link_click_edit),

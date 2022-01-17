@@ -1152,7 +1152,11 @@ Just one source:
 
 ```{r}
 ee  %>%
-  pipe_trace_robustness(from = "Funds",to="Increased",length = 5,field = "source_id") %>% (get_robustness)
+  pipe_trace_robustness(from = "Funds",to="Increased",length = 5,field = "source_id") %>% get_robustness
+
+ll  %>%
+  pipe_trace_robustness(from = "Cash",to="Income",length = 5,field="source_id") %>% 
+  get_robustness()
 
 ```
 
