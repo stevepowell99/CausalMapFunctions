@@ -7,14 +7,11 @@
 pipe_trace_continuity(graf, field = "source_id")
 }
 \arguments{
-\item{graf}{A mapfile representing a causal map.
-A mapfile is a tidygraph, which consists of a table of edges linked to a table of nodes,
-with an optional additional table of statements.
-In this package, nodes are called `factors` and edges are called `links.`}
+\item{graf}{A mapfile resulting from pipe_trace_paths or pipe_trace_robustness}
 }
 \value{
-A mapfile.
+A mapfile with additional links fields continuation_id, n_unique_incoming_continued, n_unique_incoming
 }
 \description{
-Pipe trace continuity
+A different approach from robustness: gets added on after a trace paths filter.
 }

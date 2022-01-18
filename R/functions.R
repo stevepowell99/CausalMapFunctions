@@ -2995,17 +2995,16 @@ pipe_combine_opposites <- function(graf,flipchar="~",add_colors=T){
 
 #' Pipe trace continuity
 #' @inheritParams parse_commands
-#' @param graf
-#' @param path
-#' @description
-#' @return A mapfile.
+#' @param graf A mapfile resulting from pipe_trace_paths or pipe_trace_robustness
+#' @param field
+#' @description A different approach from robustness: gets added on after a trace paths filter.
+#' @return A mapfile with additional links fields continuation_id, n_unique_incoming_continued, n_unique_incoming
 #' @export
 #'
 #' @examples
 pipe_trace_continuity <- function(graf,field="source_id"){
 
-  # browser()
-  # different approach from robustness: gets added on after a trace paths filter.
+
   graf$links$these_ids <- map(graf$links$link_id,~{get_field(graf$links,field,.)}) %>% unlist
 
   graf$links$previous_ids <- map(graf$links$before_id,~{get_field(graf$links,field,.)})

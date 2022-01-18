@@ -70,6 +70,9 @@
     <loc>https://stevepowell99.github.io/CausalMapFunctions/reference/index.html</loc>
   </url>
   <url>
+    <loc>https://stevepowell99.github.io/CausalMapFunctions/reference/js_button.html</loc>
+  </url>
+  <url>
     <loc>https://stevepowell99.github.io/CausalMapFunctions/reference/left_join_safe.html</loc>
   </url>
   <url>
@@ -92,6 +95,9 @@
   </url>
   <url>
     <loc>https://stevepowell99.github.io/CausalMapFunctions/reference/make_map_metrics.html</loc>
+  </url>
+  <url>
+    <loc>https://stevepowell99.github.io/CausalMapFunctions/reference/make_mentions_tabl.html</loc>
   </url>
   <url>
     <loc>https://stevepowell99.github.io/CausalMapFunctions/reference/make_print_map.html</loc>
@@ -218,6 +224,9 @@
   </url>
   <url>
     <loc>https://stevepowell99.github.io/CausalMapFunctions/reference/pipe_show_continuity.html</loc>
+  </url>
+  <url>
+    <loc>https://stevepowell99.github.io/CausalMapFunctions/reference/pipe_trace_continuity.html</loc>
   </url>
   <url>
     <loc>https://stevepowell99.github.io/CausalMapFunctions/reference/pipe_trace_paths.html</loc>
