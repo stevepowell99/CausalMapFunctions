@@ -1222,17 +1222,19 @@ e3  %>%
   pipe_color_links(field = "is_continued",fun = "sum") %>% 
   make_print_map() 
 
-ll  %>%
-  pipe_trace_paths(from = "OrgX",to="Income",length = 4) %>% 
+# with multiple origins
+e3  %>%
+  pipe_trace_paths(from = "External",to="",length = 2) %>% 
   pipe_trace_continuity() %>% 
   pipe_bundle_links() %>% 
   pipe_label_links(field = "is_continued",fun = "sum") %>% 
   pipe_color_links(field = "is_continued",fun = "sum") %>% 
+  pipe_color_factors(field="found_type") %>% 
+  pipe_color_borders(field="n_incoming_continued") %>% 
   make_print_map() 
 
-# with multiple origins
 ll  %>%
-  pipe_trace_paths(from = "Cash",to="",length = 2) %>% 
+  pipe_trace_paths(from = "OrgX",to="Income",length = 4) %>% 
   pipe_trace_continuity() %>% 
   pipe_bundle_links() %>% 
   pipe_label_links(field = "is_continued",fun = "sum") %>% 

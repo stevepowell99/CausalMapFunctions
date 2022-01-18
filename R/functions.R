@@ -3023,16 +3023,27 @@ pipe_trace_continuity <- function(graf,field="source_id"){
 
   if("tracedownvec" %notin% colnames(factors)) {notify("You need to trace paths before tracing continuity",3);return(graf)}
 
+  origins <-
+    factors %>%
+    select(factor_id,tracedownvec) %>%
+    filter(tracedownvec==0) %>%
+    pull(factor_id)
+
   pointers <-
     factors %>%
     select(factor_id,tracedownvec) %>%
     arrange(tracedownvec) %>%
     pull(factor_id)
 
-    links <-
-    links %>%
+  # graf    %>%
+  #   pipe_update_mapfile(links=links %>% mutate(continuation_id=if_else(from==node,these_ids,""))) # initialise
+
+  # browser()
+
+    graf$links <-
+    graf$links %>%
     mutate(continuation_id=if_else(
-      from==pointers[1],
+      from %in% origins,
       these_ids,
       ""
     ))
@@ -3045,12 +3056,31 @@ pipe_trace_continuity <- function(graf,field="source_id"){
       #                       mutate(pointer=node))
 
   }
+
+    # browser()
+  for_join <-
+    graf$links %>% select(factor_id=to,continuation_id,these_ids) %>%
+    group_by(factor_id) %>%
+    summarise_all(list) %>%
+    mutate(continuation_id= map(continuation_id,remove_empty_string)) %>%
+    mutate(n_incoming_continued=map(continuation_id,length)%>% unlist) %>%
+    mutate(n_incoming=map(these_ids,length )%>% unlist)
+
+  graf$factors <-
+    graf$factors %>%
+    select(-any_of(c("continuation_id","these_ids","n_incoming_continued","n_incoming"))) %>%
+    left_join(for_join,by="factor_id")%>%
+    mutate(n_incoming_continued=replace_na(n_incoming_continued,0)) %>%
+    mutate(n_incoming=replace_na(n_incoming,0))
+
   graf %>%
     pipe_update_mapfile(.,links=graf$links %>% mutate(is_continued=continuation_id!=""))
 
 
 }
-
+remove_empty_string <- function(vec){
+  vec %>% keep(.!="")
+}
 
 # takes a graf and a single factor id and calculates the downstream factor continuity
 pipe_continue_downstream <- function(graf,node){
@@ -3062,8 +3092,9 @@ pipe_continue_downstream <- function(graf,node){
   if(factors$tracedownvec[factors$factor_id==node]==0) {
     # it is the origin
     # browser()
-    graf    %>%
-      pipe_update_mapfile(links=links %>% mutate(continuation_id=if_else(from==node,these_ids,""))) # initialise
+    graf
+    # %>%
+    #   pipe_update_mapfile(links=links %>% mutate(continuation_id=if_else(from==node,these_ids,""))) # initialise
     # continuation_id is a logical which says whether this link has a thread back to the start
       }
     else {
