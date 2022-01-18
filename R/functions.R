@@ -58,7 +58,7 @@ colnames.cm <- function (graf){graf %>% map(colnames)}
 
 
 
-notify <- function(text){
+notify <- function(text,level=3){
   # browser()
   if(exists("sess")){if(sess$is_admin %>% replace_null(F))safely(~showNotification(ui=text))()$result}
 
@@ -2828,9 +2828,7 @@ pipe_trace_paths <- function(graf,from,to,length=4){
 
   if(is.na(length)) {notify("You have to specify length");return(graf)}
   if(0==(length)) {notify("You have to specify length greater than 0");return(graf)}
-  #if(from[1]=="") {notify("You have to specify source factors");return(graf)}
-  #if(to[1]=="") {notify("You have to specify target factors");return(graf)}
-  # browser()
+
   from <- from %>%  str_replace_all(" OR ","|") %>% str_split(.,"\\|") %>% `[[`(1) %>% map(make_search ) %>% tolower
   to <- to %>%  str_replace_all(" OR ","|") %>% str_split(.,"\\|") %>% `[[`(1) %>% map(make_search ) %>% tolower
   if(from[[1]]=="" & to[[1]]=="") return(graf%>%
@@ -2890,9 +2888,6 @@ pipe_trace_paths <- function(graf,from,to,length=4){
     pipe_remove_orphaned_links %>%
     pipe_remove_isolated_links()%>%
     finalise(info)
-  # browser()
-  # pipe_update_mapfile(graf,factors=factors_table(graf %>% filter(label!="_super_sink_" & label!="_super_origin_")))  %>%
-  #   pipe_clean_map
 
 
 
@@ -2994,6 +2989,104 @@ pipe_combine_opposites <- function(graf,flipchar="~",add_colors=T){
     finalise_transforms(info)
 
 
+}
+
+
+
+#' Pipe trace continuity
+#' @inheritParams parse_commands
+#' @param graf
+#' @param path
+#' @description
+#' @return A mapfile.
+#' @export
+#'
+#' @examples
+pipe_trace_continuity <- function(graf,field="source_id"){
+
+
+  if("tracedownvec" %notin% colnames(graf$factors)) {notify("You need to trace paths before tracing continuity",3);return(graf)}
+  if(nrow(graf$factors)==0) {notify("No factors",3);return(graf)}
+  # different approach from robustness: gets added on after a trace paths filter.
+  graf$links$these_ids <- map(graf$links$link_id,~{get_field(graf$links,field,.)}) %>% unlist
+  graf$links$previous_ids <- map(graf$links$before_id,~{get_field(graf$links,field,.)})
+
+  # links$is_continuation <- map(links$before_id,~{get_field(links,field,.)})
+  # links <-
+  #   links %>% rowwise %>%
+  #   mutate(is_continuation=these_ids  %in% unlist(previous_ids))
+
+
+
+
+
+  pointers <-
+    graf$factors %>%
+    select(factor_id,tracedownvec) %>%
+    arrange(tracedownvec) %>%
+    pull(factor_id)
+
+    graf$links <-
+    graf$links %>%
+    mutate(continuation_id=if_else(
+      from==pointers[1],
+      these_ids,
+      ""
+    ))
+
+  # browser()
+
+  for(node in pointers){
+    graf <- graf %>%
+      pipe_continue_downstream(node)
+
+  }
+  graf %>%
+    pipe_update_mapfile(.,links=graf$links %>% mutate(is_continued=continuation_id!=""))
+
+
+}
+
+
+# takes a graf and a single factor id and calculates the downstream factor continuity
+pipe_continue_downstream <- function(graf,node){
+  factors <- graf$factors
+  links <- graf$links
+    # browser()
+
+
+  if(factors$tracedownvec[factors$factor_id==node]==0) {
+    # it is the origin
+    # browser()
+    graf
+    # %>%
+    #   pipe_update_mapfile(links=links %>% mutate(continuation_id=if_else(from==node,these_ids,""))) # initialise
+    # continuation_id is a logical which says whether this link has a thread back to the start
+      }
+    else {
+      # browser()
+  # two tests: 1) does this source appear in the predecessors? 2) is it a continuation?
+      pipe_update_mapfile(graf,links=links %>%
+                            mutate(continuation_id=map(link_id,~continue(links,.,node)) %>% unlist
+                                   )   # only calculate for the current node
+
+                          )
+  }
+
+}
+continue <- function(links,link_id,node){
+
+  # two tests: 1) does this source appear in the predecessors? if so, is it a live continuation?
+  this <- links$link_id==link_id
+  if(links$from[this]!=node) links$continuation_id[this] else {
+  current_id <- links$these_ids[this]
+  previous_link_ids <- unlist(links$before_id[this])
+
+    # browser()
+  if(current_id %in% links$these_ids[links$link_id %in% previous_ids]) {
+    current_id
+    } else ""
+  }
 }
 
 
@@ -3409,15 +3502,15 @@ pipe_show_continuity <- function(graf,field="source_id",type="arrowtype"){
     tmp  %>%
      mutate(x=length(intersect(unlist(before_sources),unlist((these_sources))))) %>%
      mutate(y=length(unlist(unique(these_sources)))) %>%
-     mutate(before_continuity=(x/y) %>% round(1) %>% as.character) %>%
+     mutate(downstream_continuity=(x/y) %>% round(1) %>% as.character) %>%
      mutate(x=length(intersect(unlist(after_sources),unlist((these_sources))))) %>%
-     mutate(after_continuity=(x/y) %>% round(1) %>% as.character) %>%
+     mutate(upstream_continuity=(x/y) %>% round(1) %>% as.character) %>%
      mutate(nullbc=length(unlist(before_sources))==0) %>%
-     mutate(before_continuity=if_else(nullbc,"",before_continuity)) %>%
+     mutate(downstream_continuity=if_else(nullbc,"",downstream_continuity)) %>%
      mutate(nullac=length(unlist(after_sources))==0) %>%
-    mutate(after_continuity=if_else(nullac,"",after_continuity))%>%
+    mutate(upstream_continuity=if_else(nullac,"",upstream_continuity))%>%
     ungroup %>%
-     select(link_id,before_continuity,after_continuity)
+     select(link_id,downstream_continuity,upstream_continuity)
    # select(-these_sources,-before_sources,-after_sources,-x,-y,nullac,-nullbc)
 
 # browser()
@@ -3428,18 +3521,26 @@ pipe_show_continuity <- function(graf,field="source_id",type="arrowtype"){
   if(type=="label"){
   links <-
     links %>%
-    mutate(taillabel=before_continuity) %>%
-    mutate(headlabel=after_continuity)
-    # mutate(taillabel=if_else(before_continuity=="0","0",before_continuity)) %>%
-    # mutate(headlabel=if_else(after_continuity=="0","0",after_continuity))
+    mutate(taillabel=downstream_continuity) %>%
+    mutate(headlabel=upstream_continuity)
+    # mutate(taillabel=if_else(downstream_continuity=="0","0",downstream_continuity)) %>%
+    # mutate(headlabel=if_else(upstream_continuity=="0","0",upstream_continuity))
   } else
   {
     links <-
       links %>%
-      mutate(arrowtail=make_arrowhead(before_continuity,dir="backwards")) %>%
-      mutate(arrowhead=make_arrowhead(after_continuity))
+      mutate(arrowtail=make_arrowhead(downstream_continuity,dir="backwards")) %>%
+      mutate(arrowhead=make_arrowhead(upstream_continuity))
   }
 
+
+
+  # with arrowheads, we don't want to display them on links with no predecssors or successors.
+  # but with colours, it is better if the values are 1 for NA
+    links <-
+      links %>%
+      mutate(downstream_continuity=as.numeric(downstream_continuity),downstream_continuity=replace_na(downstream_continuity,1)) %>%
+      mutate(upstream_continuity=as.numeric(upstream_continuity),upstream_continuity=replace_na(upstream_continuity,1))
 
 
   graf %>% pipe_update_mapfile(links=links)%>%
