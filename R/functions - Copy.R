@@ -3004,14 +3004,12 @@ pipe_combine_opposites <- function(graf,flipchar="~",add_colors=T){
 #' @examples
 pipe_trace_continuity <- function(graf,field="source_id"){
 
-  # browser()
+
+  if("tracedownvec" %notin% colnames(graf$factors)) {notify("You need to trace paths before tracing continuity",3);return(graf)}
+  if(nrow(graf$factors)==0) {notify("No factors",3);return(graf)}
   # different approach from robustness: gets added on after a trace paths filter.
   graf$links$these_ids <- map(graf$links$link_id,~{get_field(graf$links,field,.)}) %>% unlist
-
-  graf$links$previous_ids <- map(graf$links$before_id,~{get_field(graf$links,field,.)})
-  factors <- graf$factors
-  links <- graf$links
-
+  graf$links$previous_ids <- map(graf$links$before_id,~{get_field(graf$links,field,.) %>% replace_zero("")})
 
   # links$is_continuation <- map(links$before_id,~{get_field(links,field,.)})
   # links <-
@@ -3021,28 +3019,26 @@ pipe_trace_continuity <- function(graf,field="source_id"){
 
 
 
-  if("tracedownvec" %notin% colnames(factors)) {notify("You need to trace paths before tracing continuity",3);return(graf)}
-
   pointers <-
-    factors %>%
+    graf$factors %>%
     select(factor_id,tracedownvec) %>%
     arrange(tracedownvec) %>%
     pull(factor_id)
 
-    links <-
-    links %>%
+    graf$links <-
+    graf$links %>%
     mutate(continuation_id=if_else(
       from==pointers[1],
       these_ids,
       ""
     ))
 
+# browser()
+  # browser()
 
   for(node in pointers){
     graf <- graf %>%
       pipe_continue_downstream(node)
-      # pipe_update_mapfile(.,factors=factors %>%
-      #                       mutate(pointer=node))
 
   }
   graf %>%
@@ -3061,9 +3057,7 @@ pipe_continue_downstream <- function(graf,node){
 
   if(factors$tracedownvec[factors$factor_id==node]==0) {
     # it is the origin
-    # browser()
-    graf    %>%
-      pipe_update_mapfile(links=links %>% mutate(continuation_id=if_else(from==node,these_ids,""))) # initialise
+    graf
     # continuation_id is a logical which says whether this link has a thread back to the start
       }
     else {
@@ -3086,7 +3080,7 @@ continue <- function(links,link_id,node){
   previous_link_ids <- unlist(links$before_id[this])
 
     # browser()
-  if(current_id %in% links$these_ids[links$link_id %in% previous_link_ids]) {
+  if(current_id %in% links$these_ids[links$link_id %in% links$previous_ids]) {
     current_id
     } else ""
   }
