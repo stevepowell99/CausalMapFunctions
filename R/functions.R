@@ -3071,7 +3071,7 @@ pipe_trace_continuity <- function(graf,field="source_id"){
     select(-any_of(c("continuation_id","these_ids","n_unique_incoming_continued","n_unique_incoming"))) %>%
     left_join(for_join,by="factor_id")%>%
     mutate(n_unique_incoming_continued=replace_na(n_unique_incoming_continued,0)) %>%
-    mutate(n_unique_incoming=replace_na(n_incoming,0))
+    mutate(n_unique_incoming=replace_na(n_unique_incoming,0))
 
   graf %>%
     pipe_update_mapfile(.,links=graf$links %>% mutate(is_continued=continuation_id!=""))
