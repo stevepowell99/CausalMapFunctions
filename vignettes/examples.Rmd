@@ -93,12 +93,12 @@ attr(graf,"info") %>%
 
 }
 
-# make_interactive_map <- function(graf){
-#   tagList(print_filter(graf),CausalMapFunctions::make_interactive_map(graf))
-# }
-# make_print_map <- function(graf){
-#   tagList(print_filter(graf),CausalMapFunctions::make_print_map(graf))
-# }
+make_interactive_map <- function(graf){
+  tagList(print_filter(graf),CausalMapFunctions::make_interactive_map(graf))
+}
+make_print_map <- function(graf){
+  tagList(print_filter(graf),CausalMapFunctions::make_print_map(graf))
+}
 clean_send <- function(vec){
   if(vec %>% unique %>% `%in%`(c(F,T)) %>% all) vec <- as.numeric(vec)
   if(F & is.character(vec)) {
@@ -216,7 +216,6 @@ hz <- load_mapfile("health-zoom")%>% pipe_coerce_mapfile
   hh <- load_mapfile("hannahcombiningopposites-sp-test")%>% pipe_coerce_mapfile
   oi <- load_mapfile("2oirefugeetestimonies")%>% pipe_coerce_mapfile
   oh <- load_mapfile("oh1-sp2")%>% pipe_coerce_mapfile
-  e3 <- load_mapfile("example3-path-tracing")%>% pipe_coerce_mapfile
 ```
 
 
@@ -732,7 +731,9 @@ oh %>%
 
 
 
-## Recalculating - shouldn't make any difference now as factor and link fields are recalculated after every transform; but before and afterids are added only on load_mapfile.
+## Recalculating
+
+Shouldn't make any difference as factor and link fields are now recalculated after every transform; but beforeids and afterids are added only on load_mapfile.
 
 ```{r}
 ll %>% 
@@ -1080,7 +1081,7 @@ ee %>%
 
 ```{r}  
 
-ee %>%    
+e3 %>%    
   pipe_trace_robustness(from = "High",to="Damage",length = 5) %>% 
   make_print_map()
 
@@ -1218,8 +1219,9 @@ e3  %>%
   pipe_trace_paths(from = "rainfall",to="",length = 4) %>% 
   pipe_trace_continuity() %>% 
   pipe_bundle_links() %>% 
-  pipe_label_links(field = "is_continued",fun = "sum") %>% 
-  pipe_color_links(field = "is_continued",fun = "sum") %>% 
+  pipe_label_links(field = "is_continued_after",fun = "sum") %>% 
+  pipe_color_links(field = "is_continued_after",fun = "sum") %>% 
+  pipe_color_borders(field="n_unique_from_before_continued") %>% 
   make_print_map() 
 
 # with multiple origins
@@ -1227,18 +1229,18 @@ e3  %>%
   pipe_trace_paths(from = "External",to="",length = 2) %>% 
   pipe_trace_continuity() %>% 
   pipe_bundle_links() %>% 
-  pipe_label_links(field = "is_continued",fun = "sum") %>% 
-  pipe_color_links(field = "is_continued",fun = "sum") %>% 
+  pipe_label_links(field = "is_continued_after",fun = "sum") %>% 
+  pipe_color_links(field = "is_continued_after",fun = "sum") %>% 
   pipe_color_factors(field="found_type") %>% 
-  pipe_color_borders(field="n_incoming_continued") %>% 
+  pipe_color_borders(field="n_unique_from_before_continued") %>% 
   make_print_map() 
 
 ll  %>%
   pipe_trace_paths(from = "OrgX",to="Income",length = 4) %>% 
   pipe_trace_continuity() %>% 
   pipe_bundle_links() %>% 
-  pipe_label_links(field = "is_continued",fun = "sum") %>% 
-  pipe_color_links(field = "is_continued",fun = "sum") %>% 
+  pipe_label_links(field = "is_continued_after",fun = "sum") %>% 
+  pipe_color_links(field = "is_continued_after",fun = "sum") %>% 
   make_print_map() 
 
 # with no target
@@ -1246,24 +1248,24 @@ ll  %>%
   pipe_trace_paths(from = "OrgX",to="",length = 2) %>% 
   pipe_trace_continuity() %>% 
   pipe_bundle_links() %>% 
-  pipe_label_links(field = "is_continued",fun = "sum") %>% 
-  pipe_color_links(field = "is_continued",fun = "sum") %>% 
+  pipe_label_links(field = "is_continued_after",fun = "sum") %>% 
+  pipe_color_links(field = "is_continued_after",fun = "sum") %>% 
   make_print_map() 
 
 ll  %>%
   pipe_trace_paths(from = "doesnotexist",to="Income",length = 4) %>% 
   pipe_trace_continuity() %>% 
   pipe_bundle_links() %>% 
-  pipe_label_links(field = "is_continued",fun = "sum") %>% 
-  pipe_color_links(field = "is_continued",fun = "sum") %>% 
+  pipe_label_links(field = "is_continued_after",fun = "sum") %>% 
+  pipe_color_links(field = "is_continued_after",fun = "sum") %>% 
   make_print_map() 
 
 ll  %>%
   pipe_trace_paths(from = "OrgX",to="doesnotexist",length = 4) %>% 
   pipe_trace_continuity() %>% 
   pipe_bundle_links() %>% 
-  pipe_label_links(field = "is_continued",fun = "sum") %>% 
-  pipe_color_links(field = "is_continued",fun = "sum") %>% 
+  pipe_label_links(field = "is_continued_after",fun = "sum") %>% 
+  pipe_color_links(field = "is_continued_after",fun = "sum") %>% 
   make_print_map() 
 
 
@@ -1272,8 +1274,8 @@ oo %>%
   pipe_trace_paths(from = "Learnt about farming",to="",length = 5) %>% 
   pipe_trace_continuity() %>% 
   pipe_bundle_links() %>% 
-  pipe_label_links(field = "is_continued",fun = "sum") %>% 
-  pipe_color_links(field = "is_continued",fun = "sum") %>% 
+  pipe_label_links(field = "is_continued_after",fun = "sum") %>% 
+  pipe_color_links(field = "is_continued_after",fun = "sum") %>% 
   make_print_map
 
 oo %>%    
@@ -1281,22 +1283,22 @@ oo %>%
   pipe_trace_paths(from = "Learnt about farming",to="Health",length = 3) %>% 
   pipe_trace_continuity() %>% 
   pipe_bundle_links() %>% 
-  pipe_label_links(field = "is_continued",fun = "sum") %>% 
+  pipe_label_links(field = "is_continued_after",fun = "sum") %>% 
   pipe_label_links(field = "source_id",fun = "count",clear_previous = F) %>% 
-  pipe_color_links(field = "is_continued",fun = "sum") %>% 
+  pipe_color_links(field = "is_continued_after",fun = "sum") %>% 
   pipe_color_factors(field="found_type") %>% 
   make_print_map
 
-# note that sum of is_continued can be more than number of unique sources
+# note that sum of is_continued_after can be more than number of unique sources
 oo %>%    
   pipe_select_factors(10) %>% 
   pipe_trace_paths(from = "Learnt about farming",to="Health",length = 3) %>% 
   pipe_trace_continuity() %>% 
   pipe_bundle_links() %>% 
-  # pipe_label_links(field = "is_continued",fun = "sum") %>% 
+  # pipe_label_links(field = "is_continued_after",fun = "sum") %>% 
   pipe_label_links(field = "continuation_id",fun = "count",clear_previous = F) %>% 
   pipe_label_links(field = "source_id",fun = "count",clear_previous = F) %>%
-  pipe_color_links(field = "is_continued",fun = "sum") %>% 
+  pipe_color_links(field = "is_continued_after",fun = "sum") %>% 
   pipe_color_factors(field="found_type") %>% 
   pipe_wrap_links() %>% 
   make_print_map
@@ -1307,9 +1309,9 @@ oi %>%
   pipe_trace_paths(from = "Take a loan",to="",length = 4) %>% 
   pipe_trace_continuity() %>% 
   pipe_bundle_links() %>% 
-  pipe_label_links(field = "is_continued",fun = "sum") %>% 
+  pipe_label_links(field = "is_continued_after",fun = "sum") %>% 
   pipe_label_links(field = "source_id",fun = "count",clear_previous = F) %>% 
-  pipe_color_links(field = "is_continued",fun = "sum") %>% 
+  pipe_color_links(field = "is_continued_after",fun = "sum") %>% 
   pipe_color_factors(field="found_type") %>% 
   make_print_map
 

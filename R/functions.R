@@ -932,9 +932,9 @@ pipe_recalculate_all <- function(graf){
 #' @return A mapfile whose factors table contains the following fields.
 #' betweenness: the number of paths going through the factor.
 #' betweenness_rank: the rank of the betweenness.
-#' in_degree: the number of incoming links.
+#' in_degree: the number of from_before links.
 #' out_degree: the number of outgoing links.
-#' role: the number of incoming links minus the number of incoming links. High values are drivers, low values are outcomes
+#' role: the number of from_before links minus the number of from_before links. High values are drivers, low values are outcomes
 #' frequency: the number of links.
 #' driver_score: how strongly is this factor a driver?
 #' outcome_score: how strongly is this factor an outcome?
@@ -2856,15 +2856,15 @@ pipe_trace_paths <- function(graf,from,to,length=4){
   factors <- tmp$factors
   links <- tmp$links
 
-  tracedownvec <- make_igraph_from_links(links) %>% distances(to=factors %>% pull(found_from),mode="in") %>% apply(1,min,na.rm=T)
-  traceupvec <- make_igraph_from_links(links) %>% distances(to=factors %>% pull(found_to),mode="out") %>% apply(1,min,na.rm=T)
+  trace_after_vec <- make_igraph_from_links(links) %>% distances(to=factors %>% pull(found_from),mode="in") %>% apply(1,min,na.rm=T)
+  trace_before_vec <- make_igraph_from_links(links) %>% distances(to=factors %>% pull(found_to),mode="out") %>% apply(1,min,na.rm=T)
 
   # here we need to intervene to make sure that influences don't move closer to the source, as this is a kind of loop
 
-  bothvecsum <- `+`(tracedownvec,traceupvec)
+  bothvecsum <- `+`(trace_after_vec,trace_before_vec)
   bothvec <- bothvecsum<=length
-  if(min(bothvecsum)<Inf) factors <- factors %>% mutate(traceupvec=traceupvec,
-                                                        tracedownvec=tracedownvec,
+  if(min(bothvecsum)<Inf) factors <- factors %>% mutate(trace_before_vec=trace_before_vec,
+                                                        trace_after_vec=trace_after_vec,
                                                         bothvec,
                                                         found=found_from|found_to
   ) %>% filter(bothvec) else factors %>% filter(F)
@@ -2998,7 +2998,7 @@ pipe_combine_opposites <- function(graf,flipchar="~",add_colors=T){
 #' @param graf A mapfile resulting from pipe_trace_paths or pipe_trace_robustness
 #' @param field
 #' @description A different approach from robustness: gets added on after a trace paths filter.
-#' @return A mapfile with additional links fields continuation_id, n_unique_incoming_continued, n_unique_incoming
+#' @return A mapfile with additional links fields contined_down_sid, n_unique_from_before_continued, n_unique_from_before
 #' @export
 #'
 #' @examples
@@ -3007,41 +3007,29 @@ pipe_trace_continuity <- function(graf,field="source_id"){
 
   graf$links$these_ids <- map(graf$links$link_id,~{get_field(graf$links,field,.)}) %>% unlist
 
-  graf$links$previous_ids <- map(graf$links$before_id,~{get_field(graf$links,field,.)})
+  # graf$links$previous_ids <- map(graf$links$before_id,~{get_field(graf$links,field,.)})
   factors <- graf$factors
   links <- graf$links
 
 
-  # links$is_continuation <- map(links$before_id,~{get_field(links,field,.)})
-  # links <-
-  #   links %>% rowwise %>%
-  #   mutate(is_continuation=these_ids  %in% unlist(previous_ids))
+  if("trace_after_vec" %notin% colnames(factors)) {notify("You need to trace paths before tracing continuity",3);return(graf)}
 
-
-
-
-  if("tracedownvec" %notin% colnames(factors)) {notify("You need to trace paths before tracing continuity",3);return(graf)}
-
+  # if(all(factors$trace_after_vec!=0))
   origins <-
     factors %>%
-    select(factor_id,tracedownvec) %>%
-    filter(tracedownvec==0) %>%
+    select(factor_id,trace_after_vec) %>%
+    filter(trace_after_vec==0) %>%
     pull(factor_id)
 
   pointers <-
     factors %>%
-    select(factor_id,tracedownvec) %>%
-    arrange(tracedownvec) %>%
+    select(factor_id,trace_after_vec) %>%
+    arrange(trace_after_vec) %>%
     pull(factor_id)
-
-  # graf    %>%
-  #   pipe_update_mapfile(links=links %>% mutate(continuation_id=if_else(from==node,these_ids,""))) # initialise
-
-  # browser()
 
     graf$links <-
     graf$links %>%
-    mutate(continuation_id=if_else(
+    mutate(continued_after_sid=if_else(
       from %in% origins,
       these_ids,
       ""
@@ -3050,30 +3038,27 @@ pipe_trace_continuity <- function(graf,field="source_id"){
 
   for(node in pointers){
     graf <- graf %>%
-      pipe_continue_downstream(node)
-      # pipe_update_mapfile(.,factors=factors %>%
-      #                       mutate(pointer=node))
+      pipe_continue_after(node)
 
   }
 
-    # browser()
   for_join <-
-    graf$links %>% select(factor_id=to,continuation_id,these_ids) %>%
+    graf$links %>% select(factor_id=to,continued_after_sid,these_ids) %>%
     group_by(factor_id) %>%
     summarise_all(list) %>%
-    mutate(continuation_id= map(continuation_id,remove_empty_string)) %>%
-    mutate(n_unique_incoming_continued=map(continuation_id,~length(unique(.)))%>% unlist) %>%
-    mutate(n_unique_incoming=map(these_ids,~length(unique(.)) )%>% unlist)
+    mutate(continued_after_sid= map(continued_after_sid,remove_empty_string)) %>%
+    mutate(n_unique_from_before_continued=map(continued_after_sid,~length(unique(.)))%>% unlist) %>%
+    mutate(n_unique_from_before=map(these_ids,~length(unique(.)) )%>% unlist)
 
   graf$factors <-
     graf$factors %>%
-    select(-any_of(c("continuation_id","these_ids","n_unique_incoming_continued","n_unique_incoming"))) %>%
+    select(-any_of(c("continued_after_sid","these_ids","n_unique_from_before_continued","n_unique_from_before"))) %>%
     left_join(for_join,by="factor_id")%>%
-    mutate(n_unique_incoming_continued=replace_na(n_unique_incoming_continued,0)) %>%
-    mutate(n_unique_incoming=replace_na(n_unique_incoming,0))
+    mutate(n_unique_from_before_continued=replace_na(n_unique_from_before_continued,0)) %>%
+    mutate(n_unique_from_before=replace_na(n_unique_from_before,0))
 
   graf %>%
-    pipe_update_mapfile(.,links=graf$links %>% mutate(is_continued=continuation_id!=""))
+    pipe_update_mapfile(.,links=graf$links %>% mutate(is_continued_after=continued_after_sid!=""))
 
 
 }
@@ -3081,41 +3066,34 @@ remove_empty_string <- function(vec){
   vec %>% keep(.!="")
 }
 
-# takes a graf and a single factor id and calculates the downstream factor continuity
-pipe_continue_downstream <- function(graf,node){
+# takes a graf and a single factor id and calculates the after factor continuity
+pipe_continue_after <- function(graf,node){
   factors <- graf$factors
   links <- graf$links
     # browser()
 
 
-  if(factors$tracedownvec[factors$factor_id==node]==0) {
+  if(factors$trace_after_vec[factors$factor_id==node]==0) {
     # it is the origin
-    # browser()
     graf
-    # %>%
-    #   pipe_update_mapfile(links=links %>% mutate(continuation_id=if_else(from==node,these_ids,""))) # initialise
-    # continuation_id is a logical which says whether this link has a thread back to the start
+
       }
     else {
-      # browser()
-  # two tests: 1) does this source appear in the predecessors? 2) is it a continuation?
-      pipe_update_mapfile(graf,links=links %>%
-                            mutate(continuation_id=map(link_id,~continue(links,.,node)) %>% unlist
-                                   )   # only calculate for the current node
 
-                          )
+      pipe_update_mapfile(graf,links=links %>%
+        mutate(continued_after_sid=map(link_id,~continue_after(links,.,node)) %>% unlist)   # only calculate for the current node
+      )
   }
 
 }
-continue <- function(links,link_id,node){
+continue_after <- function(links,link_id,node){
 
   # two tests: 1) does this source appear in the predecessors? if so, is it a live continuation?
   this <- links$link_id==link_id
-  if(links$from[this]!=node) links$continuation_id[this] else {
+  if(links$from[this]!=node) links$continued_after_sid[this] else {
   current_id <- links$these_ids[this]
   previous_link_ids <- unlist(links$before_id[this])
 
-    # browser()
   if(current_id %in% links$these_ids[links$link_id %in% previous_link_ids]) {
     current_id
     } else ""
