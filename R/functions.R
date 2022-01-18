@@ -3063,15 +3063,15 @@ pipe_trace_continuity <- function(graf,field="source_id"){
     group_by(factor_id) %>%
     summarise_all(list) %>%
     mutate(continuation_id= map(continuation_id,remove_empty_string)) %>%
-    mutate(n_incoming_continued=map(continuation_id,length)%>% unlist) %>%
-    mutate(n_incoming=map(these_ids,length )%>% unlist)
+    mutate(n_unique_incoming_continued=map(continuation_id,~length(unique(.)))%>% unlist) %>%
+    mutate(n_unique_incoming=map(these_ids,~length(unique(.)) )%>% unlist)
 
   graf$factors <-
     graf$factors %>%
-    select(-any_of(c("continuation_id","these_ids","n_incoming_continued","n_incoming"))) %>%
+    select(-any_of(c("continuation_id","these_ids","n_unique_incoming_continued","n_unique_incoming"))) %>%
     left_join(for_join,by="factor_id")%>%
-    mutate(n_incoming_continued=replace_na(n_incoming_continued,0)) %>%
-    mutate(n_incoming=replace_na(n_incoming,0))
+    mutate(n_unique_incoming_continued=replace_na(n_unique_incoming_continued,0)) %>%
+    mutate(n_unique_incoming=replace_na(n_incoming,0))
 
   graf %>%
     pipe_update_mapfile(.,links=graf$links %>% mutate(is_continued=continuation_id!=""))
