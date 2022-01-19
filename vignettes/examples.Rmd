@@ -277,6 +277,12 @@ ll %>%
 ```
 
 ```{r }  
+ee %>%
+    pipe_find_factors(field="factor_memo",value="memo",operator="equals") %>%
+    make_interactive_map
+```
+
+```{r }  
 ll %>%
     pipe_find_factors(value="economic") %>%
     make_interactive_map
@@ -431,6 +437,11 @@ e3  %>%
 ll %>%
     pipe_select_factors(5) %>%
     pipe_scale_factors(field="frequency") %>%
+    make_interactive_map
+
+ll %>%
+    pipe_select_factors(5) %>%
+    pipe_color_text(field="frequency") %>%
     make_interactive_map
 
 ll %>%

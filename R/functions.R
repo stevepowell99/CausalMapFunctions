@@ -866,6 +866,7 @@ pipe_update_mapfile <- function(map,
 fix_columns_factors <- function(factors){
   smessage("fix col factors")
   if(!("color.background" %in% colnames(factors))) factors <- factors %>% mutate(color.background="#ffffff")
+  if(!("font.color" %in% colnames(factors))) factors <- factors %>% mutate(font.color="#000000")
   if(!("color.border" %in% colnames(factors))) factors <- factors %>% mutate(color.border="#ffffff")
   if(!("size" %in% colnames(factors))) factors <- factors %>% mutate(size=1L)
   if(!("cluster" %in% colnames(factors))) factors <- factors %>% mutate(cluster="")
@@ -2064,7 +2065,6 @@ get_stdres <- function(actual,nonactual,sig=1){
 
 
 find_fun <- function(df,field=NULL,value,operator=NULL,what){
-  # browser()
   if(is.null(field) & is.null(operator)){
     field="label"
     operator="contains"
@@ -2073,6 +2073,8 @@ find_fun <- function(df,field=NULL,value,operator=NULL,what){
 
   if(is.character(df[[field]])){
     # if(field %in% xc("label text from_label to_label")){
+  # browser()
+    df[[field]] <- replace_na(df[[field]],"")
 
     value <- value %>% make_search %>% tolower()
   } else if(is.integer(df[[field]])){
@@ -2086,7 +2088,7 @@ find_fun <- function(df,field=NULL,value,operator=NULL,what){
   if(field %notin% colnames(df)) {notify("No such field");return(df)}
 
 
-  if(operator=="contains"){df <- df %>%  mutate(found=str_detect(tolower(unwrap(UQ(sym(field)))),value %>% paste0(collapse="|")))} else
+  if(operator=="contains"){df <- df %>%  mutate(found=str_detect(tolower(unwrap(UQ(sym(field))) %>% replace_na("")),value %>% paste0(collapse="|")))} else
     if(operator=="notcontains"){df <- df %>%  mutate(found=!str_detect(tolower(unwrap(UQ(sym(field))) %>% replace_na("")),value %>% paste0(collapse="|")))} else
       if(operator %in% xc("= equals equal")){df <- df %>%  mutate(found=(make_search(tolower(unwrap(UQ(sym(field))))) %in% value))} else
         if(operator %in% xc("notequals notequal")){df <- df %>%  mutate(found=(tolower(unwrap(UQ(sym(field)))) %notin% value))} else
@@ -2419,11 +2421,11 @@ parse_commands <- function(graf=NULL,tex){
 #' pipe_find_factors(example2,field="id",value=5,operator="greater")
 pipe_find_factors <- function(graf,field="label",value,operator="contains",up=1,down=1,remove_isolated=F,highlight_only=F){
     # st <- attr(graf,"statements")
+# browser()
   smessage("find factors")
   info <-   make_info(graf,as.list(match.call()))
 
   df <- graf$factors %>% find_fun(field,value,operator)
-# browser()
   # pager <- df %>% attr("pager")
 
   if(df$found %>% sum %>% `==`(0)) {
@@ -2448,11 +2450,11 @@ pipe_find_factors <- function(graf,field="label",value,operator="contains",up=1,
   }
 
   ig <- make_igraph(graf$factors,graf$links)
-  downvec <- ig %>% igraph::distances(to=graf %>% factors_table %>% pull(found),mode="in") %>% apply(1,min) %>% `<=`(down)
-  upvec <- ig %>% igraph::distances(to=graf %>% factors_table %>% pull(found),mode="out") %>% apply(1,min) %>% `<=`(up)
+  trace_after_vec <- ig %>% igraph::distances(to=graf %>% factors_table %>% pull(found),mode="in") %>% apply(1,min) %>% `<=`(down)
+  trace_before_vec <- ig %>% igraph::distances(to=graf %>% factors_table %>% pull(found),mode="out") %>% apply(1,min) %>% `<=`(up)
   # browser()
-  graf <- {if(any(upvec)|any(downvec)){
-    graf %>% pipe_update_mapfile(factors=factors_table(graf) %>% filter(found|upvec|downvec)) %>%
+  graf <- {if(any(trace_before_vec)|any(trace_after_vec)){
+    graf %>% pipe_update_mapfile(factors=factors_table(graf) %>% filter(found|trace_before_vec|trace_after_vec)) %>%
     # pipe_remove_orphaned_links %>%
     pipe_remove_isolated_links() %>%
     {if(remove_isolated) pipe_remove_isolated(.) else .}} else{
@@ -3617,6 +3619,34 @@ pipe_color_borders <- function(graf,field="frequency",lo="#FCFDBF",hi="#5F187F",
   graf %>% pipe_update_mapfile(factors=factors)%>%
     finalise(info)
 }
+#' Font Color factors
+#'
+#' @inheritParams parse_commands
+#' @param field A numerical or character field in the factor table.
+#' #' If it is character, the other parameters are ignored and a color-blind friendly qualitative palette is applied.
+#' @param fixed  Optionally, a color specification which will be applied everywhere and overrides `field`.
+#' @param lo Optionally, a color specification for the low end of the color range. Default is `green`.
+#' @param hi Optionally, a color specification for the high end of the color range. Default is `blue`.
+#' @param mid  Optionally, a color specification for the middle of the color range. Default is `gray`.
+#'
+#' @return A mapfile with a new or overwritten column `color.border`in the factor table.
+#' @export
+#'
+#'
+#' @examples
+pipe_color_text <- function(graf,field="frequency",lo="#FCFDBF",hi="#5F187F",mid="#D3436E",fixed=NULL){
+    info <-   make_info(graf,as.list(match.call()))
+
+  if(field %notin% factor_colnames(graf)){warning("No such column");return(graf%>%
+                                                                             finalise(info))}
+
+  # browser()
+  if(!is.null(fixed)) factors <- graf$factors %>% mutate(font.color=fixed) else
+    factors <- graf$factors %>%
+      mutate(font.color=create_colors(UQ(sym(field)),lo=lo,hi=hi,mid=mid,type="color_text",field=field))
+  graf %>% pipe_update_mapfile(factors=factors)%>%
+    finalise(info)
+}
 
 #' Color links
 #'
@@ -3951,7 +3981,7 @@ make_interactive_map <- function(graf,scale=1,safe_limit=200,rainbow=F){
 if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- graf %>% pipe_update_mapfile(factors=.$factors %>% arrange((size))) %>% pipe_remove_orphaned_links()#because this is the way to get the most important ones in front
 }
   nodes <- graf$factors %>% mutate(value=size*10) %>%
-    select(any_of(xc("factor_id factor_memo factor_wrap label color.background color.border title group value hidden size"))) %>% ### restrictive in attempt to reduce random freezes
+    select(any_of(xc("factor_id factor_memo factor_wrap label font.color color.background color.border title group value hidden size"))) %>% ### restrictive in attempt to reduce random freezes
     fix_columns_factors()
 
   # browser()
@@ -4329,7 +4359,7 @@ make_print_map <- function(
     mutate(color=color.border) %>%
     mutate(penwidth=14) %>% #if_else(color.border %>% unique %>% length %>% `==`(1),0,14)) %>% # if borders are all same colour, don't print border
     mutate(fontsize=(size+4)*25) %>%
-    mutate(fontcolor="black") %>%
+    mutate(fontcolor=font.color) %>%
     # mutate(xlabel="blue") %>%
     select(any_of(xc("label size tooltip factor_wrap fillcolor color fontsize fontcolor cluster penwidth")))
 
@@ -4386,7 +4416,7 @@ make_print_map <- function(
     mutate(label=str_wrap(label,max(link_wrap))) else links <-
     links %>%     mutate(label=add_default_wrap(label) )
 
-
+# browser()
 
   grv <-
     DiagrammeR::create_graph() %>%
@@ -4413,7 +4443,7 @@ make_print_map <- function(
     # add_global_graph_attrs("class", "linky_grviz", "node") %>%
     add_global_graph_attrs("style", "rounded, filled", "node") %>%
     add_global_graph_attrs("fixedsize", "false", "node") %>%
-    add_global_graph_attrs("fontcolor", "black", "node") %>%
+    # add_global_graph_attrs("fontcolor", "black", "node") %>%
     # add_global_graph_attrs("fontsize", "80", "node") %>%
     add_global_graph_attrs("margin", "0.9", "node") %>%
     # add_global_graph_attrs("penwidth", "14", "node") %>%
