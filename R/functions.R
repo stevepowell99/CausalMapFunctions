@@ -1567,7 +1567,8 @@ first_map <- function(vec,fun){
 
 literal <- function(lis){
   # browser()
-  paste0(lis,collapse = "; ")
+
+    paste0(lis %>% keep(.!=""),collapse = "; ")
 }
 initials <- function(lis){
   # browser()
@@ -3003,6 +3004,7 @@ pipe_combine_opposites <- function(graf,flipchar="~",add_colors=T){
 #'
 #' @examples
 pipe_trace_continuity <- function(graf,field="source_id"){
+  info <-   make_info(graf,as.list(match.call()))
 
 
   graf$links$these_ids <- map(graf$links$link_id,~{get_field(graf$links,field,.)}) %>% unlist
@@ -3058,7 +3060,9 @@ pipe_trace_continuity <- function(graf,field="source_id"){
     mutate(n_unique_from_before=replace_na(n_unique_from_before,0))
 
   graf %>%
-    pipe_update_mapfile(.,links=graf$links %>% mutate(is_continued_after=continued_after_sid!=""))
+    pipe_update_mapfile(.,links=graf$links %>% mutate(is_continued_after=continued_after_sid!="")) %>%
+    finalise_transforms(info)
+
 
 
 }

@@ -93,12 +93,12 @@ attr(graf,"info") %>%
 
 }
 
-make_interactive_map <- function(graf){
-  tagList(print_filter(graf),CausalMapFunctions::make_interactive_map(graf))
-}
-make_print_map <- function(graf){
-  tagList(print_filter(graf),CausalMapFunctions::make_print_map(graf))
-}
+# make_interactive_map <- function(graf){
+#   tagList(print_filter(graf),CausalMapFunctions::make_interactive_map(graf))
+# }
+# make_print_map <- function(graf){
+#   tagList(print_filter(graf),CausalMapFunctions::make_print_map(graf))
+# }
 clean_send <- function(vec){
   if(vec %>% unique %>% `%in%`(c(F,T)) %>% all) vec <- as.numeric(vec)
   if(F & is.character(vec)) {
