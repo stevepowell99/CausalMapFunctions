@@ -2963,14 +2963,15 @@ pipe_calculate_robustness <- function(graf){
 #' @examples
 pipe_combine_opposites <- function(graf,flipchar="~",add_colors=T){
   info <-   make_info(graf,as.list(match.call()))
-  # browser()
   if(add_colors)notify("Also adding colours; you can turn this off with 'combine opposites add_colors=FALSE'")
+  # browser()
   factors <-
     graf$factors %>%
     mutate(
-      is_flipped=str_detect(label,paste0("^ *",flipchar)),
-      label=if_else(is_flipped,flip_vector(label,flipchar = flipchar) %>% replace_null(""),label),
-      label=flip_fix_vector(label) %>% replace_null("")
+      try_flipped=str_detect(label,paste0("^ *",flipchar)),
+      try_label=if_else(try_flipped,flip_vector(label,flipchar = flipchar) %>% replace_null(""),label),
+      is_flipped=(try_label %in% graf$factors$label) & try_flipped,
+      label=if_else(is_flipped,flip_fix_vector(try_label) %>% replace_null(""),label)# only flip if to do so would result in a label which already exists
     )
   # %>%
   #   {if(add_colors)color_combined_factors(.) else .}
