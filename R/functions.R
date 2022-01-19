@@ -1709,7 +1709,7 @@ create_sizes <- function(vec,type,field="frequency",fun=NULL){
 #'
 #' @examples
 count_unique <- function(vec){
-  length(unique(vec))
+  length(unique(vec %>% keep(.!="")))
 }
 
 proportion_false <- function(lis) {

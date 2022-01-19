@@ -1224,6 +1224,24 @@ e3  %>%
   pipe_color_borders(field="n_unique_from_before_continued") %>% 
   make_print_map() 
 
+e3  %>%
+  pipe_trace_paths(from = "rainfall",to="",length = 4) %>% 
+  pipe_trace_continuity() %>% 
+  pipe_bundle_links() %>% 
+  pipe_label_links(field = "continued_after_sid",fun = "literal") %>% 
+  pipe_color_links(field = "is_continued_after",fun = "sum") %>% 
+  pipe_color_borders(field="n_unique_from_before_continued") %>% 
+  make_print_map() 
+
+e3  %>%
+  pipe_trace_paths(from = "rainfall",to="",length = 4) %>% 
+  pipe_trace_continuity() %>% 
+  pipe_bundle_links() %>% 
+  pipe_label_links(field = "continued_after_sid",fun = "count") %>% 
+  pipe_color_links(field = "is_continued_after",fun = "sum") %>% 
+  pipe_color_borders(field="n_unique_from_before_continued") %>% 
+  make_print_map() 
+
 # with multiple origins
 e3  %>%
   pipe_trace_paths(from = "External",to="",length = 2) %>% 
