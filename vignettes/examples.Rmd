@@ -216,6 +216,7 @@ hz <- load_mapfile("health-zoom")%>% pipe_coerce_mapfile
   hh <- load_mapfile("hannahcombiningopposites-sp-test")%>% pipe_coerce_mapfile
   oi <- load_mapfile("2oirefugeetestimonies")%>% pipe_coerce_mapfile
   oh <- load_mapfile("oh1-sp2")%>% pipe_coerce_mapfile
+  cc <- load_mapfile("coded-quip-training")%>% pipe_coerce_mapfile
 ```
 
 
@@ -539,6 +540,33 @@ ee %>%
 ee %>%
   pipe_scale_links("link_id",fun = "mean") %>%
   make_interactive_map
+
+```
+
+
+## Label factors with and without field names
+
+```{r}
+
+cc %>%
+  pipe_find_factors(value="Improved health") %>% 
+    # pipe_zoom_factors(1) %>%
+  pipe_select_factors(top=10) %>% 
+  pipe_bundle_links(field="simple_bundle") %>% 
+  pipe_label_links(field="source_id",fun = "count") %>% 
+  pipe_label_factors(field="source_count",add_field_name = F) %>% 
+  pipe_wrap_factors() %>% 
+    make_print_map 
+
+cc %>%
+  pipe_find_factors(value="Improved health") %>% 
+    # pipe_zoom_factors(1) %>%
+  pipe_select_factors(top=10) %>% 
+  pipe_bundle_links(field="simple_bundle") %>% 
+  pipe_label_links(field="source_id",fun = "count") %>% 
+  pipe_label_factors(field="source_count",add_field_name = T) %>% 
+  pipe_wrap_factors() %>% 
+    make_print_map 
 
 ```
 
@@ -968,6 +996,26 @@ tt %>%
     pipe_zoom_factors(1) %>%
   pipe_bundle_links(field="simple_bundle") %>% 
   pipe_label_links(field="source_id",fun = "count") %>% 
+  pipe_wrap_factors() %>% 
+    make_print_map 
+
+cc %>%
+  pipe_find_factors(value="Improved health") %>% 
+    # pipe_zoom_factors(1) %>%
+  pipe_select_factors(top=10) %>% 
+  pipe_bundle_links(field="simple_bundle") %>% 
+  pipe_label_links(field="source_id",fun = "count") %>% 
+  pipe_label_factors(field="source_count",add_field_name = F) %>% 
+  pipe_wrap_factors() %>% 
+    make_print_map 
+
+cc %>%
+  pipe_find_factors(value="Improved health") %>% 
+  pipe_zoom_factors(1) %>%
+  pipe_select_factors(top=10) %>% 
+  pipe_bundle_links(field="simple_bundle") %>% 
+  pipe_label_links(field="source_id",fun = "count") %>% 
+  pipe_label_factors(field="source_count",add_field_name = F) %>% 
   pipe_wrap_factors() %>% 
     make_print_map 
 

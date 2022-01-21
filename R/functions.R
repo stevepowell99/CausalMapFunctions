@@ -1175,13 +1175,7 @@ res <-
   # this is where the overlap stuff should fit in!!
   summarise(
     n__=length(unique(source_id))
-    # ,
-    # froms_=if_else(direction=="influence",list(source_id),list(rep("influence__",n()))),
-    # tos_=if_else(direction=="consequence",list(source_id),list(rep("consequence__",n())))
   )%>%
-  # mutate(overlap=map(1,~intersect(unlist(froms_),unlist(tos_))))
-
-# %>%
     pivot_wider(names_from=2,values_from=3,values_fill = 0) %>%
     select(from_source_count=consequence,to_source_count=influence,`source_count`=either,factor_id) %>%
     left_join_safe(mapfile$factors,.) %>%
@@ -1464,8 +1458,9 @@ compact_factors_links <- function(factors,links){
       ungroup %>%
       mutate(is_flipped=(yesfreq/frequency) %>% replace_na(0)) %>%
 
-      mutate(factor_id=new_id,
-             color.border= div_gradient_pal("#058488","white","#f26d04")(is_flipped)
+      mutate(factor_id=new_id
+             # ,
+             # color.border= div_gradient_pal("#058488","white","#f26d04")(is_flipped)
       ) %>%
       select(-new_id)
 
@@ -2986,7 +2981,7 @@ pipe_combine_opposites <- function(graf,flipchar="~",add_colors=T){
     mutate(to_flipped=(recode(to,!!!(factors$is_flipped %>% set_names(factors$factor_id)))) %>% as.logical) %>%
     unite("flipped_bundle",from_flipped,to_flipped,sep = "|",remove=F) %>%
     {if(add_colors)color_combined_links(.) else .}
-
+# browser()
   graf %>%
     pipe_update_mapfile(factors=factors,links=links) %>%
     pipe_compact_mapfile()%>%
@@ -3300,17 +3295,17 @@ pipe_scale_links <- function(graf,field="link_id",fixed=NULL,fun="count",value=N
 #'
 #'
 #' @examples
-pipe_label_factors <- function(graf,field="frequency",clear=F){
+pipe_label_factors <- function(graf,field="frequency",clear_previous=F,add_field_name=T,clear=clear_previous){
     info <-   make_info(graf,as.list(match.call()))
 
   # browser()
-  clear=as.logical(clear)
+  clear_previous=as.logical(clear_previous)
   # graf <- pipe_metrics(graf)
   if(field %notin% factor_colnames(graf)){warning("No such column");return(graf)}
 
   graf %>%
     pipe_update_mapfile(factors=graf$factors %>%
-                 mutate(label=paste0((if(clear)NULL else paste0(label,". ")) %>% keep(.!=""),field,": ",UQ(sym(field)),". ")))%>%
+                 mutate(label=paste0((if(clear_previous)NULL else paste0(label,". ")) %>% keep(.!=""),if(add_field_name)paste0(field,": "),UQ(sym(field)),if(add_field_name)". ")))%>%
     finalise(info)
 }
 
