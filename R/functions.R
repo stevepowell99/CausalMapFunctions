@@ -402,6 +402,9 @@ replace_inf <- replace_Inf #alias
 replace_zero <- function(x,replacement=0){
   if(length(x)==0) replacement else x
 }
+replace_zero_rows <- function(x,replacement=NULL){
+  if(nrow(x)==0) replacement else x
+}
 
 # left_join_safe_safe <- function(x,y,by,...){
 #   browser()
@@ -445,7 +448,13 @@ escapeRegex <- function(string){ #from hmisc
 #' @export
 #'
 #' @examples
-assemble_mapfile <- function(factors=NULL,links=NULL,statements=NULL,sources=NULL,questions=NULL,settings=NULL){
+assemble_mapfile <- function(
+  factors=standard_factors(),
+                             links=standard_links(),
+                             statements=standard_statements(),
+                             sources=standard_sources(),
+                             questions=standard_questions(),
+                             settings=standard_settings()){
 
   list(factors ,
        links ,
@@ -473,11 +482,15 @@ assemble_mapfile <- function(factors=NULL,links=NULL,statements=NULL,sources=NUL
 #'
 #' @examples
 load_mapfile <- function(path=NULL,connection=conn){
+  # browser()
   graf <- NULL
   factors <- NULL
   links <- NULL
+  statements <- NULL
+  sources <- NULL
+  questions <- NULL
+  settings <- NULL
   newtables <- NULL
-  # browser()
   if(!is.null(path)){
     if(!(str_detect(path,"/"))){
       type <- "unknown"
@@ -512,7 +525,6 @@ load_mapfile <- function(path=NULL,connection=conn){
       if(is.null(graf))return(NULL)
     } else if(type=="unknown"){
       notify("Trying to load file, guessing origin")
-      # browser()
 
       graf <- get_mapfile_from_s3(path %>% paste0("cm2data/",.))
       if(is.null(graf)) {
@@ -522,11 +534,19 @@ load_mapfile <- function(path=NULL,connection=conn){
 
     }
 
+  graf$factors <- graf$factors %>% replace_null(standard_factors()) %>% replace_zero_rows(standard_factors())
+  graf$links <- graf$links %>% replace_null(standard_links()) %>% replace_zero_rows(standard_links())
+  graf$statements <- graf$statements %>% replace_null(standard_statements()) %>% replace_zero_rows(standard_statements())
+  graf$sources <- graf$sources %>% replace_null(standard_sources()) %>% replace_zero_rows(standard_sources())
+  graf$questions <- graf$questions %>% replace_null(standard_questions()) %>% replace_zero_rows(standard_questions())
+  graf$settings <- graf$settings %>% replace_null(standard_settings()) %>% replace_zero_rows(standard_settings())
 
 
   # this should not really be here, because pipe_coerce_mapfile was supposed to only operate on new unfiltered maps
   if(!is.null(graf$statements)){
+    if(nrow(graf$statements)==0)graf$statements <- standard_statements() else
   if(!identical(graf$statements$statement_id,1:nrow(graf$statements))){
+      # browser()
     if("statement_id" %in% colnames(graf$statements))graf$statements$statement_id <- replace_na(graf$statements$statement_id,Inf)
     if(!is.null(graf$links))graf$links$statement_id <- recode(graf$links$statement_id,!!!(row_index(graf$statements) %>% set_names(graf$statements$statement_id)))
     graf$statements <-  graf$statements %>%
@@ -577,12 +597,12 @@ pipe_coerce_mapfile <- function(tables){
 
 # say()
 
-    factors <- tables$factors #%>% replace_null(standard_factors())
-  links <- tables$links #%>% replace_null(standard_links())
-  statements <- tables$statements #%>% replace_null(standard_statements())
-  sources <- tables$sources #%>% replace_null(standard_sources())
-  questions <- tables$questions #%>% replace_null(standard_questions())
-  settings <- tables$settings #%>% replace_null(standard_settings())
+  factors <- tables$factors %>% replace_zero_rows(standard_factors())
+  links <- tables$links %>% replace_zero_rows(standard_links())
+  statements <- tables$statements %>% replace_zero_rows(standard_statements())
+  sources <- tables$sources %>% replace_zero_rows(standard_sources())
+  questions <- tables$questions %>% replace_zero_rows(standard_questions())
+  settings <- tables$settings %>% replace_zero_rows(standard_settings())
   tmp <- pipe_remove_orphaned_links(list(factors=factors,links=links))
   factors <- tmp$factors
   links <- tmp$links
