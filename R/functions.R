@@ -4384,7 +4384,6 @@ make_print_map <- function(
 
   if(is.null(factors$cluster))factors$cluster <- ""
 
-  # browser()
   links <- graf$links %>%
     fix_columns_links()
 
@@ -4416,7 +4415,9 @@ make_print_map <- function(
     # mutate(fontcolor=color)%>%
     mutate(arrowsize=(3+(width*9))) %>%
     mutate(tooltip=clean_grv(simple_bundle))
+  # browser()
 
+  if(all(is.na(factors$cluster)))factors$cluster=NULL
   if(all(factors$cluster==""))factors$cluster=NULL
 # browser()
   # factors$cluster <- factors$cluster %>% replace_na("")
