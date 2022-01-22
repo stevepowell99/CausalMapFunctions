@@ -1080,10 +1080,18 @@ de %>%
   pipe_color_text(field="time") %>% 
   make_print_map
 
+
+de %>% 
+  pipe_recalculate_all %>%
+  pipe_color_text(field="happiness") %>% 
+  pipe_hide_dimensions %>% 
+  make_print_map
+
+
 de %>% 
   pipe_recalculate_all %>% 
-  pipe_hide_dimensions %>% 
   pipe_label_factors(field = "time") %>% 
+  pipe_hide_dimensions %>% 
   make_print_map
 
 ```

@@ -933,7 +933,8 @@ create_factor_dimensions <- function(factors){
   # browser()
   dimensions <-
     factors$label %>%
-    str_match(.,"([:alnum:]*)=[:alnum:]") %>% `[`(,2) %>%
+    str_match_all(.,"([:alnum:]*)=[:alnum:]") %>%
+    map(function(x)x[,2]) %>% unlist %>%
     na.omit %>%
     unique
 
