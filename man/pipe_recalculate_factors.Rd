@@ -13,9 +13,9 @@ pipe_recalculate_factors(graf)
 A mapfile whose factors table contains the following fields.
 betweenness: the number of paths going through the factor.
 betweenness_rank: the rank of the betweenness.
-in_degree: the number of incoming links.
+in_degree: the number of from_before links.
 out_degree: the number of outgoing links.
-role: the number of incoming links minus the number of incoming links. High values are drivers, low values are outcomes
+role: the number of from_before links minus the number of from_before links. High values are drivers, low values are outcomes
 frequency: the number of links.
 driver_score: how strongly is this factor a driver?
 outcome_score: how strongly is this factor an outcome?

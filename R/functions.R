@@ -928,6 +928,28 @@ fix_columns_links <- function(links){
   links
 }
 
+
+create_factor_dimensions <- function(factors){
+  # browser()
+  dimensions <-
+    factors$label %>%
+    str_match(.,"([:alnum:]*)=[:alnum:]") %>% `[`(,2) %>%
+    na.omit %>%
+    unique
+
+  if(length(dimensions)>0){
+    for(dim in dimensions){
+      if(dim %notin% colnames(factors))factors[,dim] <- {
+        factors$label %>%
+          str_match(.,paste0(dim,"=([:alnum:]*)")) %>% `[`(,2)
+
+      }
+    }
+  }
+  factors
+
+}
+
 #' Fix columns
 #'
 #' @inheritParams parse_commands
@@ -975,7 +997,8 @@ pipe_recalculate_factors <- function(graf){
 
   graf %>%
     pipe_update_mapfile(
-    factors = add_metrics_to_factors(graf$factors,graf$links)
+    factors = add_metrics_to_factors(graf$factors,graf$links)%>%
+    create_factor_dimensions
     )  %>%
     pipe_add_factor_source_counts() %>%
     finalise(info)
@@ -3171,7 +3194,29 @@ pipe_remove_brackets <- function(graf,value="["){
 # zero_to_one <- function(vec)(vec-min(vec,na.rm=T))/(max(vec,na.rm=T)-min(vec,na.rm=T))
 
 
+#' Title
+#'
+#' @param graf
+#' @param value
+#'
+#' @return
+#' @export
+#'
+#' @examples
+pipe_hide_dimensions <- function(graf,value="["){
+  info <-   make_info(graf,as.list(match.call()))
+  graf <-
+    graf %>%
+    pipe_update_mapfile(factors=graf$factors %>%
+      mutate(label=str_remove_all(label," *[:alnum:]*=[:alnum:]*"))
+      # %>%
+      # mutate(label=str_remove_all(label," *; *;")) %>%
+      # mutate(label=str_remove_all(label," *; *$"))
+  ) %>%
+    pipe_compact_mapfile()
 
+  finalise_transforms(graf,info)
+}
 
 ## add conditional formats -------------------------------------------------------------
 

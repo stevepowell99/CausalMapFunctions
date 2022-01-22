@@ -5,12 +5,12 @@
 \title{Assemble map}
 \usage{
 assemble_mapfile(
-  factors = NULL,
-  links = NULL,
-  statements = NULL,
-  sources = NULL,
-  questions = NULL,
-  settings = NULL
+  factors = standard_factors(),
+  links = standard_links(),
+  statements = standard_statements(),
+  sources = standard_sources(),
+  questions = standard_questions(),
+  settings = standard_settings()
 )
 }
 \value{

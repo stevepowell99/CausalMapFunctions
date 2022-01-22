@@ -204,6 +204,8 @@ xdescription <- "Set a different print layout"
 ```
 
 
+### More examples
+
 ```{r }
 hz <- load_mapfile("health-zoom")%>% pipe_coerce_mapfile 
   so <- load_mapfile("stress-opposites")%>% pipe_coerce_mapfile 
@@ -217,6 +219,7 @@ hz <- load_mapfile("health-zoom")%>% pipe_coerce_mapfile
   oi <- load_mapfile("2oirefugeetestimonies")%>% pipe_coerce_mapfile
   oh <- load_mapfile("oh1-sp2")%>% pipe_coerce_mapfile
   cc <- load_mapfile("coded-quip-training")%>% pipe_coerce_mapfile
+  de <- load_mapfile("dimensions-example")%>% pipe_coerce_mapfile
 ```
 
 
@@ -1065,6 +1068,25 @@ tt %>%
 
 ```
 
+
+## Factor dimensions
+
+```{r}
+
+# factors <- de$factors
+
+de %>% 
+  pipe_recalculate_all %>%
+  pipe_color_text(field="time") %>% 
+  make_print_map
+
+de %>% 
+  pipe_recalculate_all %>% 
+  pipe_hide_dimensions %>% 
+  pipe_label_factors(field = "time") %>% 
+  make_print_map
+
+```
 
 ## Path tracing
 

@@ -4,7 +4,13 @@
 \alias{pipe_label_factors}
 \title{Label factors}
 \usage{
-pipe_label_factors(graf, field = "frequency", clear = F)
+pipe_label_factors(
+  graf,
+  field = "frequency",
+  clear_previous = F,
+  add_field_name = T,
+  clear = clear_previous
+)
 }
 \arguments{
 \item{graf}{A mapfile representing a causal map.

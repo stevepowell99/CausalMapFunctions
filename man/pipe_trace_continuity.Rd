@@ -10,7 +10,7 @@ pipe_trace_continuity(graf, field = "source_id")
 \item{graf}{A mapfile resulting from pipe_trace_paths or pipe_trace_robustness}
 }
 \value{
-A mapfile with additional links fields continuation_id, n_unique_incoming_continued, n_unique_incoming
+A mapfile with additional links fields contined_down_sid, n_unique_from_before_continued, n_unique_from_before
 }
 \description{
 A different approach from robustness: gets added on after a trace paths filter.
