@@ -3076,6 +3076,7 @@ pipe_trace_continuity <- function(graf,field="source_id"){
   info <-   make_info(graf,as.list(match.call()))
 
 
+  #get the thread ids and put them in the links table for every link
   graf$links$these_ids <- map(graf$links$link_id,~{get_field(graf$links,field,.)}) %>% unlist
 
   # graf$links$previous_ids <- map(graf$links$before_id,~{get_field(graf$links,field,.)})
@@ -3083,21 +3084,25 @@ pipe_trace_continuity <- function(graf,field="source_id"){
   links <- graf$links
 
 
+  # how many steps away is each factor
   if("trace_after_vec" %notin% colnames(factors)) {notify("You need to trace paths before tracing continuity",3);return(graf)}
 
   # if(all(factors$trace_after_vec!=0))
+  # browser()
   origins <-
     factors %>%
     select(factor_id,trace_after_vec) %>%
     filter(trace_after_vec==0) %>%
     pull(factor_id)
 
+  # the list of each factor id which we will process in turn
   pointers <-
     factors %>%
     select(factor_id,trace_after_vec) %>%
     arrange(trace_after_vec) %>%
     pull(factor_id)
 
+  # initialise continued_after_sid for initial links
   graf$links <-
     graf$links %>%
     mutate(continued_after_sid=if_else(
@@ -3143,7 +3148,8 @@ remove_empty_string <- function(vec){
 pipe_continue_after <- function(graf,node){
   factors <- graf$factors
   links <- graf$links
-  # browser()
+  # message(node)
+  # message(node)
 
 
   if(factors$trace_after_vec[factors$factor_id==node]==0) {
@@ -3153,6 +3159,7 @@ pipe_continue_after <- function(graf,node){
   }
   else {
 
+    # this is so expensive because it goes through the whole links table
     pipe_update_mapfile(graf,links=links %>%
                           mutate(continued_after_sid=map(link_id,~continue_after(links,.,node)) %>% unlist)   # only calculate for the current node
     )
@@ -3161,13 +3168,18 @@ pipe_continue_after <- function(graf,node){
 }
 continue_after <- function(links,link_id,node){
 
+  # if(node==39)browser()
   # two tests: 1) does this source appear in the predecessors? if so, is it a live continuation?
   this <- links$link_id==link_id
   if(links$from[this]!=node) links$continued_after_sid[this] else {
     current_id <- links$these_ids[this]
     previous_link_ids <- unlist(links$before_id[this])
+    # if(node==39)message(previous_link_ids %>% paste0(collapse="/"))
 
-    if(current_id %in% links$these_ids[links$link_id %in% previous_link_ids]) {
+    predecessors <- links$continued_after_sid[links$link_id %in% previous_link_ids]
+    if(current_id %in% predecessors) {
+      # message((predecessors %>% paste0(collapse="/")))
+      if(predecessors==5)browser()
       current_id
     } else ""
   }

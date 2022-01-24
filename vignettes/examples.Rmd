@@ -1472,6 +1472,15 @@ oi %>%
   pipe_color_factors(field="found_type") %>% 
   make_print_map
 
+kb <- load_mapfile("kenya-beka")
+
+kb %>%    
+  pipe_trace_paths(from = "Covid-19",to="~Performance",length = 3) %>% 
+  pipe_trace_continuity() %>% 
+  pipe_bundle_links() %>% 
+  pipe_label_links(field = "continued_after_sid",fun = "initials") %>% 
+  make_print_map
+
 
 ```
 
