@@ -1069,29 +1069,79 @@ tt %>%
 ```
 
 
-## Factor dimensions
+## Factor quick fields
+
+```{r}
+# factors <- de$factors
+
+de %>% 
+  pipe_color_text(field="time") %>% 
+  make_print_map
+```
+
+Hiding quickfields
+
+```{r}
+de %>% 
+  pipe_hide_quickfields %>% 
+  make_print_map
+
+
+de %>% 
+  pipe_color_borders(field="happiness") %>% 
+  pipe_label_factors(field = "time") %>% 
+  pipe_hide_quickfields %>% 
+  make_print_map
+```
+
+equivalent:
+
+```{r}
+de %>% 
+  pipe_find_factors(field="time",value="after",up=0,down=0) %>% 
+  make_print_map
+
+de %>% 
+  pipe_find_factors(field="label",value="time:after",up=0,down=0) %>% 
+  make_print_map
+
+
+```
+
+zoom
+
+```{r}
+de %>% 
+  pipe_zoom_factors(1) %>% 
+  pipe_color_factors(field="time") %>% 
+  make_print_map
+
+
+
+```
+
+
+## Link quick fields
 
 ```{r}
 
 # factors <- de$factors
 
 de %>% 
-  pipe_recalculate_all %>%
-  pipe_color_text(field="time") %>% 
+  pipe_recalculate_all() %>% 
+  pipe_color_links(field="plausibility") %>% 
   make_print_map
 
 
 de %>% 
-  pipe_recalculate_all %>%
   pipe_color_text(field="happiness") %>% 
-  pipe_hide_dimensions %>% 
+  pipe_hide_quickfields %>% 
   make_print_map
 
 
 de %>% 
-  pipe_recalculate_all %>% 
   pipe_label_factors(field = "time") %>% 
-  pipe_hide_dimensions %>% 
+  pipe_hide_quickfields %>% 
   make_print_map
 
 ```
@@ -1520,6 +1570,7 @@ Coercing to a standard mapfile:
 ```{r }  
 ee %>% 
   pipe_update_mapfile(factors = ee$factors %>% mutate(label="one")) %>% 
+  pipe_compact_mapfile() %>% 
   pipe_coerce_mapfile() %>% 
   make_interactive_map
 ```

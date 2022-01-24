@@ -785,7 +785,7 @@ pipe_coerce_mapfile <- function(tables){
     add_class()
 
   attr(graf,"info") <- attr(tables,"info")
-graf
+graf %>% pipe_recalculate_all
 }
 
 add_before_and_after_ids_to_links <- function(links){
@@ -897,16 +897,12 @@ fix_columns_factors <- function(factors){
 
 }
 
-recalculate_links <- function(factors,links){
-  # browser()
-  smessage("recalc links")
-  links <- links %>%
-    add_labels_to_links(factors) %>%
-    add_simple_bundle_to_links()
-
-
-  links
-}
+# recalculate_links <- function(factors,links){
+#   # browser()
+#   smessage("recalc links")
+#   links <-
+#   links
+# }
 
 #' Fix links columns
 #'
@@ -929,25 +925,49 @@ fix_columns_links <- function(links){
 }
 
 
-create_factor_dimensions <- function(factors){
+create_factor_quickfields <- function(factors){
   # browser()
-  dimensions <-
+  quickfields <-
     factors$label %>%
+    str_match_all(.,"([:alnum:]*)\\:[:alnum:]") %>%
+    map(function(x)x[,2]) %>% unlist %>%
+    na.omit %>%
+    unique
+  if(length(quickfields)>0){
+    for(dim in quickfields){
+      if(T | dim %notin% colnames(factors))factors[,dim] <- {
+        factors$label %>%
+          str_match(.,paste0(dim,"\\:([:alnum:]*)")) %>% `[`(,2) %>%
+          as_numeric_if_all()
+
+      }
+    }
+  }
+# browser()
+  factors
+
+}
+
+
+create_link_quickfields <- function(links){
+  # browser()
+  quickfields <-
+    links$hashtags %>%
     str_match_all(.,"([:alnum:]*)=[:alnum:]") %>%
     map(function(x)x[,2]) %>% unlist %>%
     na.omit %>%
     unique
 
-  if(length(dimensions)>0){
-    for(dim in dimensions){
-      if(dim %notin% colnames(factors))factors[,dim] <- {
-        factors$label %>%
+  if(length(quickfields)>0){
+    for(dim in quickfields){
+      if(dim %notin% colnames(links))links[,dim] <- {
+        links$hashtags %>%
           str_match(.,paste0(dim,"=([:alnum:]*)")) %>% `[`(,2)
 
       }
     }
   }
-  factors
+  links
 
 }
 
@@ -999,7 +1019,7 @@ pipe_recalculate_factors <- function(graf){
   graf %>%
     pipe_update_mapfile(
     factors = add_metrics_to_factors(graf$factors,graf$links)%>%
-    create_factor_dimensions
+    create_factor_quickfields
     )  %>%
     pipe_add_factor_source_counts() %>%
     finalise(info)
@@ -1017,9 +1037,15 @@ pipe_recalculate_links <- function(graf){
 
   graf %>%
     pipe_update_mapfile(
-    links = graf$links %>% recalculate_links(graf$factors,.)
+    links = graf$links %>%   add_labels_to_links(graf$factors) %>%
+      # create_link_quickfields() %>%
+      add_simple_bundle_to_links()
+
     ) %>% finalise(info)
 }
+
+
+
 
 
 update_join <- function(old,new){
@@ -1554,7 +1580,8 @@ pipe_compact_mapfile <- function(graf){
 #'
 #' @examples
 as_numeric_if_all <- function(vec){
-  if(!any(is.na(as.numeric(vec)))) as.numeric(vec) else
+  if(all(is.na(vec))) return(vec)
+  if(!any(is.na(as.numeric(na.omit(vec)) %>% suppressWarnings))) suppressWarnings (as.numeric(vec)) else
     vec
 }
 
@@ -3204,12 +3231,12 @@ pipe_remove_brackets <- function(graf,value="["){
 #' @export
 #'
 #' @examples
-pipe_hide_dimensions <- function(graf,value="["){
+pipe_hide_quickfields <- function(graf,value="["){
   info <-   make_info(graf,as.list(match.call()))
   graf <-
     graf %>%
     pipe_update_mapfile(factors=graf$factors %>%
-      mutate(label=str_remove_all(label," *[:alnum:]*=[:alnum:]*"))
+      mutate(label=str_remove_all(label,";* */* *[:alnum:]*\\:[:alnum:]*"))
       # %>%
       # mutate(label=str_remove_all(label," *; *;")) %>%
       # mutate(label=str_remove_all(label," *; *$"))
