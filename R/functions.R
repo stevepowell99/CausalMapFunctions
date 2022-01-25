@@ -3063,7 +3063,7 @@ pipe_combine_opposites <- function(graf,flipchar="~",add_colors=T){
 
 
 
-#' Pipe trace continuity
+#' Pipe trace threads
 #' @inheritParams parse_commands
 #' @param graf A mapfile resulting from pipe_trace_paths or pipe_trace_robustness
 #' @param field
@@ -3072,10 +3072,10 @@ pipe_combine_opposites <- function(graf,flipchar="~",add_colors=T){
 #' @export
 #'
 #' @examples
-pipe_trace_continuity <- function(graf,field="source_id"){
+pipe_trace_threads <- function(graf,field="source_id"){
   info <-   make_info(graf,as.list(match.call()))
 
-
+# browser()
   #get the thread ids and put them in the links table for every link
   graf$links$these_ids <- map(graf$links$link_id,~{get_field(graf$links,field,.)}) %>% unlist
 
@@ -3102,10 +3102,10 @@ pipe_trace_continuity <- function(graf,field="source_id"){
     arrange(trace_after_vec) %>%
     pull(factor_id)
 
-  # initialise continued_after_sid for initial links
+  # initialise downstream_threads for initial links
   graf$links <-
     graf$links %>%
-    mutate(continued_after_sid=if_else(
+    mutate(downstream_threads=if_else(
       from %in% origins,
       these_ids,
       ""
@@ -3119,22 +3119,22 @@ pipe_trace_continuity <- function(graf,field="source_id"){
   }
 
   for_join <-
-    graf$links %>% select(factor_id=to,continued_after_sid,these_ids) %>%
+    graf$links %>% select(factor_id=to,downstream_threads,these_ids) %>%
     group_by(factor_id) %>%
     summarise_all(list) %>%
-    mutate(continued_after_sid= map(continued_after_sid,remove_empty_string)) %>%
-    mutate(n_unique_from_before_continued=map(continued_after_sid,~length(unique(.)))%>% unlist) %>%
-    mutate(n_unique_from_before=map(these_ids,~length(unique(.)) )%>% unlist)
+    mutate(downstream_threads= map(downstream_threads,remove_empty_string)) %>%
+    mutate(n_downstream_threads_surviving=map(downstream_threads,~length(unique(.)))%>% unlist) %>%
+    mutate(n_downstream_threads=map(these_ids,~length(unique(.)) )%>% unlist)
 
   graf$factors <-
     graf$factors %>%
-    select(-any_of(c("continued_after_sid","these_ids","n_unique_from_before_continued","n_unique_from_before"))) %>%
+    select(-any_of(c("downstream_threads","these_ids","n_downstream_threads_surviving","n_downstream_threads"))) %>%
     left_join(for_join,by="factor_id")%>%
-    mutate(n_unique_from_before_continued=replace_na(n_unique_from_before_continued,0)) %>%
-    mutate(n_unique_from_before=replace_na(n_unique_from_before,0))
+    mutate(n_downstream_threads_surviving=replace_na(n_downstream_threads_surviving,0)) %>%
+    mutate(n_downstream_threads=replace_na(n_downstream_threads,0))
 
   graf %>%
-    pipe_update_mapfile(.,links=graf$links %>% mutate(is_continued_after=continued_after_sid!="")) %>%
+    pipe_update_mapfile(.,links=graf$links %>% mutate(has_downstream_threads=downstream_threads!="")) %>%
     finalise_transforms(info)
 
 
@@ -3161,7 +3161,7 @@ pipe_continue_after <- function(graf,node){
 
     # this is so expensive because it goes through the whole links table
     pipe_update_mapfile(graf,links=links %>%
-                          mutate(continued_after_sid=map(link_id,~continue_after(links,.,node)) %>% unlist)   # only calculate for the current node
+                          mutate(downstream_threads=map(link_id,~continue_after(links,.,node)) %>% unlist)   # only calculate for the current node
     )
   }
 
@@ -3171,12 +3171,12 @@ continue_after <- function(links,link_id,node){
   # if(node==39)browser()
   # two tests: 1) does this source appear in the predecessors? if so, is it a live continuation?
   this <- links$link_id==link_id
-  if(links$from[this]!=node) links$continued_after_sid[this] else {
+  if(links$from[this]!=node) links$downstream_threads[this] else {
     current_id <- links$these_ids[this]
     previous_link_ids <- unlist(links$before_id[this])
     # if(node==39)message(previous_link_ids %>% paste0(collapse="/"))
 
-    predecessors <- links$continued_after_sid[links$link_id %in% previous_link_ids]
+    predecessors <- links$downstream_threads[links$link_id %in% previous_link_ids]
     if(current_id %in% predecessors) {
       # message((predecessors %>% paste0(collapse="/")))
       if(predecessors==5)browser()
