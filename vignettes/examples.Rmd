@@ -1347,7 +1347,7 @@ hh  %>%
 ```
 
 
-### Trace continuity
+### Trace threads
 
 ```{r}
 
@@ -1360,7 +1360,7 @@ e3  %>%
   pipe_bundle_links() %>% 
   pipe_label_links(field = "has_downstream_threads",fun = "sum") %>% 
   pipe_color_links(field = "has_downstream_threads",fun = "sum") %>% 
-  pipe_color_borders(field="n_unique_from_before_continued") %>% 
+  pipe_color_borders(field="n_downstream_threads_surviving") %>% 
   make_print_map() 
 
 e3  %>%
@@ -1369,7 +1369,7 @@ e3  %>%
   pipe_bundle_links() %>% 
   pipe_label_links(field = "downstream_threads",fun = "literal") %>% 
   pipe_color_links(field = "has_downstream_threads",fun = "sum") %>% 
-  pipe_color_borders(field="n_unique_from_before_continued") %>% 
+  pipe_color_borders(field="n_downstream_threads_surviving") %>% 
   make_print_map() 
 
 e3  %>%
@@ -1378,7 +1378,7 @@ e3  %>%
   pipe_bundle_links() %>% 
   pipe_label_links(field = "downstream_threads",fun = "count") %>% 
   pipe_color_links(field = "has_downstream_threads",fun = "sum") %>% 
-  pipe_color_borders(field="n_unique_from_before_continued") %>% 
+  pipe_color_borders(field="n_downstream_threads_surviving") %>% 
   make_print_map() 
 
 # with multiple origins
@@ -1389,7 +1389,7 @@ e3  %>%
   pipe_label_links(field = "has_downstream_threads",fun = "sum") %>% 
   pipe_color_links(field = "has_downstream_threads",fun = "sum") %>% 
   pipe_color_factors(field="found_type") %>% 
-  pipe_color_borders(field="n_unique_from_before_continued") %>% 
+  pipe_color_borders(field="n_downstream_threads_surviving") %>% 
   make_print_map() 
 
 ll  %>%
@@ -1404,7 +1404,7 @@ ll  %>%
 ll  %>%
   pipe_trace_paths(from = "OrgX",to="Income",length = 4) %>% 
   pipe_trace_threads(field="r.2. Village") %>% 
-  pipe_bundle_links(field="r.2. Village") %>% 
+  # pipe_bundle_links(field="r.2. Village") %>% 
   pipe_label_links(field = "downstream_threads",fun = "unique") %>% 
   pipe_color_links(field = "has_downstream_threads",fun = "sum") %>% 
   make_print_map() 

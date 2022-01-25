@@ -3105,11 +3105,12 @@ pipe_trace_threads <- function(graf,field="source_id"){
   # initialise downstream_threads for initial links
   graf$links <-
     graf$links %>%
-    mutate(downstream_threads=if_else(
-      from %in% origins,
-      these_ids,
-      ""
-    ))
+    mutate(downstream_threads=these_ids)   #could have called them downstrem threads in the first place!!!
+    # mutate(downstream_threads=if_else(
+    #   from %in% origins,
+    #   these_ids,
+    #   ""
+    # ))
 
 
   for(node in pointers){
@@ -3125,6 +3126,9 @@ pipe_trace_threads <- function(graf,field="source_id"){
     mutate(downstream_threads= map(downstream_threads,remove_empty_string)) %>%
     mutate(n_downstream_threads_surviving=map(downstream_threads,~length(unique(.)))%>% unlist) %>%
     mutate(n_downstream_threads=map(these_ids,~length(unique(.)) )%>% unlist)
+# browser()
+
+  ## the only way to get a full colour for factors i.e. max n_downstream_threads_surviving is to create a similar for_join based on from not to.
 
   graf$factors <-
     graf$factors %>%
@@ -3168,18 +3172,19 @@ pipe_continue_after <- function(graf,node){
 }
 continue_after <- function(links,link_id,node){
 
+  # browser()
   # if(node==39)browser()
   # two tests: 1) does this source appear in the predecessors? if so, is it a live continuation?
   this <- links$link_id==link_id
-  if(links$from[this]!=node) links$downstream_threads[this] else {
+  if(!any(links$from[this] %in% node)) links$downstream_threads[this] else {
     current_id <- links$these_ids[this]
     previous_link_ids <- unlist(links$before_id[this])
     # if(node==39)message(previous_link_ids %>% paste0(collapse="/"))
 
     predecessors <- links$downstream_threads[links$link_id %in% previous_link_ids]
-    if(current_id %in% predecessors) {
+    if(any(current_id %in% predecessors)) {
       # message((predecessors %>% paste0(collapse="/")))
-      if(predecessors==5)browser()
+      # if(predecessors==5)browser()
       current_id
     } else ""
   }
