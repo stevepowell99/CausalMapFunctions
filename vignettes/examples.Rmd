@@ -435,6 +435,17 @@ e3  %>%
   make_interactive_map()
 
 ```
+
+## Calculated fields
+
+```{r}
+
+
+
+```
+
+
+
 ## Conditional formatting
 
 ```{r }  
@@ -992,7 +1003,7 @@ tt %>%
 
 ```
 
-## Zooming out and showing source count
+## Zooming out and showing source count / frequency
 
 ```{r }  
 tt %>%
@@ -1009,6 +1020,7 @@ cc %>%
   pipe_bundle_links(field="simple_bundle") %>% 
   pipe_label_links(field="source_id",fun = "count") %>% 
   pipe_label_factors(field="source_count",add_field_name = F) %>% 
+  pipe_label_factors(field="frequency",add_field_name = F) %>% 
   pipe_wrap_factors() %>% 
     make_print_map 
 
@@ -1019,6 +1031,7 @@ cc %>%
   pipe_bundle_links(field="simple_bundle") %>% 
   pipe_label_links(field="source_id",fun = "count") %>% 
   pipe_label_factors(field="source_count",add_field_name = F) %>% 
+  pipe_label_factors(field="frequency",add_field_name = F) %>% 
   pipe_wrap_factors() %>% 
     make_print_map 
 
