@@ -440,7 +440,12 @@ e3  %>%
 
 ```{r}
 
-
+oi %>% 
+  pipe_find_factors(value="Take a loan",up = 1,down=1) %>% 
+  make_mentions_tabl()
+oi %>% 
+  pipe_find_factors(value="Take a loan",up = 1,down=1) %>% 
+.$factors %>% select(label,source_count)
 
 ```
 
@@ -1538,6 +1543,16 @@ ee %>%
   make_print_map
 ```
 
+## Large map
+```{r}
+cm <- 
+  load_mapfile("cmi-gender")
+library("tictoc")
+tic()
+make_interactive_map(cm)
+toc()
+
+```
 
 
 ## Data manipulation, file management etc

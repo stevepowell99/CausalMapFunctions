@@ -4072,16 +4072,23 @@ make_interactive_map <- function(graf,scale=1,safe_limit=200,rainbow=F){
   # browser()
   # graf <- prepare_visual_bundles(graf)
   #notify("started vn")
+  if(nrow(graf$factors)>replace_null(safe_limit,200)){
+    notify("Map larger than 'safe limit'; showing only most frequent factors",3)
+    graf <- graf %>%
+      pipe_select_factors(200)
+
+  }
+
 
   if(!is_grouped_df(graf$links) & nrow(links_table(graf))>replace_null(safe_limit,200)){
-    notify("Map larger than 'safe limit'; bundling and labelling links")
+    notify("Map larger than 'safe limit'; bundling and labelling links",3)
     graf <- graf %>%
       pipe_bundle_links() %>%
       pipe_label_links(field = "link_id",fun="count") %>%
       pipe_scale_links(field = "link_id",fun="count")
 
   }
-
+# browser()
   #smessage("2vn")
 
   if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- graf %>% pipe_update_mapfile(factors=.$factors %>% arrange((size))) %>% pipe_remove_orphaned_links()#because this is the way to get the most important ones in front
@@ -4104,8 +4111,8 @@ make_interactive_map <- function(graf,scale=1,safe_limit=200,rainbow=F){
 
   #smessage("3vn")
 
-  if(is_grouped_df(edges)){
     # browser()
+  if(is_grouped_df(edges)){
     # NOTE IF YOU THOUGHT YOU HAD WRAPPED LINKS, IT WILL FAIL HERE #TODO
     edges <- edges %>% summarise(across(color,~average_color(.,combine_doubles = T)),across(quote,collapse_unique_5),across(everything(),collapse_unique)) %>%
       ungroup
@@ -4153,7 +4160,7 @@ make_interactive_map <- function(graf,scale=1,safe_limit=200,rainbow=F){
   nodes <- nodes %>%   mutate(id=factor_id)
   edges <- edges %>%   mutate(id=NULL) # id would be necessary for getting ids from clicks etc, but seems to stop tooltip from working
   # browser()
-  if(T)nodes <-
+  if(nrow(nodes)<100)nodes <-
     nodes %>% mutate(title=paste0(
       map(label,identity),
       # map(label,factor_click_name),
@@ -4177,7 +4184,7 @@ make_interactive_map <- function(graf,scale=1,safe_limit=200,rainbow=F){
       paste0("ID:", factor_id)
     ))
   #smessage("7vn")
-  edges <-
+  if(nrow(nodes)<100)edges <-
     edges %>% mutate(title=paste0(
       map(link_id,link_click_edit),
       "</br>",
