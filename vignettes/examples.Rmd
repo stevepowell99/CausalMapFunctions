@@ -1040,6 +1040,12 @@ cc %>%
   pipe_wrap_factors() %>% 
     make_print_map 
 
+oi %>% 
+  pipe_find_factors(value="Take a loan") %>% 
+  pipe_label_factors("source_count") %>% 
+  pipe_label_links(value="unique:source_id") %>% 
+  make_print_map
+
 ```
 
 ## Combining opposites

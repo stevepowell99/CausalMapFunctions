@@ -1248,7 +1248,7 @@ pipe_add_factor_source_counts <- function(mapfile){
     )%>%
     pivot_wider(names_from=2,values_from=3,values_fill = 0) %>%
     select(from_source_count=consequence,to_source_count=influence,`source_count`=either,factor_id) %>%
-    left_join_safe(mapfile$factors,.) %>%
+    left_join_safe(mapfile$factors %>% select(!contains("source_count")),.) %>%
     mutate(`source_count`=replace_na(`source_count`,0)) %>%
     mutate(from_source_count=replace_na(from_source_count,0)) %>%
     mutate(to_source_count=replace_na(to_source_count,0))
