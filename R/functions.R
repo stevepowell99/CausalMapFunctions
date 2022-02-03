@@ -3036,8 +3036,9 @@ pipe_combine_opposites <- function(graf,flipchar="~",add_colors=T){
     mutate(
       try_flipped=str_detect(label,paste0("^ *",flipchar)),
       try_label=if_else(try_flipped,flip_vector(label,flipchar = flipchar) %>% replace_null(""),label),
-      is_flipped=(try_label %in% graf$factors$label) & try_flipped,
-      label=if_else(is_flipped,flip_fix_vector(try_label) %>% replace_null(""),label)# only flip if to do so would result in a label which already exists
+      is_top=(!str_detect(label,";")), # becky wanted it flipped anyway if top level
+      is_flipped=(is_top | (try_label %in% graf$factors$label)) & try_flipped,
+      label=if_else(is_flipped | is_top,flip_fix_vector(try_label) %>% replace_null(""),label)# only flip if to do so would result in a label which already exists
     )
   # %>%
   #   {if(add_colors)color_combined_factors(.) else .}

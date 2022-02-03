@@ -1084,6 +1084,23 @@ tt %>%
     pipe_combine_opposites() %>%
     pipe_select_links(3) %>%
     make_print_map
+
+tt %>%
+    pipe_zoom_factors(1) %>%
+    pipe_combine_opposites() %>%
+    pipe_select_links(5) %>%
+  pipe_bundle_links("flipped_bundle") %>% 
+    make_print_map
+
+oo %>%
+    pipe_combine_opposites() %>%
+    pipe_zoom_factors(1) %>%
+    pipe_select_links(15) %>%
+  pipe_bundle_links("flipped_bundle") %>% 
+  pipe_label_links(value="count:link_id") %>% 
+    make_print_map
+
+
 tt %>%
     pipe_zoom_factors(1) %>%
     pipe_combine_opposites() %>%
