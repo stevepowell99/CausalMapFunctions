@@ -781,7 +781,7 @@ pipe_coerce_mapfile <- function(tables){
 
 
   graf <- assemble_mapfile(factors,links,statements,sources,questions,settings) %>%
-    # pipe_remove_orphaned_links() %>%
+    pipe_remove_orphaned_links() %>%
     add_class()
 
   attr(graf,"info") <- attr(tables,"info")
