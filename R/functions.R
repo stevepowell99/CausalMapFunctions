@@ -1221,7 +1221,7 @@ make_mentions_tabl <- function(graf){
     mutate(label=str_replace_all(label,"\n"," ")) %>%
     # select(factor_id,everything()) %>%
     select(-any_of("id")) %>%
-    left_join_safe(both,by=xc("factor_id label"),suffix=xc(".factors .links")) %>%
+    left_join_safe(both %>% select(-label) ,by=xc("factor_id"),suffix=xc(".factors .links")) %>%
     mutate(mentions="any") %>%  ## this is actually just a hack so we can use this field in the Mentions table
     select(link_id,label,direction,mentions,everything())
 }
@@ -4071,6 +4071,7 @@ prepare_visual_bundles <- function(graf,
 make_interactive_map <- function(graf,scale=1,safe_limit=200,rainbow=F){
 
   # browser()
+  graf <- prepare_final(graf)
   # graf <- prepare_visual_bundles(graf)
   #notify("started vn")
   if(nrow(graf$factors)>replace_null(safe_limit,200)){
@@ -4391,6 +4392,29 @@ average_color <- function(colvec,combine_doubles=F){
 
 }
 
+prepare_final <- function(graf){
+
+  graf$factors$`color.border`= div_gradient_pal("#058488","white","#f26d04")(graf$factors$is_flipped)
+
+# not sure what to do here. go with the factors but what if links have been removed?
+if(F){  tabl <- make_mentions_tabl(graf) %>%
+    select(factor_id,from_flipped,to_flipped,direction) %>%
+    group_by(factor_id) %>%
+    summarise(flip_prop=
+                (sum(
+                  sum(from_flipped,na.rm=T)/2,
+                  sum(to_flipped,na.rm=T)/2
+                  ,na.rm=T))/(n())
+              ) %>%
+    mutate(`color.border`= div_gradient_pal("#058488","white","#f26d04")(flip_prop)) %>%
+             select(factor_id,color.border)
+# browser()
+  graf %>% pipe_update_mapfile(
+    factors=graf$factors %>%
+      select(-any_of("color.border")) %>% left_join_safe(tabl))}
+}
+
+
 #' Make a Graphviz map
 #' @description Make a Graphviz map: https://graphviz.org/documentation/
 #' @param graf A mapfile. Link and factor tables may contain columns to control formatting
@@ -4424,7 +4448,12 @@ make_print_map <- function(
   safe_limit=NULL
 
 ){
+  graf <- prepare_final(graf)
+
   # browser()
+
+
+
   safe_limit <- replace_null(safe_limit,graf %>% attr("set_print") %>% .$safe_limit %>% replace_null(200))
   maxwidth <- replace_null(maxwidth,graf %>% attr("set_print") %>% .$maxwidth %>% replace_null("dot"))
   grv_layout <- replace_null(grv_layout,
