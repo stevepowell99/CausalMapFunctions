@@ -220,6 +220,7 @@ hz <- load_mapfile("health-zoom")%>% pipe_coerce_mapfile
   oh <- load_mapfile("oh1-sp2")%>% pipe_coerce_mapfile
   cc <- load_mapfile("coded-quip-training")%>% pipe_coerce_mapfile
   de <- load_mapfile("dimensions-example")%>% pipe_coerce_mapfile
+  ma <- load_mapfile("concern-2022-malawi")%>% pipe_coerce_mapfile
 ```
 
 
@@ -1187,6 +1188,11 @@ de %>%
 ```{r }  
 
 cat("### Single\n")  
+
+ma %>%    
+  pipe_trace_paths(from = "Shared roles",to="",length = 1) %>% 
+  pipe_select_factors(15) %>% 
+  make_interactive_map
 
 oo %>%    
   pipe_select_factors(15) %>% 

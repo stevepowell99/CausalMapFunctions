@@ -2894,6 +2894,14 @@ pipe_trace_robustness <- function(graf,from,to,length=4,field=NULL){
 #' @examples
 pipe_trace_paths <- function(graf,from,to,length=4){
   info <-   make_info(graf,as.list(match.call()))
+#
+#   graf <-
+#     graf %>%
+#     pipe_remove_isolated()
+#
+  graf$factors <-
+    graf$factors %>%
+    filter(factor_id %in% get_all_link_ids(graf$links))
 
   if(is.na(length)) {notify("You have to specify length");return(graf)}
   if(0==(length)) {notify("You have to specify length greater than 0");return(graf)}
@@ -2916,7 +2924,6 @@ pipe_trace_paths <- function(graf,from,to,length=4){
     mutate(found_type=paste0(if_else(found_from,"source","-"),if_else(found_to,"target","-"))) %>%
     mutate(found_any=found_from|found_to)
 
-  # browser()
 
   if(!any(factors$found_from) | !any(factors$found_to)) return(graf %>% pipe_update_mapfile(factors=graf$factors %>% filter(F))%>%
                                                                  finalise_transforms(info))
@@ -2925,6 +2932,7 @@ pipe_trace_paths <- function(graf,from,to,length=4){
   factors <- tmp$factors
   links <- tmp$links
 
+
   trace_after_vec <- make_igraph_from_links(links) %>% distances(to=factors %>% pull(found_from),mode="in") %>% apply(1,min,na.rm=T)
   trace_before_vec <- make_igraph_from_links(links) %>% distances(to=factors %>% pull(found_to),mode="out") %>% apply(1,min,na.rm=T)
 
@@ -2932,6 +2940,7 @@ pipe_trace_paths <- function(graf,from,to,length=4){
 
   bothvecsum <- `+`(trace_after_vec,trace_before_vec)
   bothvec <- bothvecsum<=length
+  # browser()
   if(min(bothvecsum)<Inf) factors <- factors %>% mutate(trace_before_vec=trace_before_vec,
                                                         trace_after_vec=trace_after_vec,
                                                         bothvec,
