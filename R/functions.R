@@ -2007,7 +2007,8 @@ calculate_robustness_inner <- function(graf){
   #     mutate_all(as.numeric)
   # }
   #     else
-
+# browser()
+if((length(sinkvec)*length(originvec))>1000){message("Tracing paths too large");return(NA)}
   all_flows <-
     sinkvec %>% map(function(y)(
       originvec %>% map(function(x) if(x %in% sinks) Inf else max_flow(ig,x,y,capacity=new$links$capacity)$value)) %>% unlist) %>%
@@ -3016,9 +3017,9 @@ pipe_calculate_robustness <- function(graf){
   if("found_to" %notin% factor_colnames(graf)) {warning("No found_to column");return(graf)}
   # if(field %>% replace_null("")=="")field <- NULL
 
+  # browser()
   res$summary <- calculate_robustness_inner(graf)
 
-  # browser()
   graf %>%
     finalise(.,(info %>% c(list(flow=res)))) #%>% pipe_update_mapfile(.,links=add_attribute(graf$links,res,"flow"))
   # finalise(info) %>% pipe_update_mapfile(.,links=add_attribute(graf$links,res,"flow"))

@@ -221,6 +221,7 @@ hz <- load_mapfile("health-zoom")%>% pipe_coerce_mapfile
   cc <- load_mapfile("coded-quip-training")%>% pipe_coerce_mapfile
   de <- load_mapfile("dimensions-example")%>% pipe_coerce_mapfile
   ma <- load_mapfile("concern-2022-malawi")%>% pipe_coerce_mapfile
+  pa <- load_mapfile("pilotabcdwellbeing-2022")%>% pipe_coerce_mapfile
 ```
 
 
@@ -1265,6 +1266,19 @@ ee %>%
 ### Robustness
 
 ```{r}  
+
+## request is large but ok
+pa %>%    
+  pipe_trace_paths(from = "",to="~Impact on wellbeing",length = 1) %>% 
+  make_print_map()
+pa %>%    
+  pipe_trace_paths(from = "Covid",to="",length = 3) %>% 
+  make_print_map()
+
+## request is large
+pa %>%    
+  pipe_trace_robustness(from = "",to="wellbeing",length = 3) %>% 
+  make_print_map()
 
 e3 %>%    
   pipe_trace_robustness(from = "High",to="Damage",length = 5) %>% 
