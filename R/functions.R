@@ -4415,6 +4415,10 @@ average_color <- function(colvec,combine_doubles=F){
 
 prepare_final <- function(graf){
 # browser()
+
+  if(nrow(graf$factors)>200)  graf <- graf %>%
+    pipe_select_factors(200)
+
   if(any(as.numeric(graf$factors$is_flipped)>0,na.rm=T) %>% replace_na(F))graf$factors$`color.border`= div_gradient_pal("#058488","white","#f26d04")(graf$factors$is_flipped)
 
 # not sure what to do here. go with the factors but what if links have been removed?

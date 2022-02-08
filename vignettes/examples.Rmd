@@ -1193,6 +1193,10 @@ ma %>%
   pipe_trace_paths(from = "Shared roles",to="balanced",length = 1) %>% 
   pipe_select_factors(15) %>% 
   make_interactive_map
+ma %>%    
+  pipe_trace_paths(from = "Covid-19",to="Business",length = 2) %>% 
+  pipe_select_factors(15) %>% 
+  make_interactive_map
 
 oo %>%    
   pipe_select_factors(15) %>% 
