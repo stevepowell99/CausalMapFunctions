@@ -1127,6 +1127,16 @@ update_join <- function(old,new){
 #
 # }
 
+is_in_hierarchy <- function(labels){
+  tops <-
+    labels %>%
+    str_match(".*?;") %>%
+    keep(str_detect(.,";$")) %>%
+    str_remove(.,";$")
+
+str_detect(labels,";") | labels %in% tops
+}
+
 #'
 #' #' Merge map
 #' #' @inheritParams parse_commands
@@ -1175,6 +1185,8 @@ add_metrics_to_factors <- function(factors,links){
   factors$zoom_level=str_count(factors$label,";")+1
 
   # browser()
+  factors$is_in_hierarchy=factors$label %>% is_in_hierarchy()
+
 
   if(nrow(factors)>0){
     factors$top_level_label=zoom_inner(factors$label)
@@ -3095,14 +3107,25 @@ pipe_combine_opposites <- function(graf,flipchar="~",add_colors=T){
 #' @export
 #'
 #' @examples
-pipe_trace_threads <- function(graf,field="source_id"){
+pipe_trace_threads <- function(graf,field="source_id",direction="down"){
   info <-   make_info(graf,as.list(match.call()))
 
-# browser()
   #get the thread ids and put them in the links table for every link
   graf$links$these_ids <- map(graf$links$link_id,~{get_field(graf$links,field,.)}) %>% unlist
 
-  # graf$links$previous_ids <- map(graf$links$before_id,~{get_field(graf$links,field,.)})
+
+  if(direction=="down")trace_threads_down(graf,field="source_id") %>%
+  finalise_transforms(info) else
+    trace_threads_up(graf,field="source_id") %>%
+    finalise_transforms(info)
+
+
+}
+trace_threads_down <- function(graf,field="source_id"){
+
+  #get the thread ids and put them in the links table for every link
+  graf$links$downstream_threads <- map(graf$links$link_id,~{get_field(graf$links,field,.)}) %>% unlist
+
   factors <- graf$factors
   links <- graf$links
 
@@ -3110,8 +3133,6 @@ pipe_trace_threads <- function(graf,field="source_id"){
   # how many steps away is each factor
   if("trace_after_vec" %notin% colnames(factors)) {notify("You need to trace paths before tracing continuity",3);return(graf)}
 
-  # if(all(factors$trace_after_vec!=0))
-  # browser()
   origins <-
     factors %>%
     select(factor_id,trace_after_vec) %>%
@@ -3124,16 +3145,6 @@ pipe_trace_threads <- function(graf,field="source_id"){
     select(factor_id,trace_after_vec) %>%
     arrange(trace_after_vec) %>%
     pull(factor_id)
-
-  # initialise downstream_threads for initial links
-  graf$links <-
-    graf$links %>%
-    mutate(downstream_threads=these_ids)   #could have called them downstrem threads in the first place!!!
-    # mutate(downstream_threads=if_else(
-    #   from %in% origins,
-    #   these_ids,
-    #   ""
-    # ))
 
 
   for(node in pointers){
@@ -3149,7 +3160,6 @@ pipe_trace_threads <- function(graf,field="source_id"){
     mutate(downstream_threads= map(downstream_threads,remove_empty_string)) %>%
     mutate(n_downstream_threads_surviving=map(downstream_threads,~length(unique(.)))%>% unlist) %>%
     mutate(n_downstream_threads=map(these_ids,~length(unique(.)) )%>% unlist)
-# browser()
 
   ## the only way to get a full colour for factors i.e. max n_downstream_threads_surviving is to create a similar for_join based on from not to.
 
@@ -3161,23 +3171,14 @@ pipe_trace_threads <- function(graf,field="source_id"){
     mutate(n_downstream_threads=replace_na(n_downstream_threads,0))
 
   graf %>%
-    pipe_update_mapfile(.,links=graf$links %>% mutate(has_downstream_threads=downstream_threads!="")) %>%
-    finalise_transforms(info)
+    pipe_update_mapfile(.,links=graf$links %>% mutate(has_downstream_threads=downstream_threads!=""))
 
-
-
-}
-remove_empty_string <- function(vec){
-  vec %>% keep(.!="")
 }
 
 # takes a graf and a single factor id and calculates the after factor continuity
 pipe_continue_after <- function(graf,node){
   factors <- graf$factors
   links <- graf$links
-  # message(node)
-  # message(node)
-
 
   if(factors$trace_after_vec[factors$factor_id==node]==0) {
     # it is the origin
@@ -3195,24 +3196,113 @@ pipe_continue_after <- function(graf,node){
 }
 continue_after <- function(links,link_id,node){
 
-  # browser()
-  # if(node==39)browser()
   # two tests: 1) does this source appear in the predecessors? if so, is it a live continuation?
   this <- links$link_id==link_id
   if(!any(links$from[this] %in% node)) links$downstream_threads[this] else {
     current_id <- links$these_ids[this]
     previous_link_ids <- unlist(links$before_id[this])
-    # if(node==39)message(previous_link_ids %>% paste0(collapse="/"))
 
     predecessors <- links$downstream_threads[links$link_id %in% previous_link_ids]
     if(any(current_id %in% predecessors)) {
-      # message((predecessors %>% paste0(collapse="/")))
-      # if(predecessors==5)browser()
       current_id
     } else ""
   }
 }
 
+
+## same but you need to replace up/down to/from as well as before/after
+trace_threads_up <- function(graf,field="source_id"){
+
+  #get the thread ids and put them in the links table for every link
+  graf$links$upstream_threads <- map(graf$links$link_id,~{get_field(graf$links,field,.)}) %>% unlist
+
+  factors <- graf$factors
+  links <- graf$links
+
+
+  # how many steps away is each factor
+  if("trace_before_vec" %notin% colnames(factors)) {notify("You need to trace paths before tracing continuity",3);return(graf)}
+
+  origins <-
+    factors %>%
+    select(factor_id,trace_before_vec) %>%
+    filter(trace_before_vec==0) %>%
+    pull(factor_id)
+
+  # the list of each factor id which we will process in turn
+  pointers <-
+    factors %>%
+    select(factor_id,trace_before_vec) %>%
+    arrange(trace_before_vec) %>%
+    pull(factor_id)
+
+
+  for(node in pointers){
+    graf <- graf %>%
+      pipe_continue_before(node)
+
+  }
+
+  for_join <-
+    graf$links %>% select(factor_id=from,upstream_threads,these_ids) %>%
+    group_by(factor_id) %>%
+    summarise_all(list) %>%
+    mutate(upstream_threads= map(upstream_threads,remove_empty_string)) %>%
+    mutate(n_upstream_threads_surviving=map(upstream_threads,~length(unique(.)))%>% unlist) %>%
+    mutate(n_upstream_threads=map(these_ids,~length(unique(.)) )%>% unlist)
+
+  ## the only way to get a full colour for factors i.e. max n_upstream_threads_surviving is to create a similar for_join based on from not to.
+
+  graf$factors <-
+    graf$factors %>%
+    select(-any_of(c("upstream_threads","these_ids","n_upstream_threads_surviving","n_upstream_threads"))) %>%
+    left_join(for_join,by="factor_id")%>%
+    mutate(n_upstream_threads_surviving=replace_na(n_upstream_threads_surviving,0)) %>%
+    mutate(n_upstream_threads=replace_na(n_upstream_threads,0))
+
+  graf %>%
+    pipe_update_mapfile(.,links=graf$links %>% mutate(has_upstream_threads=upstream_threads!=""))
+
+}
+
+# takes a graf and a single factor id and calculates the before factor continuity
+pipe_continue_before <- function(graf,node){
+  factors <- graf$factors
+  links <- graf$links
+
+  if(factors$trace_before_vec[factors$factor_id==node]==0) {
+    # it is the origin
+    graf
+
+  }
+  else {
+
+    # this is so expensive because it goes through the whole links table
+    pipe_update_mapfile(graf,links=links %>%
+     mutate(upstream_threads=map(link_id,~continue_before(links,.,node)) %>% unlist)   # only calculate for the current node
+    )
+  }
+
+}
+continue_before <- function(links,link_id,node){
+
+  # two tests: 1) does this source appear in the predecessors? if so, is it a live continuation?
+  this <- links$link_id==link_id
+  if(!any(links$to[this] %in% node)) links$upstream_threads[this] else {
+    current_id <- links$these_ids[this]
+    previous_link_ids <- unlist(links$before_id[this])
+
+    predecessors <- links$upstream_threads[links$link_id %in% previous_link_ids]
+    if(any(current_id %in% predecessors)) {
+      current_id
+    } else ""
+  }
+}
+
+
+remove_empty_string <- function(vec){
+  vec %>% keep(.!="")
+}
 
 #' Pipe merge map
 #' @inheritParams parse_commands

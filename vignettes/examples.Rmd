@@ -1413,12 +1413,12 @@ hh  %>%
 
 
 
-
 e3  %>%
   pipe_trace_paths(from = "rainfall",to="",length = 4) %>% 
   pipe_trace_threads() %>% 
   pipe_bundle_links() %>% 
   pipe_label_links(field = "has_downstream_threads",fun = "sum") %>% 
+  pipe_label_links(field = "source_id",fun = "literal",clear_previous = F) %>% 
   pipe_color_links(field = "has_downstream_threads",fun = "sum") %>% 
   pipe_color_borders(field="n_downstream_threads_surviving") %>% 
   make_print_map() 
@@ -1540,19 +1540,66 @@ oi %>%
   pipe_color_links(field = "has_downstream_threads",fun = "sum") %>% 
   pipe_color_factors(field="found_type") %>% 
   make_print_map
-
-kb <- load_mapfile("kenya-beka")
-
-kb %>%    
-  pipe_trace_paths(from = "Covid-19",to="~Performance",length = 3) %>% 
+oi %>%    
+  # pipe_select_factors(20) %>% 
+  pipe_trace_paths(from = "Need more",to="",length = 3) %>% 
   pipe_trace_threads() %>% 
   pipe_bundle_links() %>% 
-  pipe_label_links(field = "downstream_threads",fun = "initials") %>% 
+  pipe_label_links(field = "has_downstream_threads",fun = "sum") %>% 
+  pipe_label_links(field = "source_id",fun = "count",clear_previous = F) %>% 
+  pipe_label_links(field = "source_id",fun = "literal",clear_previous = F) %>% 
+  pipe_color_links(field = "has_downstream_threads",fun = "sum") %>% 
+  pipe_color_factors(field="found_type") %>% 
   make_print_map
+
+# kb <- load_mapfile("kenya-beka")
+# 
+# kb %>%    
+#   pipe_trace_paths(from = "Covid-19",to="~Performance",length = 3) %>% 
+#   pipe_trace_threads() %>% 
+#   pipe_bundle_links() %>% 
+#   pipe_label_links(field = "downstream_threads",fun = "initials") %>% 
+#   make_print_map
 
 
 ```
 
+### upstream
+```{r}
+
+e3  %>%
+  pipe_trace_paths(from = "",to="Outcome",length = 4) %>% 
+  pipe_trace_threads(direction="up") %>% 
+  pipe_bundle_links() %>% 
+  pipe_label_links(field = "source_id",fun = "literal") %>% 
+  pipe_label_links(field = "has_upstream_threads",fun = "sum",clear_previous = F) %>% 
+  pipe_color_links(field = "has_upstream_threads",fun = "sum") %>% 
+  pipe_color_borders(field="n_upstream_threads_surviving") %>% 
+  pipe_label_factors(field="n_upstream_threads_surviving") %>% 
+  make_print_map() 
+
+oi %>%    
+  pipe_trace_paths(from = "Flee",to="",length = 3) %>% 
+  pipe_trace_threads(direction="down") %>% 
+  pipe_bundle_links() %>% 
+  pipe_label_links(field = "has_downstream_threads",fun = "sum") %>% 
+  pipe_label_links(field = "source_id",fun = "literal",clear_previous = F) %>% 
+  pipe_color_links(field = "has_downstream_threads",fun = "sum") %>% 
+  pipe_color_factors(field="found_type") %>% 
+  make_print_map
+
+oi %>%    
+  pipe_trace_paths(from = "",to="Financial diary",length = 2) %>% 
+  pipe_trace_threads(direction="up") %>% 
+  pipe_bundle_links() %>% 
+  pipe_label_links(field = "has_upstream_threads",fun = "sum") %>% 
+  pipe_label_links(field = "source_id",fun = "literal",clear_previous = F) %>% 
+  pipe_color_links(field = "has_upstream_threads",fun = "sum") %>% 
+  pipe_color_factors(field="found_type") %>% 
+  make_print_map
+
+
+```
 
 ```{r }  
 if(F){
