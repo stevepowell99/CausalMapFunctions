@@ -1186,13 +1186,13 @@ add_metrics_to_factors <- function(factors,links){
 
   factors$is_in_hierarchy=factors$label %>% is_in_hierarchy()
 
-  factors <-
+  # browser()
+  if(any(str_detect(factors$label,";")))factors <-
     factors %>%
     # filter(is_in_hierarchy) %>%
     select(-starts_with("level_")) %>%
-    separate(label,remove=F,sep=";",into=paste0("level_",1:(factors$label %>% str_count(";") %>% max),"_label"))
+    separate(label,remove=F,sep=";",into=paste0("level_",1:(factors$label %>% str_count(";") %>% max %>% `+`(1)),"_label"),fill="right",extra="drop")
 
-  # browser()
 
   if(F&nrow(factors)>0){
     factors$top_level_label=zoom_inner(factors$label)
