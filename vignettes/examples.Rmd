@@ -1542,7 +1542,7 @@ oi %>%
   make_print_map
 oi %>%    
   # pipe_select_factors(20) %>% 
-  pipe_trace_paths(from = "Need more",to="",length = 3) %>% 
+  pipe_trace_paths(from = "Need more",to="",length = 2) %>% 
   pipe_trace_threads() %>% 
   pipe_bundle_links() %>% 
   pipe_label_links(field = "has_downstream_threads",fun = "sum") %>% 

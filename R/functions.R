@@ -1184,11 +1184,17 @@ add_metrics_to_factors <- function(factors,links){
   factors$is_opposable=str_detect(factors$label,"^~")
   factors$zoom_level=str_count(factors$label,";")+1
 
-  # browser()
   factors$is_in_hierarchy=factors$label %>% is_in_hierarchy()
 
+  factors <-
+    factors %>%
+    # filter(is_in_hierarchy) %>%
+    select(-starts_with("level_")) %>%
+    separate(label,remove=F,sep=";",into=paste0("level_",1:(factors$label %>% str_count(";") %>% max),"_label"))
 
-  if(nrow(factors)>0){
+  # browser()
+
+  if(F&nrow(factors)>0){
     factors$top_level_label=zoom_inner(factors$label)
     factors <- factors %>%
       group_by(top_level_label) %>%
