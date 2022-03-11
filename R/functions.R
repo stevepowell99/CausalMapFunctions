@@ -87,7 +87,11 @@ finalise <- function(graf,value){
 finalise_transforms <- function(graf,value){
   smessage("finalise transforms")
   # simply reattaches the info list back to the graf and also does a final recalculation - only used for pipe functions which do any transformations of the graf
-  attr(graf,"info") <- value
+
+
+  if(T)attr(graf,"info") <- value
+
+
   graf %>%     pipe_recalculate_all()
 }
 
@@ -3869,6 +3873,12 @@ pipe_color_text <- function(graf,field="frequency",lo="#FCFDBF",hi="#5F187F",mid
   if(!is.null(fixed)) factors <- graf$factors %>% mutate(font.color=fixed) else
     factors <- graf$factors %>%
       mutate(font.color=create_colors(UQ(sym(field)),lo=lo,hi=hi,mid=mid,type="color_text",field=field))
+
+  # fix for when all are red
+  if(field=="is_opposable" &(!any(str_detect(factors$label,"~")))){
+    if(!any(factors$is_opposable))
+      factors$font.color="black"
+  }
   graf %>% pipe_update_mapfile(factors=factors)%>%
     finalise(info)
 }
