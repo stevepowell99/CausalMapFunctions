@@ -139,6 +139,9 @@ add_class <- function(x,cls="mapfile"){
 }
 
 # constants ---------------------------------------------------------
+contrary_color <- "#f26d04"
+ordinary_color <- "#058488"
+
 
 operator_list=c("=", "less", "greater", "notcontains", "notequals", "notequal", "equals", "equal", "contains", "starts", "ends", "start", "end")
 buck <- "causalmap"
@@ -919,7 +922,7 @@ fix_columns_factors <- function(factors){
 #' @examples
 fix_columns_links <- function(links){
 
-  if(!("color" %in% colnames(links))) links <- links %>% mutate(color="#058488")
+  if(!("color" %in% colnames(links))) links <- links %>% mutate(color=ordinary_color)
   # if(!("frequency" %in% colnames(links))) links <- links %>% mutate(frequency=1L)
   if(!("capacity" %in% colnames(links))) links <- links %>% mutate(capacity=1L)
   if(!("label" %in% colnames(links))) links <- links %>% mutate(label="")
@@ -1552,7 +1555,7 @@ compact_factors_links <- function(factors,links){
 
       mutate(factor_id=new_id
              # ,
-             # color.border= div_gradient_pal("#058488","white","#f26d04")(is_flipped)
+             # color.border= div_gradient_pal(ordinary_color,"white",contrary_color)(is_flipped)
       ) %>%
       select(-new_id)
 
@@ -1812,7 +1815,7 @@ color_combined_factors <- function(factors){
   # factors %>%
   #   group_by(label) %>%
   #   mutate(yesfreq=if_else(is_flipped,frequency,0),sumfreq=sum(frequency),is_flipped=yesfreq/sumfreq) %>%
-  #   mutate(color.border= div_gradient_pal("#058488","white","#f26d04")(is_flipped)) %>%
+  #   mutate(color.border= div_gradient_pal(ordinary_color,"white",contrary_color)(is_flipped)) %>%
   #   ungroup %>%
   #   select(-yesfreq,-sumfreq)
   # browser()
@@ -1821,13 +1824,13 @@ color_combined_factors <- function(factors){
 color_combined_links <- function(links){
   links %>% mutate(
     from_color = case_when(
-      from_flipped  ~  "#f26d04",
-      T ~  "#058488"
+      from_flipped  ~  contrary_color,
+      T ~  ordinary_color
     )) %>%
     mutate(
       to_color = case_when(
-        to_flipped  ~  "#f26d04",
-        T ~  "#058488"
+        to_flipped  ~  contrary_color,
+        T ~  ordinary_color
       )) %>%
     mutate(
       color=paste0(from_color,";0.5:",to_color)
@@ -4259,10 +4262,10 @@ make_interactive_map <- function(graf,scale=1,safe_limit=200,rainbow=F){
 
     edges$color <-
       case_when(
-        edges$color=="#058488;0.5:#058488" ~ "#058488",
-        edges$color=="#f26d04;0.5:#f26d04" ~ "#058488",
-        edges$color=="#058488;0.5:#f26d04" ~ "#f26d04",
-        edges$color=="#f26d04;0.5:#058488" ~ "#f26d04",
+        edges$color=="#058488;0.5:#058488" ~ ordinary_color,
+        edges$color=="#f26d04;0.5:#f26d04" ~ ordinary_color,
+        edges$color=="#058488;0.5:#f26d04" ~ contrary_color,
+        edges$color=="#f26d04;0.5:#058488" ~ contrary_color,
         T ~ edges$color
       )
   }
@@ -4526,7 +4529,7 @@ prepare_final <- function(graf){
   if(nrow(graf$factors)>200)  graf <- graf %>%
     pipe_select_factors(200)
 
-  if(any(as.numeric(graf$factors$is_flipped)>0,na.rm=T) %>% replace_na(F))graf$factors$`color.border`= div_gradient_pal("#058488","white","#f26d04")(graf$factors$is_flipped)
+  if(any(as.numeric(graf$factors$is_flipped)>0,na.rm=T) %>% replace_na(F))graf$factors$`color.border`= div_gradient_pal(ordinary_color,"white",contrary_color)(graf$factors$is_flipped)
 
 # not sure what to do here. go with the factors but what if links have been removed?
 if(F){  tabl <- make_mentions_tabl(graf) %>%
@@ -4538,7 +4541,7 @@ if(F){  tabl <- make_mentions_tabl(graf) %>%
                   sum(to_flipped,na.rm=T)/2
                   ,na.rm=T))/(n())
               ) %>%
-    mutate(`color.border`= div_gradient_pal("#058488","white","#f26d04")(flip_prop)) %>%
+    mutate(`color.border`= div_gradient_pal(ordinary_color,"white",contrary_color)(flip_prop)) %>%
              select(factor_id,color.border)
 }
 # browser()
