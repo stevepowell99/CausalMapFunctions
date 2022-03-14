@@ -4708,10 +4708,11 @@ make_print_map <- function(
     add_global_graph_attrs("splines", grv_splines, "graph") %>%
     add_global_graph_attrs("overlap", grv_overlap, "graph") %>%
     add_global_graph_attrs("labelloc", "bottom","graph") %>%
+    add_global_graph_attrs("labeljust", "right","graph") %>%
     add_global_graph_attrs("outputorder", "nodesfirst","graph") %>%
     add_global_graph_attrs("tooltip", " ", "graph") %>%
     add_global_graph_attrs("rankdir", "LR", "graph") %>%
-    add_global_graph_attrs("fontsize", "160", "graph") %>%
+    add_global_graph_attrs("fontsize", "64", "graph") %>%
     add_global_graph_attrs("fontname", "Arial", "graph") %>%
     add_global_graph_attrs("nodesep", nodesep, "graph") %>%
     add_global_graph_attrs("ranksep", ranksep, "graph") %>%
