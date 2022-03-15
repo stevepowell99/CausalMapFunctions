@@ -192,59 +192,83 @@ get_mapfile_from_s3 <- function(path){
   s3readRDS(object=basename(path),bucket=dirname(path))
 }
 
+#' Title
+#'
+#' @param tab
+#' @param proj
+#' @param connection
+#'
+#' @return
+#' @export
+#'
+#' @examples
 get_project_table <- function(tab="data",proj=sess$project,connection=conn){
-  tbl(conn,local(tab)) %>%
+  tbl(connection,local(tab)) %>%
     filter(project==local(proj)) %>%
     collect %>%
     mutate_all(to_logical)
 }
+#' Title
+#'
+#' @param tab
+#' @param connection
+#'
+#' @return
+#' @export
+#'
+#' @examples
 get_whole_table <- function(tab,connection=conn){
   tbl(connection,local(tab)) %>% collect %>% mutate_all(to_logical)
 }
 
-get_map_tables_from_sql <- function(path,connection=conn){
+get_map_tables_from_sql <- function(path,connection){
   # browser()
-  vsettings <- get_whole_table("settings",connection) %>% filter(project==path) # we need this anyway
-  vdata <- get_project_table("data",path,connection)
+  vsettings <- get_whole_table("ss2settings",connection) %>% filter(project==path) # we need this anyway
+  vdata <- get_project_table("ss2answers",path,connection)
   if(nrow(vdata)==0) return()
-  vmeta <- get_project_table("meta",path,connection)
+if(F) { vmeta <- get_project_table("meta",path,connection)
   vsentiment <- get_project_table("sentiment",path,connection)
 
 
   r <- vsettings$boxes %>%
     as.character()
   if(r=="") recodes <- NULL else recodes <- fromJSON(r)   #TODO actual recodes
-
+}
   # browser()
   links <- req(vdata) %>%
-    select(from,to,everything(),-project) %>%
-    left_join_safe(vmeta %>% group_by(session_token) %>% summarise_all(last),by="session_token") %>%
-    suppressMessages
+    select(from,to,everything(),source_id=uid,-project) %>%
+    # left_join_safe(vmeta %>% group_by(session_token) %>% summarise_all(last),by="session_token") %>%
+    suppressMessages %>%
+    filter(!is.na(from) & !is.na(to))
 
-  if(nrow(vsentiment)>0)
+  if(F)if(nrow(vsentiment)>0)
     links <- links %>%   left_join_safe(vsentiment %>% group_by(session_token) %>% select(-project) %>% summarise_all(last),by="session_token") %>%
     suppressMessages
 
-  factors=tibble(label=c(links$from,links$to) %>% unique) %>%
-    mutate(label=if_else(label=="zero",vsettings$base_q,label))
+  factors=tibble(label=c(links$from,links$to) %>% unique)
 
   links$from <-
     recode(links$from,!!!(row_index(factors) %>% set_names(factors$label)))
   links$to <-
     recode(links$to,!!!(row_index(factors) %>% set_names(factors$label)))
 
+  ## note these are switched around at present
+  links <- links %>%
+    rename(from=to,to=from)
+
+
   factors$id <- row_index(factors)
 
 
   # links$source_id=links$session_token  # why does it not work
 
-  notify(paste0("Loading sql file: ",path))
+  # notify(paste0("Loading sql file: ",path))
   return(
     list(
       factors = factors, #%>% factors_table,
       links = links, #%>% links_table,
       statements = NULL,               ########## STILL NEED TO GET SOURCES ETC
-      sources = NULL,
+      sources = tibble(source_id=links$source_id %>% unique),
       questions = NULL,
       settings = NULL
     )
@@ -569,7 +593,7 @@ load_mapfile <- function(path=NULL,connection=conn){
     notify("creating blank map");
 
   }
-
+# browser()
   if(!is.null(graf$links)){
     graf$links <- graf$links %>% select(-any_of(c("link_id.1","statement_id.2","from.2","to.2","quote.2","frequency.1","weight.2","actualisation.2","strength.2","certainty.2","from_flipped.1","to_flipped.1","link_label.1","from_label.1","to_label.1","hashtags.2","link_memo.1","link_map_id.1","link_id.2","statement_id.3","from.3","to.3","quote.3","frequency.2","weight.3","actualisation.3","strength.3","certainty.3","from_flipped.2","to_flipped.2","link_label.2","from_label.2","to_label.2","hashtags.3","link_memo.2","link_map_id.2","statement_id.1","from.1","to.1","quote.1","weight.1","actualisation.1","strength.1","certainty.1","hashtags.1")))#FIXME TODO  this is just legacy/transition
   }
@@ -643,7 +667,6 @@ pipe_coerce_mapfile <- function(tables){
 
     links[,colnames(standard_links())] <- map(colnames(standard_links()),
                                               ~coerceValue(links[[.]],standard_links()[[.]]))
-    # browser()
     links$link_label[is.na(links$link_label)] <- ""
     if("width" %in% colnames(links))links$width[is.na(links$width)] <- 0.2
     links <- links %>%
@@ -778,6 +801,7 @@ pipe_coerce_mapfile <- function(tables){
     left_join_safe(sources,by="source_id") %>% suppressMessages %>%
     left_join_safe(questions,by="question_id") %>% suppressMessages
 
+  ### this can make source_id disappear from links if they are not properly coded in statement table!!!!! #FIXME
   links <- links %>%
     left_join_safe(statements, by="statement_id") %>%
     suppressMessages
@@ -1144,36 +1168,15 @@ is_in_hierarchy <- function(labels){
 str_detect(labels,";") | labels %in% tops
 }
 
+#' Title
 #'
-#' #' Merge map
-#' #' @inheritParams parse_commands
-#' #' @param graf
-#' #' @param path
-#' #' @description This also has a wrapper, pipe_merge_mapfile
-#' #' @return A tidy map. The column *_map_id is set to reflect the id of the map.
-#' #' @export
-#' #'
-#' #' @examples
-#' merge_mapfile <- function(graf,graf2){
-#'   # browser()
-#'   map2 <- graf2 #%>% pipe_clean_map() #  clean map will put the important vars to integer.
-#'   graf <- graf #%>% pipe_clean_map() #
+#' @param factors
+#' @param links
 #'
-#'   maxid <- max(as.numeric(graf$factors$factor_id))
-#'   maxmapid <- max(as.numeric(graf$factors$factor_map_id))
+#' @return
+#' @export
 #'
-#'   assemble_mapfile(
-#'     factors=graf$factors %>% bind_rows_safe(map2$factors %>% mutate(factor_map_id=maxmapid+1) %>% mutate(factor_id=factor_id+maxid)),
-#'     links=graf$links  %>% bind_rows_safe(map2$links %>% mutate(link_map_id=maxmapid+1) %>% mutate(from=from+maxid,to=to+maxid)),
-#'     statements=graf$statements  %>% bind_rows_safe(map2$statements %>% mutate(statement_map_id=maxmapid+1)),
-#'     sources=graf$sources %>% bind_rows_safe(map2$sources %>% mutate(source_map_id=maxmapid+1)),
-#'     questions=graf$questions %>% bind_rows_safe(map2$questions %>% mutate(question_map_id=maxmapid+1)),
-#'     settings=graf$settings %>% bind_rows_safe(map2$settings %>% mutate(setting_map_id=maxmapid+1))
-#'   )
-#'   # %>%
-#'   #   pipe_clean_map(tables=.)
-#'
-#' }
+#' @examples
 add_metrics_to_factors <- function(factors,links){
   ig <- make_igraph(factors,links)
 

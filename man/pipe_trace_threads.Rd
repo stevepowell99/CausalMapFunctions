@@ -4,7 +4,7 @@
 \alias{pipe_trace_threads}
 \title{Pipe trace threads}
 \usage{
-pipe_trace_threads(graf, field = "source_id")
+pipe_trace_threads(graf, field = "source_id", direction = "down")
 }
 \arguments{
 \item{graf}{A mapfile resulting from pipe_trace_paths or pipe_trace_robustness}
