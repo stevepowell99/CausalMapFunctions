@@ -221,29 +221,70 @@ get_whole_table <- function(tab,connection=conn){
   tbl(connection,local(tab)) %>% collect %>% mutate_all(to_logical)
 }
 
+#' Make map from links
+#'
+#' @param links
+#' @param switch
+#'
+#' @return
+#' @export
+#'
+#' @examples
+make_map_from_links <- function(links,switch=F){
+  if(nrow(links)==0) return()
+  links <- req(links) %>%
+    select(from,to,everything(),source_id=uid,-project) %>%
+    suppressMessages %>%
+    filter(!is.na(from) & !is.na(to))
+  factors=tibble(label=c(links$from,links$to) %>% unique)
+
+  links$from <-
+    recode(links$from,!!!(row_index(factors) %>% set_names(factors$label)))
+  links$to <-
+    recode(links$to,!!!(row_index(factors) %>% set_names(factors$label)))
+
+  ## note these are switched around at present
+  if(switch){
+  links <- links %>%
+    rename(from=to,to=from)
+}
+
+  factors$id <- row_index(factors)
+
+  return(
+    list(
+      factors = factors, #%>% factors_table,
+      links = links, #%>% links_table,
+      statements = NULL,               ########## STILL NEED TO GET SOURCES ETC
+      sources = tibble(source_id=links$source_id %>% unique),
+      questions = NULL,
+      settings = NULL
+    )
+  )
+
+}
 get_map_tables_from_sql <- function(path,connection){
   # browser()
-  vsettings <- get_whole_table("ss2settings",connection) %>% filter(project==path) # we need this anyway
+  # vsettings <- get_whole_table("ss2settings",connection) %>% filter(project==path) # we need this anyway
   vdata <- get_project_table("ss2answers",path,connection)
   if(nrow(vdata)==0) return()
-if(F) { vmeta <- get_project_table("meta",path,connection)
-  vsentiment <- get_project_table("sentiment",path,connection)
-
-
-  r <- vsettings$boxes %>%
-    as.character()
-  if(r=="") recodes <- NULL else recodes <- fromJSON(r)   #TODO actual recodes
-}
+# if(F) { vmeta <- get_project_table("meta",path,connection)
+#   vsentiment <- get_project_table("sentiment",path,connection)
+#
+#
+#   r <- vsettings$boxes %>%
+#     as.character()
+#   if(r=="") recodes <- NULL else recodes <- fromJSON(r)   #TODO actual recodes
+# }
   # browser()
   links <- req(vdata) %>%
     select(from,to,everything(),source_id=uid,-project) %>%
-    # left_join_safe(vmeta %>% group_by(session_token) %>% summarise_all(last),by="session_token") %>%
     suppressMessages %>%
     filter(!is.na(from) & !is.na(to))
 
-  if(F)if(nrow(vsentiment)>0)
-    links <- links %>%   left_join_safe(vsentiment %>% group_by(session_token) %>% select(-project) %>% summarise_all(last),by="session_token") %>%
-    suppressMessages
+  # if(F)if(nrow(vsentiment)>0)
+  #   links <- links %>%   left_join_safe(vsentiment %>% group_by(session_token) %>% select(-project) %>% summarise_all(last),by="session_token") %>%
+  #   suppressMessages
 
   factors=tibble(label=c(links$from,links$to) %>% unique)
 
@@ -259,10 +300,6 @@ if(F) { vmeta <- get_project_table("meta",path,connection)
 
   factors$id <- row_index(factors)
 
-
-  # links$source_id=links$session_token  # why does it not work
-
-  # notify(paste0("Loading sql file: ",path))
   return(
     list(
       factors = factors, #%>% factors_table,
@@ -542,7 +579,8 @@ load_mapfile <- function(path=NULL,connection=conn){
       if(is.null(graf)) return(NULL)
       notify("Loaded sql file")
     } else if(type=="sql"){
-      graf <- get_map_tables_from_sql(path,connection=connection)
+      graf <- make_map_from_links(get_project_table("ss2answers",path,connection))
+      # graf <- get_map_tables_from_sql(path,connection=connection)
       if(is.null(graf)) return(NULL)
       notify("Loaded sql file")
     } else  if(type=="cm2"){
@@ -791,10 +829,11 @@ pipe_coerce_mapfile <- function(tables){
   ## add missing statements
 
   if(!all(links$statement_id %in% statements$statement_id)){
+  # browser()
+    message("link statementids not in statements")
 
   }
 
-  # browser()
   # browser()
 
   statements <- statements %>%
@@ -807,6 +846,17 @@ pipe_coerce_mapfile <- function(tables){
     suppressMessages
 
 
+  ## what if statement_ids are not sequential
+  # browser()
+  if(!identical(sort(statements$statement_id %>% as.integer),1:nrow(statements))){
+    message("statements not consequetive")
+    # rec=tibble(old=statements$statement_id %>% as.integer,new=1:nrow(statements))
+    # links$statement_id <- recode(
+    #   links$statement_id,!!!(1:nrow(statements) %>% set_names(statements$statement_id) )
+    #   )
+    # # browser()
+    # statements$statement_id <- 1:nrow(statements)
+  }
 
   attr(links,"flow") <- flow
 
