@@ -1817,14 +1817,22 @@ viridis_pal_n <- function(vec){
   vec <- vec %>% as.factor %>% as.numeric
   viridis_pal()(length(unique(vec)))[vec] %>% alpha(.95)
 }
-brewer_pal_n <- function(vec){
+#' Title
+#'
+#' @param vec
+#'
+#' @return
+#' @export
+#'
+#' @examples
+brewer_pal_n <- function(vec,pal){
   vec <- vec %>% as.factor %>% as.numeric
-  scales::brewer_pal("qual")(length(unique(vec)))[vec] %>% alpha(.95)
+  scales::brewer_pal("qual",palette = pal)(length(unique(vec)))[vec] %>% alpha(.95)
 }
-create_colors <- function(vec,lo="#FCFDBF",hi="#5F187F",mid="#D3436E",type,field="frequency",fun=NULL){
+create_colors <- function(vec,lo="#FCFDBF",hi="#5F187F",mid="#D3436E",type,field="frequency",fun=NULL,pal=1){
   # browser()
   vec <- as_numeric_if_all(vec)
-  if(class(vec)=="character") res <- brewer_pal_n(vec) else
+  if(class(vec)=="character") res <- brewer_pal_n(vec,pal = pal) else
     if(lo %in% xc("white gray lightgray")) res <- colour_ramp(c(lo,hi))(rescale(vec)) else
       res <- div_pal_n(vec,lo=lo,hi=hi,mid=mid)
     attr(res,type) <-   list(table=tibble(vec,res) %>% unique,field=field,fun=fun)
@@ -3865,14 +3873,15 @@ pipe_show_continuity <- function(graf,field="source_id",type="arrowtype"){
 #'
 #'
 #' @examples
-pipe_color_factors <- function(graf,field="frequency",lo="#FCFDBF",hi="#5F187F",mid="#D3436E",fixed=NULL){
+pipe_color_factors <- function(graf,field="frequency",lo="#FCFDBF",hi="#5F187F",mid="#D3436E",fixed=NULL,pal=1){
   info <-   make_info(graf,as.list(match.call()))
 
   if(field %notin% factor_colnames(graf)){warning("No such column");return(graf%>%
                                                                              finalise(info))}
+  # browser()
   if(!is.null(fixed)) factors <- graf$factors %>%
       mutate(color.background=fixed) else  factors <- graf$factors %>%
-          mutate(color.background=create_colors(UQ(sym(field)),lo=lo,hi=hi,mid=mid,type="color_factors",field=field))
+          mutate(color.background=create_colors(UQ(sym(field)),lo=lo,hi=hi,mid=mid,type="color_factors",field=field,pal=pal))
       graf %>% pipe_update_mapfile(factors=factors)%>%
         finalise(info)
 }
@@ -3891,7 +3900,7 @@ pipe_color_factors <- function(graf,field="frequency",lo="#FCFDBF",hi="#5F187F",
 #'
 #'
 #' @examples
-pipe_color_borders <- function(graf,field="frequency",lo="#FCFDBF",hi="#5F187F",mid="#D3436E",fixed=NULL){
+pipe_color_borders <- function(graf,field="frequency",lo="#FCFDBF",hi="#5F187F",mid="#D3436E",fixed=NULL,pal=1){
   info <-   make_info(graf,as.list(match.call()))
 
   if(field %notin% factor_colnames(graf)){warning("No such column");return(graf%>%
@@ -3900,7 +3909,7 @@ pipe_color_borders <- function(graf,field="frequency",lo="#FCFDBF",hi="#5F187F",
   # browser()
   if(!is.null(fixed)) factors <- graf$factors %>% mutate(color.border=fixed) else
     factors <- graf$factors %>%
-      mutate(color.border=create_colors(UQ(sym(field)),lo=lo,hi=hi,mid=mid,type="color_borders",field=field))
+      mutate(color.border=create_colors(UQ(sym(field)),lo=lo,hi=hi,mid=mid,type="color_borders",field=field,pal=pal))
   graf %>% pipe_update_mapfile(factors=factors)%>%
     finalise(info)
 }
@@ -3919,7 +3928,7 @@ pipe_color_borders <- function(graf,field="frequency",lo="#FCFDBF",hi="#5F187F",
 #'
 #'
 #' @examples
-pipe_color_text <- function(graf,field="frequency",lo="#FCFDBF",hi="#5F187F",mid="#D3436E",fixed=NULL){
+pipe_color_text <- function(graf,field="frequency",lo="#FCFDBF",hi="#5F187F",mid="#D3436E",fixed=NULL,pal=1){
   info <-   make_info(graf,as.list(match.call()))
 
   if(field %notin% factor_colnames(graf)){warning("No such column");return(graf%>%
@@ -3928,7 +3937,7 @@ pipe_color_text <- function(graf,field="frequency",lo="#FCFDBF",hi="#5F187F",mid
   # browser()
   if(!is.null(fixed)) factors <- graf$factors %>% mutate(font.color=fixed) else
     factors <- graf$factors %>%
-      mutate(font.color=create_colors(UQ(sym(field)),lo=lo,hi=hi,mid=mid,type="color_text",field=field))
+      mutate(font.color=create_colors(UQ(sym(field)),lo=lo,hi=hi,mid=mid,type="color_text",field=field,pal=pal))
 
   # fix for when all are red
   if(field=="is_opposable" &(!any(str_detect(factors$label,"~")))){
@@ -3954,7 +3963,7 @@ pipe_color_text <- function(graf,field="frequency",lo="#FCFDBF",hi="#5F187F",mid
 #'
 #'
 #' @examples
-pipe_color_links <- function(graf,field="link_id",lo="#FCFDBF",hi="#5F187F",mid="#D3436E",fixed=NULL,fun="count",value=NULL){
+pipe_color_links <- function(graf,field="link_id",lo="#FCFDBF",hi="#5F187F",mid="#D3436E",fixed=NULL,fun="count",value=NULL,pal=1){
   info <-   make_info(graf,as.list(match.call()))
 
   # browser()
@@ -3995,7 +4004,7 @@ pipe_color_links <- function(graf,field="link_id",lo="#FCFDBF",hi="#5F187F",mid=
       links$color=links$stdres
     }
 
-    links$color=create_colors(links$color,type="color_links",lo=lo,mid=mid,hi=hi,field=field,fun=oldfun)
+    links$color=create_colors(links$color,type="color_links",lo=lo,mid=mid,hi=hi,field=field,fun=oldfun,pal=pal)
 
     if(did_group) {
       links <- links %>% ungroup
