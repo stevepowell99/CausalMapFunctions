@@ -12,7 +12,8 @@ pipe_color_links(
   mid = "#D3436E",
   fixed = NULL,
   fun = "count",
-  value = NULL
+  value = NULL,
+  pal = 2
 )
 }
 \arguments{

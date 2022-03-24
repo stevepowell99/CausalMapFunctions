@@ -10,7 +10,8 @@ pipe_color_text(
   lo = "#FCFDBF",
   hi = "#5F187F",
   mid = "#D3436E",
-  fixed = NULL
+  fixed = NULL,
+  pal = 2
 )
 }
 \arguments{
