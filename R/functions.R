@@ -1829,10 +1829,10 @@ brewer_pal_n <- function(vec,pal){
   vec <- vec %>% as.factor %>% as.numeric
   scales::brewer_pal("qual",palette = pal)(length(unique(vec)))[vec] %>% alpha(.95)
 }
-create_colors <- function(vec,lo="#FCFDBF",hi="#5F187F",mid="#D3436E",type,field="frequency",fun=NULL,pal=2){
+create_colors <- function(vec,lo="#FCFDBF",hi="#5F187F",mid="#D3436E",type,field="frequency",fun=NULL,pal=1){
   # browser()
   vec <- as_numeric_if_all(vec)
-  if(class(vec)=="character") res <- brewer_pal_n(vec,pal = pal) else
+  if(class(vec)=="character") res <- brewer_pal_n(vec,pal = as.numeric(pal)) else
     if(lo %in% xc("white gray lightgray")) res <- colour_ramp(c(lo,hi))(rescale(vec)) else
       res <- div_pal_n(vec,lo=lo,hi=hi,mid=mid)
     attr(res,type) <-   list(table=tibble(vec,res) %>% unique,field=field,fun=fun)
@@ -3873,7 +3873,7 @@ pipe_show_continuity <- function(graf,field="source_id",type="arrowtype"){
 #'
 #'
 #' @examples
-pipe_color_factors <- function(graf,field="frequency",lo="#FCFDBF",hi="#5F187F",mid="#D3436E",fixed=NULL,pal=2){
+pipe_color_factors <- function(graf,field="frequency",lo="#FCFDBF",hi="#5F187F",mid="#D3436E",fixed=NULL,pal=1){
   info <-   make_info(graf,as.list(match.call()))
 
   if(field %notin% factor_colnames(graf)){warning("No such column");return(graf%>%
@@ -3900,7 +3900,7 @@ pipe_color_factors <- function(graf,field="frequency",lo="#FCFDBF",hi="#5F187F",
 #'
 #'
 #' @examples
-pipe_color_borders <- function(graf,field="frequency",lo="#FCFDBF",hi="#5F187F",mid="#D3436E",fixed=NULL,pal=2){
+pipe_color_borders <- function(graf,field="frequency",lo="#FCFDBF",hi="#5F187F",mid="#D3436E",fixed=NULL,pal=1){
   info <-   make_info(graf,as.list(match.call()))
 
   if(field %notin% factor_colnames(graf)){warning("No such column");return(graf%>%
@@ -3928,7 +3928,7 @@ pipe_color_borders <- function(graf,field="frequency",lo="#FCFDBF",hi="#5F187F",
 #'
 #'
 #' @examples
-pipe_color_text <- function(graf,field="frequency",lo="#FCFDBF",hi="#5F187F",mid="#D3436E",fixed=NULL,pal=2){
+pipe_color_text <- function(graf,field="frequency",lo="#FCFDBF",hi="#5F187F",mid="#D3436E",fixed=NULL,pal=1){
   info <-   make_info(graf,as.list(match.call()))
 
   if(field %notin% factor_colnames(graf)){warning("No such column");return(graf%>%
@@ -3963,7 +3963,7 @@ pipe_color_text <- function(graf,field="frequency",lo="#FCFDBF",hi="#5F187F",mid
 #'
 #'
 #' @examples
-pipe_color_links <- function(graf,field="link_id",lo="#FCFDBF",hi="#5F187F",mid="#D3436E",fixed=NULL,fun="count",value=NULL,pal=2){
+pipe_color_links <- function(graf,field="link_id",lo="#FCFDBF",hi="#5F187F",mid="#D3436E",fixed=NULL,fun="count",value=NULL,pal=1){
   info <-   make_info(graf,as.list(match.call()))
 
   # browser()
