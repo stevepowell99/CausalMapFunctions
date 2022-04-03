@@ -13,7 +13,7 @@ pipe_color_links(
   fixed = NULL,
   fun = "count",
   value = NULL,
-  pal = 2
+  pal = 1
 )
 }
 \arguments{

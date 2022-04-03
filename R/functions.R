@@ -7,6 +7,7 @@
 # - note that some funs like zoom, bundle factor etc may have different ids from previous mapfile
 # - there should never be a need to apply pipe_coerce_mapfile twice
 
+# library(poLCA)
 library(igraph)
 library(configr)
 library(DiagrammeR)
@@ -2833,6 +2834,53 @@ pipe_zoom_factors <- function(graf,level=1,separator=";",hide=T){
 
 
 }
+
+#' Title
+#'
+#' @param graf
+#' @param n
+#'
+#' @return
+#' @export
+#'
+#' @examples
+pipe_cluster_sources <- function(graf,n_clusters=3){
+  if(is.null(n_clusters)){
+    return(
+      graf %>%
+      pipe_cluster_sources(n_clusters=2) %>%
+      pipe_cluster_sources(n_clusters=3) %>%
+      pipe_cluster_sources(n_clusters=4)
+      )
+  }
+  # browser()
+  if(nrow(graf$sources)<4*n_clusters){
+    notify("Not enough sources to cluster",3)
+    return(graf)
+  }
+  all_links <-
+    graf$links %>%
+    dplyr::select(from,to,source_id) %>%
+    distinct() %>%
+    unite("couple",from,to) %>%
+    mutate(dummy=1) %>%
+    pivot_wider(id_cols = source_id,names_from = couple,values_from=dummy,values_fill = 0)
+
+  sources <- all_links$source_id
+
+  res <- stats::kmeans(all_links %>% dplyr::select(-source_id),centers=n_clusters)
+  df <-
+    tibble(sources,clus_=res$cluster) %>%
+    mutate(letters=letters[clus_])
+  colnames(df)[1] <- "source_id"
+  colnames(df)[3] <- paste0("cluster_",n_clusters)
+  sources <-
+    graf$sources %>% left_join(df %>% dplyr::select(-clus_))
+
+  pipe_update_mapfile(graf,sources=sources)
+
+}
+
 
 #' Bundle factors
 #'

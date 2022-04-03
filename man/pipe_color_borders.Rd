@@ -11,7 +11,7 @@ pipe_color_borders(
   hi = "#5F187F",
   mid = "#D3436E",
   fixed = NULL,
-  pal = 2
+  pal = 1
 )
 }
 \arguments{
