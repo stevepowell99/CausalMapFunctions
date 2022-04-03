@@ -2873,7 +2873,7 @@ pipe_cluster_sources <- function(graf,n_clusters=3){
     tibble(sources,clus_=res$cluster) %>%
     mutate(letters=letters[clus_])
   colnames(df)[1] <- "source_id"
-  colnames(df)[3] <- paste0("cluster_",n_clusters)
+  colnames(df)[3] <- paste0("#cluster_",n_clusters)
   sources <-
     graf$sources %>% left_join(df %>% dplyr::select(-clus_))
 
