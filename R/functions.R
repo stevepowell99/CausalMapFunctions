@@ -633,6 +633,9 @@ load_mapfile <- function(path=NULL,connection=conn){
 
   }
 # browser()
+
+
+
   if(!is.null(graf$links)){
     graf$links <- graf$links %>% select(-any_of(c("link_id.1","statement_id.2","from.2","to.2","quote.2","frequency.1","weight.2","actualisation.2","strength.2","certainty.2","from_flipped.1","to_flipped.1","link_label.1","from_label.1","to_label.1","hashtags.2","link_memo.1","link_map_id.1","link_id.2","statement_id.3","from.3","to.3","quote.3","frequency.2","weight.3","actualisation.3","strength.3","certainty.3","from_flipped.2","to_flipped.2","link_label.2","from_label.2","to_label.2","hashtags.3","link_memo.2","link_map_id.2","statement_id.1","from.1","to.1","quote.1","weight.1","actualisation.1","strength.1","certainty.1","hashtags.1")))#FIXME TODO  this is just legacy/transition
   }
@@ -860,6 +863,7 @@ pipe_coerce_mapfile <- function(tables){
   }
 
   attr(links,"flow") <- flow
+
 
 
   graf <- assemble_mapfile(factors,links,statements,sources,questions,settings) %>%
@@ -2845,7 +2849,7 @@ pipe_zoom_factors <- function(graf,level=1,separator=";",hide=T){
 #'
 #' @examples
 pipe_cluster_sources <- function(graf,n_clusters=3){
-  if(is.null(n_clusters)){
+  if("all"==(n_clusters)){
     return(
       graf %>%
       pipe_cluster_sources(n_clusters=2) %>%
@@ -2877,7 +2881,8 @@ pipe_cluster_sources <- function(graf,n_clusters=3){
   sources <-
     graf$sources %>% left_join(df %>% dplyr::select(-clus_))
 
-  pipe_update_mapfile(graf,sources=sources)
+  pipe_update_mapfile(graf,sources=sources) %>%
+    pipe_coerce_mapfile()
 
 }
 
