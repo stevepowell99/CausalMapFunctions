@@ -2825,7 +2825,8 @@ pipe_zoom_factors <- function(graf,level=1,separator=";",preserve_frequency=+Inf
   level=as.numeric(level)
   hide=as.logical(hide)
 
-
+# browser()
+  preserve_frequency=as.numeric(preserve_frequency)
   if(level>0) graf <-
     graf %>%
     pipe_update_mapfile(

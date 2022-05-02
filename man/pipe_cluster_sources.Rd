@@ -4,7 +4,7 @@
 \alias{pipe_cluster_sources}
 \title{Title}
 \usage{
-pipe_cluster_sources(graf, n = 3)
+pipe_cluster_sources(graf, n_clusters = 3)
 }
 \arguments{
 \item{n}{}

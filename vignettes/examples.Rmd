@@ -1037,6 +1037,14 @@ tt %>%
   pipe_color_borders(field="frequency_preserved",lo="white") %>% 
   pipe_wrap_factors() %>% 
     make_print_map 
+tt %>%
+    pipe_zoom_factors(1,preserve_frequency = 80) %>%
+  pipe_bundle_links(field="simple_bundle") %>% 
+  pipe_label_links(field="link_id",fun = "count") %>% 
+  pipe_label_factors(field="frequency",add_field_name = F) %>% 
+  pipe_color_borders(field="frequency_preserved",lo="white") %>% 
+  pipe_wrap_factors() %>% 
+    make_print_map 
 
 cc %>%
   pipe_find_factors(value="Improved health") %>% 

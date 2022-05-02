@@ -4,7 +4,14 @@
 \alias{pipe_zoom_factors}
 \title{Zoom factors}
 \usage{
-pipe_zoom_factors(graf, level = 1, separator = ";", hide = T)
+pipe_zoom_factors(
+  graf,
+  level = 1,
+  separator = ";",
+  preserve_frequency = +Inf,
+  frequency_field = "frequency",
+  hide = T
+)
 }
 \arguments{
 \item{graf}{A mapfile representing a causal map.
