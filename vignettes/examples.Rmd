@@ -1026,6 +1026,15 @@ tt %>%
     pipe_zoom_factors(1) %>%
   pipe_bundle_links(field="simple_bundle") %>% 
   pipe_label_links(field="source_id",fun = "count") %>% 
+  pipe_label_factors(field="source_count",add_field_name = F) %>% 
+  pipe_wrap_factors() %>% 
+    make_print_map 
+tt %>%
+    pipe_zoom_factors(1,preserve_frequency = 20,frequency_field = "source_count") %>%
+  pipe_bundle_links(field="simple_bundle") %>% 
+  pipe_label_links(field="source_id",fun = "count") %>% 
+  pipe_label_factors(field="source_count",add_field_name = F) %>% 
+  pipe_color_borders(field="frequency_preserved",lo="white") %>% 
   pipe_wrap_factors() %>% 
     make_print_map 
 

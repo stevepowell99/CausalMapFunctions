@@ -1837,9 +1837,12 @@ brewer_pal_n <- function(vec,pal){
 create_colors <- function(vec,lo="#FCFDBF",hi="#5F187F",mid="#D3436E",type,field="frequency",fun=NULL,pal=1){
   # browser()
   vec <- as_numeric_if_all(vec)
-  if(class(vec)=="character") res <- brewer_pal_n(vec,pal = as.numeric(pal)) else
+  if((all(vec %in% 0:1))) res <-ifelse(vec,lo,hi)
+      else
+    if(class(vec)=="character") res <- brewer_pal_n(vec,pal = as.numeric(pal)) else
     if(lo %in% xc("white gray lightgray")) res <- colour_ramp(c(lo,hi))(rescale(vec)) else
       res <- div_pal_n(vec,lo=lo,hi=hi,mid=mid)
+
     attr(res,type) <-   list(table=tibble(vec,res) %>% unique,field=field,fun=fun)
     res
 }
@@ -2363,6 +2366,7 @@ add_call <- function(graf,lis){
   graf
 }
 make_info <- function(graf,lis){
+  # return(NULL)
   smessage("make info")
   # takes the list - which will usuall be the current call, names it, and adds to existing graf info
 
@@ -2816,7 +2820,7 @@ pipe_remove_isolated_links <- function(graf,labels=F){
 #' @export
 #'
 #' @examples
-pipe_zoom_factors <- function(graf,level=1,separator=";",hide=T){
+pipe_zoom_factors <- function(graf,level=1,separator=";",preserve_frequency=+Inf,frequency_field="frequency",hide=T){
   info <-   make_info(graf,as.list(match.call()))
   level=as.numeric(level)
   hide=as.logical(hide)
@@ -2826,7 +2830,8 @@ pipe_zoom_factors <- function(graf,level=1,separator=";",hide=T){
     graf %>%
     pipe_update_mapfile(
       factors = graf$factors %>%
-        mutate(old_label=label,label=if_else(str_detect(old_label,separator),
+        mutate(frequency_preserved=UQ(sym(frequency_field))<preserve_frequency) %>%
+        mutate(old_label=label,label=if_else(frequency_preserved & str_detect(old_label,separator),
                                              zoom_inner(old_label,{{level}},separator),old_label),
                frequency=sum(frequency)) %>%
         select(-old_label)
