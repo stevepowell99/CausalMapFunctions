@@ -9,9 +9,6 @@ count_unique(vec)
 \arguments{
 \item{vec}{}
 }
-\value{
-
-}
 \description{
 Count unique
 }

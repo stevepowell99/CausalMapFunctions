@@ -2837,7 +2837,11 @@ pipe_zoom_factors <- function(graf,level=1,separator=";",preserve_frequency=+Inf
                frequency=sum(frequency)) %>%
         select(-old_label) %>%
         mutate(frequency_preserved_label=if_else(frequency_preserved,label,"")) %>%
-        mutate(label=if_else(frequency_other!="" & str_detect(label %>% list,paste0(label,";")),paste0(label," ",frequency_other),label))
+
+        mutate(label=ifelse(frequency_other!="" & (str_detect(escapeRegex(label),paste0(escapeRegex(label),";"))),
+                            paste0(label," ",frequency_other),
+                            label
+                            ))
     ) %>%
     pipe_compact_mapfile %>%
     pipe_coerce_mapfile()

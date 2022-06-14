@@ -9,9 +9,6 @@ get_robustness(graf)
 \arguments{
 \item{graf}{}
 }
-\value{
-
-}
 \description{
 Title
 }

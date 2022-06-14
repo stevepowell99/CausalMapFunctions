@@ -22,9 +22,6 @@ In this package, nodes are called `factors` and edges are called `links.`}
 
 \item{is_proportion}{}
 }
-\value{
-
-}
 \description{
 Select factors
 }

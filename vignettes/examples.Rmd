@@ -9,6 +9,8 @@ output:
     toc_depth: 3
     number_sections: false
     theme: lumen
+editor_options: 
+  chunk_output_type: console
 ---
 
 
@@ -222,6 +224,7 @@ hz <- load_mapfile("health-zoom")%>% pipe_coerce_mapfile
   de <- load_mapfile("dimensions-example")%>% pipe_coerce_mapfile
   ma <- load_mapfile("concern-2022-malawi")%>% pipe_coerce_mapfile
   pa <- load_mapfile("pilotabcdwellbeing-2022")%>% pipe_coerce_mapfile
+  oig <- load_mapfile("oi-2021-ghana")%>% pipe_coerce_mapfile
 ```
 
 
@@ -1037,6 +1040,14 @@ tt %>%
   pipe_color_borders(field="frequency_preserved",lo="white") %>% 
   pipe_wrap_factors() %>% 
     make_print_map 
+oig %>%
+    pipe_zoom_factors(1,preserve_frequency = 20,frequency_field = "source_count") %>%
+  pipe_bundle_links(field="simple_bundle") %>% 
+  pipe_label_links(field="source_id",fun = "count") %>% 
+  pipe_label_factors(field="source_count",add_field_name = F) %>% 
+  pipe_color_borders(field="frequency_preserved",lo="white") %>% 
+  pipe_wrap_factors() %>% 
+    make_print_map 
 tt %>%
     pipe_zoom_factors(1,preserve_frequency = 80) %>%
   pipe_bundle_links(field="simple_bundle") %>% 
@@ -1048,7 +1059,7 @@ tt %>%
 
 cc %>%
   pipe_find_factors(value="Improved health") %>% 
-    # pipe_zoom_factors(1) %>%
+    pipe_zoom_factors(1) %>%
   pipe_select_factors(top=10) %>% 
   pipe_bundle_links(field="simple_bundle") %>% 
   pipe_label_links(field="source_id",fun = "count") %>% 
@@ -1069,9 +1080,10 @@ cc %>%
     make_print_map 
 
 oi %>% 
-  pipe_find_factors(value="Take a loan") %>% 
-  pipe_label_factors("source_count") %>% 
-  pipe_label_links(value="unique:source_id") %>% 
+  pipe_find_factors(value="Take a loan") %>%
+  pipe_zoom_factors(1,preserve_frequency = 2,frequency_other = "(other)") %>%
+  # pipe_label_factors("source_count") %>% 
+  # pipe_label_links(value="unique:source_id") %>% 
   make_print_map
 
 ```

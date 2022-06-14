@@ -9,9 +9,6 @@ escapeRegex(string)
 \arguments{
 \item{string}{}
 }
-\value{
-
-}
 \description{
 Escape Regex
 }

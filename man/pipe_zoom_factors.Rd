@@ -20,9 +20,6 @@ A mapfile is a tidygraph, which consists of a table of edges linked to a table o
 with an optional additional table of statements.
 In this package, nodes are called `factors` and edges are called `links.`}
 }
-\value{
-
-}
 \description{
 Another important ability of the Causal Map Viewer is to manipulate maps which use
 hierarchical coding, which is a very powerful way to code causal information.

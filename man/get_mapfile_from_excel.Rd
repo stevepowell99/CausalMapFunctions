@@ -9,9 +9,6 @@ get_mapfile_from_excel(path)
 \arguments{
 \item{path}{}
 }
-\value{
-
-}
 \description{
 Title
 }

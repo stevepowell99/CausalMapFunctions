@@ -9,9 +9,6 @@ add_attribute(graf, value, attr = "flow")
 \arguments{
 \item{attr}{}
 }
-\value{
-
-}
 \description{
 Add attribute
 }
