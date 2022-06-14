@@ -2144,6 +2144,7 @@ make_empty_graf <- function(graf){
 # deconstructs then reconstructs the groups same as they were, including the group nominators which have
 # already been calculated; simply adds the group baseline to each group
 get_percentages <- function(links,field){
+  # browser()
   groupvars <- group_vars(links)
   groupvar <- groupvars %>% keep(.!="from" & .!="to")
 
@@ -2838,7 +2839,7 @@ pipe_zoom_factors <- function(graf,level=1,separator=";",preserve_frequency=+Inf
         select(-old_label) %>%
         mutate(frequency_preserved_label=if_else(frequency_preserved,label,"")) %>%
 
-        mutate(label=ifelse(frequency_other!="" & (str_detect(escapeRegex(label),paste0(escapeRegex(label),";"))),
+        mutate(label=ifelse(frequency_other!="" & (str_detect(escapeRegex(label %>% list),paste0(escapeRegex(label),";"))),
                             paste0(label," ",frequency_other),
                             label
                             ))
@@ -3614,7 +3615,7 @@ pipe_scale_links <- function(graf,field="link_id",fixed=NULL,fun="count",value=N
 
   links <- links %>% mutate(width=exec(fun,!!sym(field)))
   if(oldfun=="percent"){
-
+# browser()
     links <- get_percentages(links,field)
     links$width=100*links$width/links$group_baseline
 
@@ -3688,7 +3689,7 @@ pipe_label_factors <- function(graf,field="frequency",clear_previous=F,add_field
 #' @examples
 pipe_label_links <- function(graf,field="link_id",fun="count",value=NULL,add_field_name=F,clear_previous=T){
   info <-   make_info(graf,as.list(match.call()))
-
+# browser()
   if(!is.null(value)){
     tmp <- str_match(value,"(^.*?):(.*)")
     fun <- tmp[,2] %>% str_trim
@@ -3724,12 +3725,13 @@ pipe_label_links <- function(graf,field="link_id",fun="count",value=NULL,add_fie
     # links$new_link_label=format(100*as.numeric(links$link_label)/links$group_baseline,digits=0) %>% paste0(links$link_label," (",.,"%)")
   }
   if(oldfun=="percent"){
+
+    # browser()
     links <- get_percentages(links,field)
 
-    links$new_link_label=format(100*as.numeric(links$link_label)/links$group_baseline,digits=0) %>% paste0(links$link_label," (",.,"%)")
+    links$new_link_label=format(100*as.numeric(links$new_link_label)/links$group_baseline,digits=1) %>% paste0(links$new_link_label," (",.,"%)")
   }
   if(oldfun=="surprise"){
-    # browser()
     links <- get_surprises(links,field)
 
     links$new_link_label=format(as.numeric(links$stdres),digits=2) %>% paste0(links$link_label," (",.,")")
@@ -3794,12 +3796,15 @@ pipe_mark_links <- function(graf,field="source_id",add_field_name=F,show_number=
   links <-
     links %>% group_by(to) %>%
     arrange(to_label,from,to) %>%
-    mutate(head3=UQ(sym(groups))!=lag(UQ(sym(groups))) %>% replace_na(0)) %>%
-    mutate(headlabel=letters[cumsum(head3)]) %>%
+    mutate(head3=UQ(sym(groups))!=lag(UQ(sym(groups)))) %>%
+    mutate(head3=replace_na(F)) %>%
+    mutate(headlabel=cumsum(head3)) %>%
+    # mutate(headlabel=letters[head3]) %>%
     group_by(from,to,UQ(sym(groups))) %>%
     # add tail labels
     mutate(allsources=list(UQ(sym(field)) %>% unique))
 
+  links$headlabel <- letters[links$headlabel+1]
   inlinks <-
     links %>% summarise(headlabelin=first(headlabel),allsourcesin=unique(allsources)) %>%
     mutate(factor=to) %>%
@@ -4060,11 +4065,11 @@ pipe_color_links <- function(graf,field="link_id",lo="#FCFDBF",hi="#5F187F",mid=
 
     links <- links %>% mutate(color=exec(fun,!!sym(field)))
     if(oldfun=="percent"){
+      # browser()
       links <- get_percentages(links,field)
       links$color=100*links$color/links$group_baseline
     }
     if(oldfun=="surprise"){
-      # browser()
       links <- get_surprises(links,field)
       links$color=links$stdres
     }

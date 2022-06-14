@@ -210,8 +210,9 @@ xdescription <- "Set a different print layout"
 
 ```{r }
 hz <- load_mapfile("health-zoom")%>% pipe_coerce_mapfile 
+  sz <- load_mapfile("smartzoomingexample")%>% pipe_coerce_mapfile 
   so <- load_mapfile("stress-opposites")%>% pipe_coerce_mapfile 
-  tt <- load_mapfile("cm1/tearfund-sl")%>% pipe_coerce_mapfile
+  tt <- load_mapfile("tearfund-sl-small")%>% pipe_coerce_mapfile
   ll <- load_mapfile("quip-coded")%>% pipe_coerce_mapfile
   oi <- load_mapfile("2oirefugeetestimonies")%>% pipe_coerce_mapfile
   oo <- load_mapfile("organisation1coded")%>% pipe_coerce_mapfile
@@ -782,8 +783,8 @@ ll %>%
 ```{r}
 oo %>%    
   pipe_find_factors(value="crops",down=0) %>%
-  pipe_bundle_links(field="Sex of the respondent") %>% 
-  pipe_label_links(field="Sex of the respondent",fun="initials") %>% 
+  pipe_bundle_links(field="#Sex of the respondent") %>% 
+  pipe_label_links(field="#Sex of the respondent",fun="initials") %>% 
   pipe_color_links(field="source_id",fun="surprise") %>%  
   pipe_scale_links(field="source_id",fun="count") %>%  
   make_print_map
@@ -1025,19 +1026,17 @@ tt %>%
 ## Zooming out and showing source count / frequency
 
 ```{r }  
-tt %>%
+sz %>%
     pipe_zoom_factors(1) %>%
   pipe_bundle_links(field="simple_bundle") %>% 
   pipe_label_links(field="source_id",fun = "count") %>% 
-  pipe_label_factors(field="source_count",add_field_name = F) %>% 
+  pipe_label_factors(field="frequency",add_field_name = F) %>% 
   pipe_wrap_factors() %>% 
     make_print_map 
-tt %>%
-    pipe_zoom_factors(1,preserve_frequency = 20,frequency_field = "source_count") %>%
+sz %>%
+  pipe_zoom_factors(1,preserve_frequency = 4,frequency_field = "frequency",frequency_other = "(other)") %>%
   pipe_bundle_links(field="simple_bundle") %>% 
-  pipe_label_links(field="source_id",fun = "count") %>% 
-  pipe_label_factors(field="source_count",add_field_name = F) %>% 
-  pipe_color_borders(field="frequency_preserved",lo="white") %>% 
+  pipe_label_factors(field="frequency",add_field_name = F) %>% 
   pipe_wrap_factors() %>% 
     make_print_map 
 oig %>%
