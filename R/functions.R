@@ -3052,6 +3052,18 @@ pipe_trace_paths <- function(graf,from,to,length=4){
 #     graf %>%
 #     pipe_remove_isolated()
 #
+
+  tmp <- graf$factors %>%
+    select(label,driver_score,outcome_score)
+# browser()
+
+  driver_max <- tmp$driver_score %>% max(na.rm=T)
+  outcome_max <- tmp$outcome_score %>% max(na.rm=T)
+
+  if(from=="main_drivers") from <- tmp %>% arrange(desc(driver_score)) %>% filter(driver_score>(driver_max/4)) %>% slice(1:3) %>% pull(label) %>% unlist
+  if(to=="main_outcomes") to  <- tmp %>% arrange(desc(outcome_score)) %>% filter(outcome_score>(outcome_max/4)) %>% slice(1:3) %>% pull(label) %>% unlist
+
+
   graf$factors <-
     graf$factors %>%
     filter(factor_id %in% get_all_link_ids(graf$links))

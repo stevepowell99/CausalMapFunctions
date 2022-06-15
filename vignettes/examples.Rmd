@@ -1227,6 +1227,11 @@ de %>%
 
 cat("### Single\n")  
 
+ll %>% 
+  pipe_trace_paths(from = "main_drivers",to="main_outcomes",length = 3) %>% 
+  pipe_select_factors(15) %>% 
+  make_interactive_map
+
 ma %>%    
   pipe_trace_paths(from = "Shared roles",to="balanced",length = 1) %>% 
   pipe_select_factors(15) %>% 
