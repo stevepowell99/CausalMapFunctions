@@ -1237,15 +1237,20 @@ add_metrics_to_factors <- function(factors,links){
 
 
   factors$betweenness <- igraph::centr_betw(ig)$res %>% round(2)
-  factors$betweenness_rank <- factors$betweenness %>% rank
+  factors$betweenness_rank <- factors$betweenness %>% rank(ties.method="max")
+  factors$betweenness_rank_reversed <- 1+max(factors$betweenness_rank,na.rm=T)-factors$betweenness_rank
   factors$in_degree=ig %>% igraph::degree(mode = "in")
   factors$out_degree=ig %>% igraph::degree(mode = "out")
   factors$role <- factors$in_degree-factors$out_degree
   factors$frequency <- factors$in_degree+factors$out_degree
+  factors$frequency_rank <- factors$frequency %>% rank(ties.method="max")
+  factors$frequency_rank_reversed <- 1+max(factors$frequency_rank,na.rm=T)-factors$frequency_rank
   factors$driver_score=factors$out_degree-factors$in_degree*2 %>% suppressWarnings()
   factors$outcome_score=factors$in_degree-factors$out_degree*2 %>% suppressWarnings()
-  factors$driver_rank=(max(factors$driver_score,na.rm=T)-factors$driver_score) %>% rank(ties.method = "min") %>% suppressWarnings()
-  factors$outcome_rank=(max(factors$outcome_score,na.rm=T)-factors$outcome_score) %>% rank(ties.method = "min") %>% suppressWarnings()
+  factors$driver_rank=(max(factors$driver_score,na.rm=T)-factors$driver_score) %>% rank(ties.method = "max") %>% suppressWarnings()
+  factors$driver_rank_reversed <- 1+max(factors$driver_rank,na.rm=T)-factors$driver_rank
+  factors$outcome_rank=(max(factors$outcome_score,na.rm=T)-factors$outcome_score) %>% rank(ties.method = "max") %>% suppressWarnings()
+  factors$outcome_rank_reversed <- 1+max(factors$outcome_rank,na.rm=T)-factors$outcome_rank
   factors$is_opposable=str_detect(factors$label,"^~")
   factors$zoom_level=str_count(factors$label,";")+1
 
