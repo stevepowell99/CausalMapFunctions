@@ -232,9 +232,12 @@ get_whole_table <- function(tab,connection=conn){
 #'
 #' @examples
 make_map_from_links <- function(links,switch=F){
+  # browser()
   if(nrow(links)==0) return()
-  links <- req(links) %>%
-    select(from,to,everything(),source_id=uid,-project) %>%
+  links <-
+    links %>%
+    filter(from!="" & to!="") %>%
+    select(from,to,everything(),-project) %>%
     suppressMessages %>%
     filter(!is.na(from) & !is.na(to))
   factors=tibble(label=c(links$from,links$to) %>% unique)
@@ -246,9 +249,9 @@ make_map_from_links <- function(links,switch=F){
 
   ## note these are switched around at present
   if(switch){
-  links <- links %>%
-    rename(from=to,to=from)
-}
+    links <- links %>%
+      rename(from=to,to=from)
+  }
 
   factors$id <- row_index(factors)
 
@@ -257,7 +260,7 @@ make_map_from_links <- function(links,switch=F){
       factors = factors, #%>% factors_table,
       links = links, #%>% links_table,
       statements = NULL,               ########## STILL NEED TO GET SOURCES ETC
-      sources = tibble(source_id=links$source_id %>% unique),
+      sources = NULL,#tibble(source_id=links$source_id %>% unique),
       questions = NULL,
       settings = NULL
     )
@@ -551,7 +554,6 @@ assemble_mapfile <- function(
 #'
 #' @examples
 load_mapfile <- function(path=NULL,connection=conn){
-  # browser()
   graf <- NULL
   factors <- NULL
   links <- NULL
@@ -560,6 +562,7 @@ load_mapfile <- function(path=NULL,connection=conn){
   questions <- NULL
   settings <- NULL
   newtables <- NULL
+  # browser()
   if(!is.null(path)){
     if(!(str_detect(path,"/"))){
       type <- "unknown"
@@ -590,7 +593,6 @@ load_mapfile <- function(path=NULL,connection=conn){
       if(is.null(graf$factors) & !is.null(graf$nodes)) graf$factors <- graf$nodes
       if(is.null(graf$links) & !is.null(graf$edges)) graf$links <- graf$edges
     } else if(type=="cm1"){
-      # browser()
       graf <- get_map_tables_from_s3_pieces(path %>% paste0("causalmap/app-sync/",.))
       if(is.null(graf))return(NULL)
     } else if(type=="unknown"){
@@ -617,7 +619,12 @@ load_mapfile <- function(path=NULL,connection=conn){
     if(nrow(graf$statements)==0)graf$statements <- standard_statements() else
       if(!identical(graf$statements$statement_id,1:nrow(graf$statements))){
         # browser()
-        if("statement_id" %in% colnames(graf$statements))graf$statements$statement_id <- replace_na(graf$statements$statement_id,Inf)
+      # browser()
+        if("statement_id" %in% colnames(graf$statements))
+        {
+          graf$statements$statement_id <- as.numeric(graf$statements$statement_id)
+          graf$statements$statement_id <- replace_na(graf$statements$statement_id,Inf)
+          }
         if(!is.null(graf$links))graf$links$statement_id <- recode(graf$links$statement_id,!!!(row_index(graf$statements) %>% set_names(graf$statements$statement_id)))
         graf$statements <-  graf$statements %>%
           mutate(statement_id=row_number())
