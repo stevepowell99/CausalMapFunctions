@@ -237,6 +237,7 @@ make_map_from_links <- function(links,switch=F){
   links <-
     links %>%
     filter(from!="" & to!="") %>%
+    filter(!is.na(from) & !is.na(to)) %>%
     select(from,to,everything(),-project) %>%
     suppressMessages %>%
     filter(!is.na(from) & !is.na(to))
@@ -676,6 +677,7 @@ load_mapfile <- function(path=NULL,connection=conn){
 pipe_coerce_mapfile <- function(tables){
 
   # say()
+  # browser()
 
   factors <- tables$factors %>% replace_null(standard_factors()) %>% replace_zero_rows(standard_factors())
   links <- tables$links %>% replace_null(standard_links()) %>% replace_zero_rows(standard_links())
@@ -839,8 +841,8 @@ pipe_coerce_mapfile <- function(tables){
 
   ## add missing statements
 
-  if(!all(links$statement_id %in% statements$statement_id)){
   # browser()
+  if(!all(links$statement_id %in% statements$statement_id)){
     message("link statementids not in statements")
 
   }
@@ -870,6 +872,8 @@ pipe_coerce_mapfile <- function(tables){
   }
 
   attr(links,"flow") <- flow
+
+  factors <- factors[,colnames(factors)!=""]
 
 
 
@@ -1025,7 +1029,8 @@ create_factor_quickfields <- function(factors){
     str_match_all(.,"([:alnum:]*)\\:[:alnum:]") %>%
     map(function(x)x[,2]) %>% unlist %>%
     na.omit %>%
-    unique
+    unique %>%
+    keep(.!="")
   if(length(quickfields)>0){
     for(dim in quickfields){
       if(T | dim %notin% colnames(factors))factors[,dim] <- {
@@ -1108,6 +1113,9 @@ pipe_recalculate_factors <- function(graf){
   # browser()
   smessage("pipe recalc factors")
   info <-   make_info(graf,as.list(match.call()))
+
+  graf$factors <- graf$factors[,colnames(graf$factors)!=""]
+
 
   graf %>%
     pipe_update_mapfile(
@@ -1302,6 +1310,8 @@ add_labels_to_links <- function(links,factors){
 #'
 #' @examples
 make_mentions_tabl <- function(graf){
+
+  graf$factors <- graf$factors[,colnames(graf$factors)!=""]
   # browser()
   graf$links <- add_labels_to_links(graf$links,factors=graf$factors)
   influence <- graf$links %>% mutate(factor_id=from %>% as.integer,label=from_label,direction="influence")
@@ -1313,6 +1323,8 @@ make_mentions_tabl <- function(graf){
   graf %>%
     # pipe_coerce_mapfile %>%
     .$factors %>%
+    # mutate(label=str_replace_all(label,"'","\\")) %>%
+    # mutate(label=gsub(x=label,"\n"," ")) %>%
     mutate(label=str_replace_all(label,"\n"," ")) %>%
     # select(factor_id,everything()) %>%
     select(-any_of("id")) %>%
