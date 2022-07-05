@@ -3573,13 +3573,15 @@ pipe_hide_quickfields <- function(graf,value="["){
 #' if(F)cashTransferMap %>% pipe_merge_statements() %>%  pipe_select_factors(10) %>% pipe_bundle_links(group="1. Sex",counter="#SourceID")%>% pipe_label_links(field = "frequency") %>% pipe_color_links(field="1. Sex") %>% pipe_scale_links() %>%  make_print_map()
 pipe_bundle_links <- function(graf,field=NULL,group=field){
   info <-   make_info(graf,as.list(match.call()))
+    # browser()
 
   links <- graf$links %>% ungroup
   coln <- colnames(links)
-  if(group %>% replace_null("from") %notin% coln) {notify("no such counter");return(graf)}else
+  group <- coln[str_detect(coln,paste0(group))][1]
+  if(is.na(group)) {notify("no such counter");return(graf)}else
+  # if(group %>% replace_null("from") %notin% coln) {notify("no such counter");return(graf)}else
 
   {
-    # browser()
 
     return(pipe_update_mapfile(graf,
                                links=links %>%
@@ -3735,20 +3737,24 @@ pipe_label_links <- function(graf,field="link_id",fun="count",value=NULL,add_fie
   }
   # clear=as.logical(clear)
   clear_previous=as.logical(clear_previous)
-  if(field %notin% link_colnames(graf)){warning("No such column");return(graf)}
+  links <- graf$links
+
+  coln <- colnames(links)
+  # browser()
+  field <- coln[str_detect(coln,paste0(field))][1]
+
+
+  if(is.na(field)){warning("No such column");return(graf)}
+  if(field %notin% colnames(links)){warning("No such column");return(graf)}
+  # if(field %notin% link_colnames(graf)){warning("No such column");return(graf)}
   oldfun <- fun
   fun <- full_function_name(graf,fun)
-  links <- graf$links
 
   #if(!is_grouped_df(links)) links <- links %>% group_by(from,to)
   if(!is_grouped_df(links)) {
     did_group <- T
     links <- links %>% group_by(from,to)
   } else did_group <- F
-
-
-
-  if(field %notin% colnames(links)){warning("No such column");return(graf)}
 
   # browser()
   links <- links %>%

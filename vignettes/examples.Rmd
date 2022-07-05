@@ -26,7 +26,7 @@ library(dbplyr)
 library(DBI)
 library(kableExtra)
 library(scales)
-knitr::opts_chunk$set(echo = F,warning=F,message=F)
+knitr::opts_chunk$set(echo = T,warning=F,message=F)
 source("../R/functions.R")################################
  config = configr::read.config("../config.yml")$default
  
@@ -175,6 +175,7 @@ Your input mapfile should have the standard Causal Map [format](guide.causalmap.
 
 `pipe_coerce_mapfile` will also process a file with no factors and from_label and to_label columns as a named edgelist.
 
+factor ids are no longer contiguous, pipe normalise factors links now just deletes links with no factors.
 
 ```{r }
 # ll <- quip_example
@@ -298,6 +299,24 @@ ll %>%
     make_interactive_map
 ```
 
+
+#### Showing interlinks or not
+
+If you don't want to show interlinks between downstream factors, use `find links` instead.
+
+```{r }  
+oo %>%
+  pipe_find_factors(value="more/better seeds",up=0,down=1,remove_isolated = T) %>%
+    pipe_bundle_links() %>% 
+    make_print_map
+
+oo %>%
+  pipe_find_links(value="more/better seeds",field="from_label",operator="contains") %>%
+    pipe_bundle_links() %>% 
+    make_print_map
+
+
+```
 
 #### Zero up and down
 
@@ -608,9 +627,22 @@ cc %>%
 ## Label links
 
 ```{r }  
-e3 %>%
-  pipe_label_links("link_id",fun = "literal",add_field_name = T) %>%
-  make_interactive_map
+oo %>%
+    pipe_select_factors(5) %>%
+    pipe_bundle_links(("#Name of village")   ) %>%
+    pipe_label_links(field = "#Name of village",fun="unique") %>%
+    make_interactive_map
+
+
+oo %>%
+    pipe_select_factors(5) %>%
+    pipe_bundle_links(("vill")   ) %>%
+    pipe_label_links(field = "#Name of village",fun="unique") %>%
+    make_interactive_map
+
+
+
+
 
 e3 %>%
   pipe_label_links("link_id",fun = "literal") %>%
@@ -640,6 +672,24 @@ e3 %>%
 ## Bundling links
 
 Note the defaults for `bundle_links` and `label_links`:
+
+```{r }  
+oo %>%
+    pipe_select_factors(5) %>%
+    pipe_bundle_links(("#Name of province")   ) %>%
+    pipe_label_links(("#Name of province")   ) %>%
+    make_interactive_map
+```
+
+```{r }  
+oo %>%
+    pipe_select_factors(5) %>%
+    pipe_bundle_links("village"   ) %>%
+    pipe_label_links("village" ,fun = "unique"  ) %>%
+    make_interactive_map
+
+
+```
 
 ```{r }  
 ll %>%
