@@ -2407,7 +2407,7 @@ make_info <- function(graf,lis){
 #' @return A list containing the function name and a list of parameters.
 #' @export
 parse_line <- function(line1,graf){
-  browser()
+  # browser()
   # notify(line1)
   if(str_trim(line1)=="")return()
   fun <- word(line1, 1,2, sep=" ")
