@@ -2424,8 +2424,8 @@ parse_line <- function(line1,graf){
 
     # browser()
     updown <- body %>% str_match("(up *([0-9]+) *)*( down *([0-9]+))* *$")
-    up <- updown[,3] %>% replace_na(0)
-    down <- updown[,5] %>% replace_na(0)
+    up <- updown[,3]  %>% as.numeric %>% replace_na(0)
+    down <- updown[,5]  %>% as.numeric %>% replace_na(0)
     body <- body %>% str_remove("(up *[0-9]+ *)*( down *[0-9]+)* *$")
     vals=list(
       graf=graf,
