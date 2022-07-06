@@ -3574,6 +3574,7 @@ pipe_hide_quickfields <- function(graf,value="["){
 pipe_bundle_links <- function(graf,field=NULL,group=field){
   info <-   make_info(graf,as.list(match.call()))
     # browser()
+  if(is.null(group))group <- "simple_bundle"
 
   links <- graf$links %>% ungroup
   coln <- colnames(links)
@@ -3582,7 +3583,7 @@ pipe_bundle_links <- function(graf,field=NULL,group=field){
   # if(group %>% replace_null("from") %notin% coln) {notify("no such counter");return(graf)}else
 
   {
-
+# browser()
     return(pipe_update_mapfile(graf,
                                links=links %>%
                                  {if(is.null(group))group_by(.,from,to) else group_by(.,from,to,!!(sym(group)))} %>%
@@ -3727,6 +3728,7 @@ pipe_label_factors <- function(graf,field="frequency",clear_previous=F,add_field
 #' @examples
 pipe_label_links <- function(graf,field="link_id",fun="count",value=NULL,add_field_name=F,clear_previous=T){
   info <-   make_info(graf,as.list(match.call()))
+  # browser()
 # browser()
   if(!is.null(value)){
     tmp <- str_match(value,"(^.*?):(.*)")
@@ -3740,7 +3742,6 @@ pipe_label_links <- function(graf,field="link_id",fun="count",value=NULL,add_fie
   links <- graf$links
 
   coln <- colnames(links)
-  # browser()
   field <- coln[str_detect(coln,paste0(field))][1]
 
 
