@@ -2406,16 +2406,16 @@ make_info <- function(graf,lis){
 #' @param line A line of text to be parsed
 #' @return A list containing the function name and a list of parameters.
 #' @export
-parse_line <- function(line,graf){
-  # browser()
-  # notify(line)
-  if(str_trim(line)=="")return()
-  fun <- word(line, 1,2, sep=" ")
+parse_line <- function(line1,graf){
+  browser()
+  # notify(line1)
+  if(str_trim(line1)=="")return()
+  fun <- word(line1, 1,2, sep=" ")
   if(is.na(fun)){notify("No such function");return()}
   if(!exists(str_replace(fun," ","_") %>% paste0("pipe_",.))){notify("No such function");return(NULL)}
 
   body <-
-    str_remove(line,fun) %>%
+    str_remove(line1,fun) %>%
     str_trim
 
 
@@ -2454,8 +2454,8 @@ parse_line <- function(line,graf){
       if(fun %in% c("find statements") & !str_detect(body,operator_list %>% keep(.!="=") %>% paste0(collapse="|"))){
 
         updown <- body %>% str_match("(up *([0-9]+) *)*( down *([0-9]+))* *$")
-        up <- updown[,3] %>% replace_na(0)
-        down <- updown[,5] %>% replace_na(0)
+        up <- updown[,3] %>% as.numeric %>% replace_na(0)
+        down <- updown[,5] %>% as.numeric %>% replace_na(0)
         body <- body %>% str_remove("(up *[0-9]+ *)*( down *[0-9]+)* *$")
         vals=list(
           graf=graf,
