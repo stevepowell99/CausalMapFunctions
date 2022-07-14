@@ -4502,9 +4502,9 @@ make_interactive_map <- function(graf,scale=1,safe_limit=200,rainbow=F){
   #smessage("7vn")
   if(nrow(nodes)<100)edges <-
     edges %>% mutate(title=paste0(
-      map(link_id,link_click_statement_go),
+      map(statement_id,link_click_statement_go),
       "</br>",
-      map(link_id,link_click_source_go),
+      map(source_id,link_click_source_go),
       "</br>",
       map(link_id,link_click_edit),
       "</br>",
