@@ -679,6 +679,17 @@ oo %>%
     pipe_bundle_links(("#Name of province")   ) %>%
     pipe_label_links(("#Name of province")   ) %>%
     make_interactive_map
+
+oo %>%
+    parse_commands("
+    select links top=15
+select factors top=10
+bundle links field=#2
+label factors field=frequency add_field_name=FALSE clear_previous=FALSE
+scale links value=count: link_id
+label links field=#2Name of village fun=unique add_field_name=FALSE clear_previous=TRUE
+color text field=is_opposable lo=black hi=#f26d04") %>%
+    make_interactive_map
 ```
 
 ```{r }  

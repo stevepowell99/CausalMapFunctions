@@ -4272,6 +4272,14 @@ link_click_edit <- function(id){
     as.character(shiny::actionLink(inputId = paste0(
       'link_click_edit_',id), label = "Edit link",class="linky"))
 }
+link_click_statement_go <- function(id){
+  if(str_detect(id,";")) "" else as.character(shiny::actionLink(inputId = paste0(
+      'statement_go',id), label = "Go to statment",class="linky"))
+}
+link_click_source_go <- function(id){
+  if(str_detect(id,";")) "" else as.character(shiny::actionLink(inputId = paste0(
+      'source_go',id), label = "Go to source",class="linky"))
+}
 
 
 
@@ -4494,6 +4502,10 @@ make_interactive_map <- function(graf,scale=1,safe_limit=200,rainbow=F){
   #smessage("7vn")
   if(nrow(nodes)<100)edges <-
     edges %>% mutate(title=paste0(
+      map(link_id,link_click_statement_go),
+      "</br>",
+      map(link_id,link_click_source_go),
+      "</br>",
       map(link_id,link_click_edit),
       "</br>",
       map(link_id,link_click_delete)
