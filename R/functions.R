@@ -4274,11 +4274,11 @@ link_click_edit <- function(id){
 }
 link_click_statement_go <- function(id){
   if(str_detect(id,";")) "" else as.character(shiny::actionLink(inputId = paste0(
-      'statement_go',id), label = "Go to statment",class="linky"))
+      'statement_go_',id), label = "Go to statement",class="linky"))
 }
 link_click_source_go <- function(id){
   if(str_detect(id,";")) "" else as.character(shiny::actionLink(inputId = paste0(
-      'source_go',id), label = "Go to source",class="linky"))
+      'source_go_',id), label = "Go to source",class="linky"))
 }
 
 
