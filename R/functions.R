@@ -657,7 +657,8 @@ load_mapfile <- function(path=NULL,connection=conn){
                                  add_before_and_after_ids_to_links()
            ) %>%
 
-           pipe_recalculate_all() %>%
+           pipe_recalculate_all()%>%
+           pipe_cluster_sources(n_clusters = "all",title="#unfiltered_cluster_") %>%
 
            finalise(list(load_mapfile=list(graf="",glue::glue("load_mapfile path={path}"))))
   )
@@ -1321,7 +1322,6 @@ make_mentions_tabl <- function(graf){
   either_to <- consequence %>% mutate(direction="either")
   both <- bind_rows(consequence,influence,either_from,either_to)
   graf %>%
-    # pipe_coerce_mapfile %>%
     .$factors %>%
     # mutate(label=str_replace_all(label,"'","\\")) %>%
     # mutate(label=gsub(x=label,"\n"," ")) %>%
@@ -2885,13 +2885,13 @@ pipe_zoom_factors <- function(graf,level=1,separator=";",preserve_frequency=+Inf
 #' @export
 #'
 #' @examples
-pipe_cluster_sources <- function(graf,n_clusters=3){
+pipe_cluster_sources <- function(graf,n_clusters=3,title="#cluster_"){
   if("all"==(n_clusters)){
     return(
       graf %>%
-      pipe_cluster_sources(n_clusters=2) %>%
-      pipe_cluster_sources(n_clusters=3) %>%
-      pipe_cluster_sources(n_clusters=4)
+      pipe_cluster_sources(n_clusters=2,title=title) %>%
+      pipe_cluster_sources(n_clusters=3,title=title) %>%
+      pipe_cluster_sources(n_clusters=4,title=title)
       )
   }
   # browser()
@@ -2914,7 +2914,7 @@ pipe_cluster_sources <- function(graf,n_clusters=3){
     tibble(sources,clus_=res$cluster) %>%
     mutate(letters=letters[clus_])
   colnames(df)[1] <- "source_id"
-  colnames(df)[3] <- paste0("#cluster_",n_clusters)
+  colnames(df)[3] <- paste0(title,n_clusters)
   sources <-
     graf$sources %>% left_join(df %>% dplyr::select(-clus_))
 
