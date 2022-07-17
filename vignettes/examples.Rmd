@@ -844,8 +844,8 @@ ll %>%
 ```{r}
 oo %>%    
   pipe_find_factors(value="crops",down=0) %>%
-  pipe_bundle_links(field="#Sex of the respondent") %>% 
-  pipe_label_links(field="#Sex of the respondent",fun="initials") %>% 
+  pipe_bundle_links(field="#4Sex of the respondent") %>% 
+  pipe_label_links(field="#4Sex of the respondent",fun="initials") %>% 
   pipe_color_links(field="source_id",fun="surprise") %>%  
   pipe_scale_links(field="source_id",fun="count") %>%  
   make_print_map

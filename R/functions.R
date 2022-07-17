@@ -658,7 +658,7 @@ load_mapfile <- function(path=NULL,connection=conn){
            ) %>%
 
            pipe_recalculate_all()%>%
-           pipe_cluster_sources(n_clusters = "all",title="#unfiltered_cluster_") %>%
+           # pipe_cluster_sources(n_clusters = "all",title="#unfiltered_cluster_") %>%
 
            finalise(list(load_mapfile=list(graf="",glue::glue("load_mapfile path={path}"))))
   )
