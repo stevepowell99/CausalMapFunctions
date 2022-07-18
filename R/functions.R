@@ -651,14 +651,15 @@ load_mapfile <- function(path=NULL,connection=conn){
   }
   notify("Loading map")
   # browser()
-  return(graf  %>%
+  return(
+    graf  %>%
            pipe_coerce_mapfile() %>%
            pipe_update_mapfile(links=.$links  %>%
                                  add_before_and_after_ids_to_links()
            ) %>%
 
            pipe_recalculate_all()%>%
-           # pipe_cluster_sources(n_clusters = "all",title="#unfiltered_cluster_") %>%
+           pipe_cluster_sources(n_clusters = "all",title="#unfiltered_cluster_") %>%
 
            finalise(list(load_mapfile=list(graf="",glue::glue("load_mapfile path={path}"))))
   )
