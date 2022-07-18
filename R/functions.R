@@ -659,7 +659,7 @@ load_mapfile <- function(path=NULL,connection=conn){
            ) %>%
 
            pipe_recalculate_all()%>%
-           pipe_cluster_sources(n_clusters = "all",title="#unfiltered_cluster_") %>%
+           pipe_cluster_sources(n_clusters = "all",title="#unfiltered_cluster_set_") %>%
 
            finalise(list(load_mapfile=list(graf="",glue::glue("load_mapfile path={path}"))))
   )
@@ -2886,7 +2886,7 @@ pipe_zoom_factors <- function(graf,level=1,separator=";",preserve_frequency=+Inf
 #' @export
 #'
 #' @examples
-pipe_cluster_sources <- function(graf,n_clusters=3,title="#cluster_"){
+pipe_cluster_sources <- function(graf,n_clusters=3,title="#cluster_set_"){
   if("all"==(n_clusters)){
     return(
       graf %>%
