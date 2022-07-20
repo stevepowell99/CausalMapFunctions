@@ -614,7 +614,6 @@ load_mapfile <- function(path=NULL,connection=conn){
   # graf$questions <- graf$questions %>% replace_null(standard_questions()) %>% replace_zero_rows(standard_questions())
   # graf$settings <- graf$settings %>% replace_null(standard_settings()) %>% replace_zero_rows(standard_settings())  # graf$settings <- graf$settings %>% replace_null(standard_settings()) %>% replace_zero_rows(standard_settings())
 
-
   # this should not really be here, because pipe_coerce_mapfile was supposed to only operate on new unfiltered maps
   if(!is.null(graf$statements)){
     if(nrow(graf$statements)==0)graf$statements <- standard_statements() else
@@ -633,6 +632,7 @@ load_mapfile <- function(path=NULL,connection=conn){
   }
 
 
+# browser()
 
   if(is.null(graf) & is.null(factors) & is.null(links)) {
 
@@ -2887,6 +2887,14 @@ pipe_zoom_factors <- function(graf,level=1,separator=";",preserve_frequency=+Inf
 #'
 #' @examples
 pipe_cluster_sources <- function(graf,n_clusters=3,title="#cluster_set_"){
+  if(nrow(graf$links)<10){
+    notify("Not enough links to cluster")
+    return(graf)
+  }
+  if(nrow(graf$sources)<10){
+    notify("Not enough sources to cluster")
+    return(graf)
+  }
   if("all"==(n_clusters)){
     return(
       graf %>%
@@ -2910,6 +2918,7 @@ pipe_cluster_sources <- function(graf,n_clusters=3,title="#cluster_set_"){
 
   sources <- all_links$source_id
 
+  # browser()
   res <- stats::kmeans(all_links %>% dplyr::select(-source_id),centers=n_clusters)
   df <-
     tibble(sources,clus_=res$cluster) %>%
