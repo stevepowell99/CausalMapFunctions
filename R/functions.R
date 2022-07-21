@@ -2903,7 +2903,7 @@ pipe_cluster_sources <- function(graf,n_clusters=3,title="#cluster_set_"){
       pipe_cluster_sources(n_clusters=4,title=title)
       )
   }
-  browser()
+  # browser()
   if(nrow(graf$sources)<4*n_clusters){
     notify("Not enough sources to cluster",3)
     return(graf)
