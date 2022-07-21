@@ -2903,7 +2903,7 @@ pipe_cluster_sources <- function(graf,n_clusters=3,title="#cluster_set_"){
       pipe_cluster_sources(n_clusters=4,title=title)
       )
   }
-  # browser()
+  browser()
   if(nrow(graf$sources)<4*n_clusters){
     notify("Not enough sources to cluster",3)
     return(graf)
@@ -2916,6 +2916,10 @@ pipe_cluster_sources <- function(graf,n_clusters=3,title="#cluster_set_"){
     mutate(dummy=1) %>%
     pivot_wider(id_cols = source_id,names_from = couple,values_from=dummy,values_fill = 0)
 
+  if(nrow(all_links)<4*n_clusters){
+    notify("Not enough links and sources to cluster",3)
+    return(graf)
+  }
   sources <- all_links$source_id
 
   # browser()
