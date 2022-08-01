@@ -3786,7 +3786,7 @@ pipe_label_links <- function(graf,field="link_id",fun="count",value=NULL,add_fie
     # browser()
     links <- get_percentages(links,field)
 
-    links$new_link_label=format(100*as.numeric(links$new_link_label)/links$group_baseline,digits=1) %>% paste0(links$new_link_label," (",.,"%)")
+    links$new_link_label=format(100*as.numeric(links$new_link_label)/links$group_baseline,digits=1) %>% paste0(links$new_link_label,"/",links$group_baseline," (",.,"%)")
   }
   if(oldfun=="surprise"){
     links <- get_surprises(links,field)
