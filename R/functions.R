@@ -3360,8 +3360,10 @@ trace_threads_down <- function(graf,field="source_id"){
     mutate(n_downstream_threads_surviving=replace_na(n_downstream_threads_surviving,0)) %>%
     mutate(n_downstream_threads=replace_na(n_downstream_threads,0))
 
+  # browser()
+
   graf %>%
-    pipe_update_mapfile(.,links=graf$links %>% mutate(has_downstream_threads=downstream_threads!=""))
+    pipe_update_mapfile(.,links=graf$links %>% mutate(has_downstream_threads=downstream_threads!="") %>% filter(has_downstream_threads))
 
 }
 

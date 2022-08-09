@@ -211,6 +211,7 @@ xdescription <- "Set a different print layout"
 
 ```{r }
 hz <- load_mapfile("health-zoom")%>% pipe_coerce_mapfile 
+  cg <- load_mapfile("oicanadaghana22")%>% pipe_coerce_mapfile 
   sz <- load_mapfile("smartzoomingexample")%>% pipe_coerce_mapfile 
   so <- load_mapfile("stress-opposites")%>% pipe_coerce_mapfile 
   tt <- load_mapfile("tearfund-sl-small")%>% pipe_coerce_mapfile
@@ -227,6 +228,8 @@ hz <- load_mapfile("health-zoom")%>% pipe_coerce_mapfile
   ma <- load_mapfile("concern-2022-malawi")%>% pipe_coerce_mapfile
   pa <- load_mapfile("pilotabcdwellbeing-2022")%>% pipe_coerce_mapfile
   oig <- load_mapfile("oi-2021-ghana")%>% pipe_coerce_mapfile
+  
+  
 ```
 
 
