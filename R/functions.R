@@ -3305,10 +3305,11 @@ pipe_trace_threads <- function(graf,field="source_id",direction="down"){
 
 
   if(direction=="down")trace_threads_down(graf,field="source_id") %>%
-  finalise_transforms(info) else
+  finalise_transforms(info) else {
     trace_threads_up(graf,field="source_id") %>%
+    # browser()
     finalise_transforms(info)
-
+}
 
 }
 trace_threads_down <- function(graf,field="source_id"){
@@ -3403,7 +3404,19 @@ continue_after <- function(links,link_id,node){
 
 
 ## same but you need to replace up/down to/from as well as before/after
+pipe_reverse_map <- function(graf){
+  factors <- graf$factors %>% rename(trace_after_vec=trace_before_vec,trace_before_vec=trace_after_vec)
+  links <- graf$links %>% rename(from=to,to=from,from_label=to_label,to_label=from_label,from_flipped=to_flipped,to_flipped=from_flipped,
+                                 before_id=after_id,after_id=before_id)
+  pipe_update_mapfile(graf,factors=factors,links=links)
+}
 trace_threads_up <- function(graf,field="source_id"){
+
+  # browser()
+  graf %>% pipe_reverse_map %>% trace_threads_down(field=field) %>% pipe_reverse_map()
+
+}
+OLDtrace_threads_up <- function(graf,field="source_id"){
 
   #get the thread ids and put them in the links table for every link
   graf$links$upstream_threads <- map(graf$links$link_id,~{get_field(graf$links,field,.)}) %>% unlist
