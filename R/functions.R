@@ -3083,7 +3083,7 @@ pipe_trace_robustness <- function(graf,from,to,length=4,field=NULL){
 #' @export
 #'
 #' @examples
-pipe_trace_paths <- function(graf,from,to,length=4){
+pipe_trace_paths <- function(graf,from,to,length=4,remove_links=F){
   info <-   make_info(graf,as.list(match.call()))
 #
 #   graf <-
@@ -3095,6 +3095,9 @@ pipe_trace_paths <- function(graf,from,to,length=4){
     select(label,driver_score,outcome_score)
 # browser()
 
+
+  ######### only working out auto recognition of main_drivers and main_outcomes
+
   driver_max <- tmp$driver_score %>% max(na.rm=T)
   outcome_max <- tmp$outcome_score %>% max(na.rm=T)
 
@@ -3102,6 +3105,7 @@ pipe_trace_paths <- function(graf,from,to,length=4){
   if(to=="main_outcomes") to  <- tmp %>% arrange(desc(outcome_score)) %>% filter(outcome_score>(outcome_max/4)) %>% slice(1:3) %>% pull(label) %>% unlist
 
 
+  ######### tidy and prepare
   graf$factors <-
     graf$factors %>%
     filter(factor_id %in% get_all_link_ids(graf$links))
@@ -3116,14 +3120,13 @@ pipe_trace_paths <- function(graf,from,to,length=4){
 
   links <- graf$links %>%
     select(from,to,everything())
-  # browser()
 
+  ######### which factors match the searches
   graf$factors$found_from <- map(from,~str_detect(tolower(graf$factors$label),.)) %>% as.data.frame %>% rowSums %>% as.logical
   graf$factors$found_to <- map(to,~str_detect(tolower(graf$factors$label),.)) %>% as.data.frame %>% rowSums %>% as.logical
 
+  ######### found type
   factors <- graf$factors %>%
-    # mutate(found_from=str_detect(tolower(label),tolower(from))) %>%
-    # mutate(found_to=str_detect(tolower(label),tolower(to))) %>%
     mutate(found_type=paste0(if_else(found_from,"source","-"),if_else(found_to,"target","-"))) %>%
     mutate(found_any=found_from|found_to)
 
@@ -3143,12 +3146,11 @@ pipe_trace_paths <- function(graf,from,to,length=4){
 
   bothvecsum <- `+`(trace_after_vec,trace_before_vec)
   bothvec <- bothvecsum<=length
-  # browser()
-  if(min(bothvecsum)<Inf) factors <- factors %>% mutate(trace_before_vec=trace_before_vec,
+  if(min(bothvecsum)<Inf) factors <- factors %>% mutate(bothvecsum=bothvecsum,trace_before_vec=trace_before_vec,
                                                         trace_after_vec=trace_after_vec,
                                                         bothvec,
                                                         found=found_from|found_to
-  ) %>% filter(bothvec) else factors %>% filter(F)
+  ) %>% filter(bothvec) else factors <- factors %>% filter(F)
 
 
   sums <- factors %>% select(found_from,found_to) %>% colSums(na.rm=T)
@@ -3161,11 +3163,26 @@ pipe_trace_paths <- function(graf,from,to,length=4){
 
 
 
+  ##### legacy??
   factors <- factors %>%
     filter(label!="_super_sink_" & label!="_super_origin_")
 
+  ## now we have to make sure we don't also have links between factors where the links are not part of the actual path tracing
+  if(remove_links){
 
-  pipe_update_mapfile(graf,factors=factors,links=links) %>%
+    links <-
+      links %>% filter(from %in% factors$factor_id)  %>% filter(to %in% factors$factor_id)
+  links <-
+    links %>%
+    left_join(factors %>% select(from=factor_id,fromdist=bothvecsum)) %>%
+    left_join(factors %>% select(to=factor_id,todist=bothvecsum)) %>%
+    filter(fromdist>todist)
+
+
+  # browser()
+}
+  graf <- pipe_update_mapfile(graf,factors=factors,links=links)
+  graf %>%
     pipe_remove_orphaned_links %>%
     pipe_remove_isolated_links()%>%
     finalise(info)
@@ -3364,7 +3381,8 @@ trace_threads_down <- function(graf,field="source_id"){
   # browser()
 
   graf %>%
-    pipe_update_mapfile(.,links=graf$links %>% mutate(has_downstream_threads=downstream_threads!="") %>% filter(has_downstream_threads))
+    pipe_update_mapfile(.,links=graf$links %>% mutate(has_downstream_threads=downstream_threads!="") )
+    # pipe_update_mapfile(.,links=graf$links %>% mutate(has_downstream_threads=downstream_threads!="") %>% filter(has_downstream_threads))
 
 }
 

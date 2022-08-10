@@ -4,12 +4,12 @@
 \alias{parse_line}
 \title{Parse line}
 \usage{
-parse_line(line, graf)
+parse_line(line1, graf)
 }
 \arguments{
-\item{line}{A line of text to be parsed}
-
 \item{graf}{A mapfile representing a causal map.}
+
+\item{line}{A line of text to be parsed}
 }
 \value{
 A list containing the function name and a list of parameters.
