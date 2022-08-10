@@ -3083,7 +3083,7 @@ pipe_trace_robustness <- function(graf,from,to,length=4,field=NULL){
 #' @export
 #'
 #' @examples
-pipe_trace_paths <- function(graf,from,to,length=4,remove_links=F){
+pipe_trace_paths <- function(graf,from="",to="",length=4,remove_links=F){
   info <-   make_info(graf,as.list(match.call()))
 #
 #   graf <-
@@ -3093,7 +3093,6 @@ pipe_trace_paths <- function(graf,from,to,length=4,remove_links=F){
 
   tmp <- graf$factors %>%
     select(label,driver_score,outcome_score)
-# browser()
 
 
   ######### only working out auto recognition of main_drivers and main_outcomes
@@ -3101,7 +3100,10 @@ pipe_trace_paths <- function(graf,from,to,length=4,remove_links=F){
   driver_max <- tmp$driver_score %>% max(na.rm=T)
   outcome_max <- tmp$outcome_score %>% max(na.rm=T)
 
-  if(from=="main_drivers") from <- tmp %>% arrange(desc(driver_score)) %>% filter(driver_score>(driver_max/4)) %>% slice(1:3) %>% pull(label) %>% unlist
+    # browser()
+  if(from=="main_drivers") {
+    from <- tmp %>% arrange(desc(driver_score)) %>% filter(driver_score>(driver_max/4)) %>% slice(1:3) %>% pull(label) %>% unlist}
+
   if(to=="main_outcomes") to  <- tmp %>% arrange(desc(outcome_score)) %>% filter(outcome_score>(outcome_max/4)) %>% slice(1:3) %>% pull(label) %>% unlist
 
 
@@ -3169,15 +3171,30 @@ pipe_trace_paths <- function(graf,from,to,length=4,remove_links=F){
 
   ## now we have to make sure we don't also have links between factors where the links are not part of the actual path tracing
   if(remove_links){
-
     links <-
       links %>% filter(from %in% factors$factor_id)  %>% filter(to %in% factors$factor_id)
   links <-
     links %>%
-    left_join(factors %>% select(from=factor_id,fromdist=bothvecsum)) %>%
-    left_join(factors %>% select(to=factor_id,todist=bothvecsum)) %>%
-    filter(fromdist>todist)
+    left_join(factors %>% select(from=factor_id,frombeforedist=trace_before_vec,fromafterdist=trace_after_vec),by="from") %>%
+    left_join(factors %>% select(to=factor_id,tobeforedist=trace_before_vec,toafterdist=trace_after_vec),by="to")
 
+# browser()
+  links <-
+    links %>%
+    filter(
+      frombeforedist==tobeforedist+1
+      |
+      fromafterdist==toafterdist-1
+           )
+  # links <-
+  #   links %>%
+  #   left_join(factors %>% select(from=factor_id,fromdist=bothvecsum),by="from") %>%
+  #   left_join(factors %>% select(to=factor_id,todist=bothvecsum),by="to") %>%
+  #   filter(fromdist>todist)
+
+  factors <-
+    factors %>%
+    filter(factor_id %in% get_all_link_ids(links))
 
   # browser()
 }
