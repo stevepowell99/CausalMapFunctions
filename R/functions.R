@@ -2985,6 +2985,7 @@ pipe_bundle_factors <- function(graf,value=""){
 pipe_trace_robustness <- function(graf,from,to,length=4,field=NULL){
   # browser()
   info <-   make_info(graf,as.list(match.call()))
+  if(field=="")field <- NULL
 
   if(from=="" | to==""){notify("blank from or to factor; robustness calculation may not be correct")}# this should be possible but atm results are horrible
   if(is.null(field)){
@@ -3016,11 +3017,14 @@ pipe_trace_robustness <- function(graf,from,to,length=4,field=NULL){
     vec %>%
     set_names %>%
     map(
-      function(x) graf %>%
+      function(x) {
+        message(x)
+        graf %>%
         pipe_find_links(field=field,value=x,operator="equals") %>%
         pipe_trace_paths(from=from,to=to,length=length) %>%
         pipe_calculate_robustness() %>%
         get_robustness
+      }
     )
 
   # browser()
@@ -3083,14 +3087,10 @@ pipe_trace_robustness <- function(graf,from,to,length=4,field=NULL){
 #' @export
 #'
 #' @examples
-pipe_trace_paths <- function(graf,from="",to="",length=4,remove_links=F){
+pipe_trace_paths <- function(graf,from="",to="",length=4,remove_links=F,threads_direction="none",field="source_id",calculate_robustness=F){
   info <-   make_info(graf,as.list(match.call()))
-#
-#   graf <-
-#     graf %>%
-#     pipe_remove_isolated()
-#
-
+  calculate_robustness <- as.logical(calculate_robustness)
+# browser()
   tmp <- graf$factors %>%
     select(label,driver_score,outcome_score)
 
@@ -3196,12 +3196,15 @@ pipe_trace_paths <- function(graf,from="",to="",length=4,remove_links=F){
     factors %>%
     filter(factor_id %in% get_all_link_ids(links))
 
-  # browser()
 }
   graf <- pipe_update_mapfile(graf,factors=factors,links=links)
+  # browser()
   graf %>%
     pipe_remove_orphaned_links %>%
-    pipe_remove_isolated_links()%>%
+    pipe_remove_isolated_links %>%
+    {if(threads_direction=="up") pipe_trace_threads(.,field = field,direction="up") else .} %>%
+    {if(threads_direction=="down") pipe_trace_threads(.,field = field,direction="down") else .} %>%
+    {if(calculate_robustness) pipe_trace_robustness(.,from=from,to=to,length=length,field=field) else .} %>%
     finalise(info)
 
 
@@ -3332,6 +3335,7 @@ pipe_combine_opposites <- function(graf,flipchar="~",add_colors=T){
 #'
 #' @examples
 pipe_trace_threads <- function(graf,field="source_id",direction="down"){
+  # browser()
   info <-   make_info(graf,as.list(match.call()))
 
   #get the thread ids and put them in the links table for every link

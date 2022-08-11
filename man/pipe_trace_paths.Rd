@@ -4,7 +4,15 @@
 \alias{pipe_trace_paths}
 \title{Trace paths}
 \usage{
-pipe_trace_paths(graf, from, to, length = 4)
+pipe_trace_paths(
+  graf,
+  from = "",
+  to = "",
+  length = 4,
+  remove_links = F,
+  threads_direction = "none",
+  threads_field = "source_id"
+)
 }
 \arguments{
 \item{graf}{A mapfile representing a causal map.
