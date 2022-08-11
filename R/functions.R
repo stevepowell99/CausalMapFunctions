@@ -3396,8 +3396,7 @@ trace_threads_down <- function(graf,field="source_id"){
     mutate(n_downstream_threads=replace_na(n_downstream_threads,0)) %>%
     mutate(
       threads=downstream_threads,
-      n_threads_surviving=n_downstream_threads_surviving,
-      n_threads=n_downstream_threads
+      thread_count=n_downstream_threads
     )
 
   # browser()
