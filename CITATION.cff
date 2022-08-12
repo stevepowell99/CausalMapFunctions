@@ -2,8 +2,9 @@ cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 authors:
   - family-names: "Powell"
-given-names: "Steve"
+    given-names: "Steve"
 title: "Causal Map Functions"
 version: 0.75
 date-released: 2022-08-11
 url: "https://github.com/stevepowell99/CausalMapFunctions"
+
