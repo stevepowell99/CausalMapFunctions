@@ -213,6 +213,7 @@ xdescription <- "Set a different print layout"
 hz <- load_mapfile("health-zoom")%>% pipe_coerce_mapfile 
   cg <- load_mapfile("oicanadaghana22")%>% pipe_coerce_mapfile 
   sz <- load_mapfile("smartzoomingexample")%>% pipe_coerce_mapfile 
+  kh <- load_mapfile("kantar-hierarchy-test-sp")%>% pipe_coerce_mapfile 
   so <- load_mapfile("stress-opposites")%>% pipe_coerce_mapfile 
   tt <- load_mapfile("tearfund-sl-small")%>% pipe_coerce_mapfile
   ll <- load_mapfile("quip-coded")%>% pipe_coerce_mapfile

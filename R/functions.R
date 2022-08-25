@@ -1035,7 +1035,7 @@ create_factor_quickfields <- function(factors){
     keep(.!="")
   if(length(quickfields)>0){
     for(dim in quickfields){
-      if(T | dim %notin% colnames(factors))factors[,dim] <- {
+      if(dim %notin% colnames(factors))factors[,dim] <- {
         factors$label %>%
           str_match(.,paste0(dim,"\\:([:alnum:]*)")) %>% `[`(,2) %>%
           as_numeric_if_all()
@@ -1053,7 +1053,7 @@ create_link_quickfields <- function(links){
   # browser()
   quickfields <-
     links$hashtags %>%
-    str_match_all(.,"([:alnum:]*)=[:alnum:]") %>%
+    str_match_all(.,"([:alnum:]*)\\:[:alnum:]") %>%
     map(function(x)x[,2]) %>% unlist %>%
     na.omit %>%
     unique
@@ -1062,7 +1062,8 @@ create_link_quickfields <- function(links){
     for(dim in quickfields){
       if(dim %notin% colnames(links))links[,dim] <- {
         links$hashtags %>%
-          str_match(.,paste0(dim,"=([:alnum:]*)")) %>% `[`(,2)
+          str_match(.,paste0(dim,"\\:([:alnum:]*)")) %>% `[`(,2) %>%
+          as_numeric_if_all()
 
       }
     }
@@ -1137,11 +1138,11 @@ pipe_recalculate_factors <- function(graf){
 #' @examples
 pipe_recalculate_links <- function(graf){
   info <-   make_info(graf,as.list(match.call()))
-
+# browser()
   graf %>%
     pipe_update_mapfile(
       links = graf$links %>%   add_labels_to_links(graf$factors) %>%
-        # create_link_quickfields() %>%
+        create_link_quickfields() %>%
         add_simple_bundle_to_links()
 
     ) %>% finalise(info)
