@@ -2828,6 +2828,22 @@ pipe_remove_isolated_links <- function(graf,labels=F){
 
 }
 
+#' @inheritParams parse_commands
+#' @return
+#' @export
+#'
+#' @examples
+pipe_remove_selfloops <- function(graf){
+  info <-   make_info(graf,as.list(match.call()))
+  # browser()
+
+graf <- graf %>% pipe_update_mapfile(factors=graf$factors,
+links=graf$links %>% filter(from!=to))
+
+finalise(graf,info)
+
+}
+
 #' Zoom factors
 #'
 #' Zoom out from a map, merging factors within the saem hierarchy

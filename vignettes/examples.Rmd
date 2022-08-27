@@ -27,7 +27,7 @@ library(DBI)
 library(kableExtra)
 library(scales)
 knitr::opts_chunk$set(echo = T,warning=F,message=F)
-source("../R/functions.R")################################
+#source("../R/functions.R")################################
  config = configr::read.config("../config.yml")$default
  
  conn <- dbConnect(
@@ -214,6 +214,7 @@ hz <- load_mapfile("health-zoom")%>% pipe_coerce_mapfile
   cg <- load_mapfile("oicanadaghana22")%>% pipe_coerce_mapfile 
   sz <- load_mapfile("smartzoomingexample")%>% pipe_coerce_mapfile 
   kh <- load_mapfile("kantar-hierarchy-test-sp")%>% pipe_coerce_mapfile 
+  ks <- load_mapfile("kantar-swan-short")%>% pipe_coerce_mapfile 
   so <- load_mapfile("stress-opposites")%>% pipe_coerce_mapfile 
   tt <- load_mapfile("tearfund-sl-small")%>% pipe_coerce_mapfile
   ll <- load_mapfile("quip-coded")%>% pipe_coerce_mapfile
@@ -574,6 +575,27 @@ ll %>%
     pipe_remove_brackets() %>%
     make_interactive_map
 
+```
+
+## Self loops
+
+```{r }  
+ks %>% 
+  parse_commands("find factors field=label value=~People feeling safe operator=notcontains up=4 down=1
+find factors field=label value=People feeling safe operator=contains up=4 down=1
+zoom factors level=2
+remove isolated
+find links field=source_frequency value=2 operator=greater
+remove selfloops
+hide quickfields
+bundle links field=simple_bundle
+label factors field=source_count add_field_name=FALSE clear_previous=FALSE
+scale links value=count: source_id
+label links value=count: source_id
+wrap factors length=40
+color text field=is_opposable lo=black hi=#f26d04
+color factors field=found lo=white hi=#7FC97F") %>% 
+  make_print_map()
 ```
 
 ## Bundle factors
@@ -1383,11 +1405,8 @@ pa %>%
   make_print_map()
 
 ## request is large
-pa %>%    
-  pipe_trace_robustness(from = "",to="wellbeing",length = 3) %>% 
-  make_print_map()
 
-e3 %>%    
+if(F){e3 %>%    
   pipe_trace_robustness(from = "High",to="Damage",length = 5) %>% 
   make_print_map()
 
@@ -1421,10 +1440,6 @@ tt %>%
   pipe_trace_robustness(from = "Capabilities; [P13",to="[OP3]",length = 2) %>% 
   get_robustness()
 
-```
-
-
-```{r}
 e3  %>%
   pipe_trace_robustness(from = "High",to="People moving",length = 5) %>% 
   make_print_map()
@@ -1432,10 +1447,7 @@ e3  %>%
 e3  %>%
   pipe_trace_robustness(from = "High",to="",length = 5) %>% 
   make_print_map()
-```
 
-
-```{r}
 e3  %>%
   pipe_trace_robustness(from = "High",to="People moving",length = 5) %>% 
   get_robustness() %>% 
@@ -1457,6 +1469,7 @@ e3  %>%
   get_robustness()%>% 
   kable
 
+}
 
 ```
 
@@ -1480,6 +1493,7 @@ ll  %>%
 Check that opposites colouring is always preserved?
 
 ```{r}
+if(F){
 hh  %>%
   pipe_trace_robustness(from = "Revision",to="happy",length = 5) %>% 
   pipe_combine_opposites %>% 
@@ -1497,7 +1511,7 @@ hh  %>%
   pipe_select_factors(2) %>% 
   pipe_select_links(3) %>% 
   make_print_map()
-
+}
 
 ```
 

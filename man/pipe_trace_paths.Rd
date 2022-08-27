@@ -11,7 +11,8 @@ pipe_trace_paths(
   length = 4,
   remove_links = F,
   threads_direction = "none",
-  threads_field = "source_id"
+  field = "source_id",
+  calculate_robustness = F
 )
 }
 \arguments{
