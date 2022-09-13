@@ -2863,7 +2863,7 @@ finalise(graf,info)
 #' @export
 #'
 #' @examples
-pipe_zoom_factors <- function(graf,level=1,separator=";",preserve_frequency=+Inf,frequency_field="frequency",frequency_other="",hide=T){
+pipe_zoom_factors <- function(graf,level=1,separator=";",preserve_frequency=+Inf,frequency_field="frequency",frequency_other="(other)",hide=T){
   info <-   make_info(graf,as.list(match.call()))
   level=as.numeric(level)
   hide=as.logical(hide)
