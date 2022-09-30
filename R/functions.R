@@ -1325,10 +1325,7 @@ make_mentions_tabl <- function(graf){
   both <- bind_rows(consequence,influence,either_from,either_to)
   graf %>%
     .$factors %>%
-    # mutate(label=str_replace_all(label,"'","\\")) %>%
-    # mutate(label=gsub(x=label,"\n"," ")) %>%
     mutate(label=str_replace_all(label,"\n"," ")) %>%
-    # select(factor_id,everything()) %>%
     select(-any_of("id")) %>%
     left_join_safe(both %>% select(-label) ,by=xc("factor_id"),suffix=xc(".factors .links")) %>%
     mutate(mentions="any") %>%  ## this is actually just a hack so we can use this field in the Mentions table
@@ -1704,6 +1701,7 @@ full_function_name <- function(df,nam){
   else if(nam=="median")"getmedian"
   else if(nam=="mode")"getmode"
   else if(nam=="percent")"count_unique"
+  else if(nam=="proportion")"count_unique"
   else if(nam=="surprise")"count_unique"
   else if(nam=="count")"count_unique"
   else nam
@@ -3379,13 +3377,13 @@ trace_threads_down <- function(graf,field="source_id"){
   # how many steps away is each factor
   if("trace_after_vec" %notin% colnames(factors)) {notify("You need to trace paths before tracing continuity",3);return(graf)}
 
-  origins <-
+  origins <-                # dont think we need this
     factors %>%
     select(factor_id,trace_after_vec) %>%
     filter(trace_after_vec==0) %>%
     pull(factor_id)
 
-  # the list of each factor id which we will process in turn
+  # the list of each factor id in the map which we will process in turn
   pointers <-
     factors %>%
     select(factor_id,trace_after_vec) %>%
@@ -3393,6 +3391,7 @@ trace_threads_down <- function(graf,field="source_id"){
     pull(factor_id)
 
 
+  # starting with the origins, go through each successively further away node and add the downstream threads info to factors and links
   for(node in pointers){
     graf <- graf %>%
       pipe_continue_after(node)
@@ -3480,6 +3479,11 @@ trace_threads_up <- function(graf,field="source_id"){
   graf %>% pipe_reverse_map %>% trace_threads_down(field=field) %>% pipe_reverse_map()
 
 }
+
+
+
+
+
 OLDtrace_threads_up <- function(graf,field="source_id"){
 
   #get the thread ids and put them in the links table for every link
@@ -3865,7 +3869,14 @@ pipe_label_links <- function(graf,field="link_id",fun="count",value=NULL,add_fie
     # browser()
     links <- get_percentages(links,field)
 
-    links$new_link_label=format(100*as.numeric(links$new_link_label)/links$group_baseline,digits=1) %>% paste0(links$new_link_label,"/",links$group_baseline," (",.,"%)")
+    links$new_link_label=format(100*as.numeric(links$new_link_label)/links$group_baseline,digits=1) %>% paste0("%")
+  }
+  if(oldfun=="proportion"){
+
+    # browser()
+    links <- get_percentages(links,field)
+
+    links$new_link_label=paste0(links$new_link_label,"/",links$group_baseline)
   }
   if(oldfun=="surprise"){
     links <- get_surprises(links,field)
@@ -4200,7 +4211,7 @@ pipe_color_links <- function(graf,field="link_id",lo="#FCFDBF",hi="#5F187F",mid=
     }else did_group <- F
 
     links <- links %>% mutate(color=exec(fun,!!sym(field)))
-    if(oldfun=="percent"){
+    if(oldfun=="percent" | oldfun=="proportion"){
       # browser()
       links <- get_percentages(links,field)
       links$color=100*links$color/links$group_baseline

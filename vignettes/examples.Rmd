@@ -210,6 +210,7 @@ xdescription <- "Set a different print layout"
 ### More examples
 
 ```{r }
+ef <- load_mapfile("example-file")%>% pipe_coerce_mapfile 
 hz <- load_mapfile("health-zoom")%>% pipe_coerce_mapfile 
   cg <- load_mapfile("oicanadaghana22")%>% pipe_coerce_mapfile 
   sz <- load_mapfile("smartzoomingexample")%>% pipe_coerce_mapfile 
@@ -231,6 +232,13 @@ hz <- load_mapfile("health-zoom")%>% pipe_coerce_mapfile
   pa <- load_mapfile("pilotabcdwellbeing-2022")%>% pipe_coerce_mapfile
   oig <- load_mapfile("oi-2021-ghana")%>% pipe_coerce_mapfile
   
+  
+# ef %>% parse_commands("zoom factors level=1
+# find factors field=factor_memo value=Agriculture operator=contains up=0 down=0
+#                       ")  %>% 
+#   make_mentions_tabl() %>% 
+#   pull(`#Name of province`) %>% 
+#   table(useNA = "al")
   
 ```
 
