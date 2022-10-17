@@ -4,10 +4,17 @@
 \alias{add_attribute}
 \title{Add attribute}
 \usage{
-add_attribute(graf, value, attr = "flow")
+add_attribute(graf, value)
 }
 \arguments{
-\item{attr}{}
+\item{graf}{A mapfile}
+
+\item{value}{A value to add as attribute}
+
+\item{attr}{The attribute to add to}
+}
+\value{
+The mapfile `graf` but with an additional attribute `attr` with value `value`
 }
 \description{
 Add attribute

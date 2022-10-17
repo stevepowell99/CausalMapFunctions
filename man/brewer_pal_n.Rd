@@ -9,6 +9,9 @@ brewer_pal_n(vec, pal)
 \arguments{
 \item{vec}{}
 }
+\value{
+
+}
 \description{
 Title
 }

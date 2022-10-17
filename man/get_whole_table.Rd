@@ -9,6 +9,9 @@ get_whole_table(tab, connection = conn)
 \arguments{
 \item{connection}{}
 }
+\value{
+
+}
 \description{
 Title
 }

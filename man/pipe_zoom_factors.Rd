@@ -10,7 +10,7 @@ pipe_zoom_factors(
   separator = ";",
   preserve_frequency = +Inf,
   frequency_field = "frequency",
-  frequency_other = "",
+  frequency_other = "(other)",
   hide = T
 )
 }
@@ -19,6 +19,9 @@ pipe_zoom_factors(
 A mapfile is a tidygraph, which consists of a table of edges linked to a table of nodes,
 with an optional additional table of statements.
 In this package, nodes are called `factors` and edges are called `links.`}
+}
+\value{
+
 }
 \description{
 Another important ability of the Causal Map Viewer is to manipulate maps which use

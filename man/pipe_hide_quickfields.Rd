@@ -9,6 +9,9 @@ pipe_hide_quickfields(graf, value = "[")
 \arguments{
 \item{value}{}
 }
+\value{
+
+}
 \description{
 Title
 }

@@ -7,13 +7,11 @@
 # - note that some funs like zoom, bundle factor etc may have different ids from previous mapfile
 # - there should never be a need to apply pipe_coerce_mapfile twice
 
-# library(poLCA)
 library(igraph)
 library(configr)
 library(DiagrammeR)
 library(visNetwork)
 library(tidyverse)
-#library(tidygraph)
 library(scales)
 library(htmltools)
 library(paws)
@@ -22,81 +20,19 @@ library(jsonlite)
 library(DBI)
 library(shiny)
 
-# config = configr::read.config("config.yml")$default
-#
-# conn <- dbConnect(
-#   drv = RMySQL::MySQL(max.con=100, fetch.default.rec=1000),
-#   dbname = config$sql$dbname,
-#   host = config$sql$host,
-#   port = config$sql$port,
-#   username = config$sql$username,
-#   password = config$sql$password
-# )
 
-if(Sys.getenv("USERDOMAIN")=="LAPTOP-F57J1GK6")smessage <- message else smessage <- function(...){wqertyasdf <- 99}
+# constants ---------------------------------------------------------------
+
+contrary_color <- "#f26d04"
+ordinary_color <- "#058488"
 
 
-
-summary.mapfile <- function (graf){
-  list(colnames=graf %>% map(colnames) ,
-       "Number of rows"=graf %>% map(nrow) %>% as_tibble
-  )
-}
-print.mapfile <- function (graf, n=2,...)
-{
-  # browser()
-  cat("Factors: ");graf$factors %>% as_tibble  %>% print(n=n)
-  cat("Links: ");graf$links %>% as_tibble  %>% print(n=n)
-  cat("Statements: ");graf$statements %>% as_tibble  %>% print(n=n)
-  cat("Sources: ");graf$sources %>% as_tibble  %>% print(n=n)
-  cat("Questions: ");graf$questions %>% as_tibble  %>% print(n=n)
-  cat("Settings: ");graf$settings %>% as_tibble  %>% print(n=n)
-
-}
-# these are not generics so must be called directly
-nrow.cm <- function (graf){graf %>% map(nrow)}
-colnames.cm <- function (graf){graf %>% map(colnames)}
+operator_list=c("=", "less", "greater", "notcontains", "notequals", "notequal", "equals", "equal", "contains", "starts", "ends", "start", "end")
+buck <- "causalmap"
+table_list <- c("factors","links","statements","sources","questions","settings") #has to be in Viewer as well
 
 
-
-notify <- function(text,level=3){
-  # browser()
-  if(exists("sess")){if(sess$is_admin %>% replace_null(F))safely(~showNotification(ui=text))()$result}
-
-}
-#' Add attribute
-#'
-#' @param graf
-#' @param value
-#' @param attr
-#'
-#' @return
-#' @export
-#'
-#' @examples
-add_attribute <- function(graf,value,attr="flow"){
-  attr(graf,attr) <- value
-  graf
-}
-
-finalise <- function(graf,value){
-  smessage("finalise")
-  # simply reattaches the info list back to the graf. so you may need to update info during a function.
-  attr(graf,"info") <- value
-  graf
-}
-finalise_transforms <- function(graf,value){
-  smessage("finalise transforms")
-  # simply reattaches the info list back to the graf and also does a final recalculation - only used for pipe functions which do any transformations of the graf
-
-
-  if(T)attr(graf,"info") <- value
-
-
-  graf %>%     pipe_recalculate_all()
-}
-
-lcollapse <- function(x)map(x,~paste0(.,collapse=":"))%>% unlist(recursive=F)
+s3 <- paws::s3()
 
 standard_factors <- function(){
   tibble(label="blank factor",
@@ -129,28 +65,64 @@ standard_sources <- function()tibble(source_id="1",source_memo="global source",s
 standard_questions <- function()tibble(question_id="1",question_text="global question",question_memo="",question_map_id=1)
 standard_settings <- function()tibble(setting_id="background_colour",value="",map_id=1)
 
-#' Add class
+
+# Utility functions -------------------------------------------------------
+
+
+
+# # these are not generics so must be called directly
+# nrow.cm <- function (graf){graf %>% map(nrow)}
+# colnames.cm <- function (graf){graf %>% map(colnames)}
+#
+
+#' Add attribute
 #'
+#' @param graf A mapfile
+#' @param value A value to add as attribute
+#' @param attr The attribute to add to
+#'
+#' @return The mapfile `graf` but with an additional attribute `attr` with value `value`
 #' @export
 #'
+#' @examples
+add_attribute <- function(graf,value,attr){
+  attr(graf,attr) <- value
+  graf
+}
+
+finalise <- function(graf,value){
+  message("finalise")
+  # simply reattaches the info list back to the graf. so you may need to update info during a function.
+  attr(graf,"info") <- value
+  graf
+}
+
+finalise_transforms <- function(graf,value){
+  message("finalise transforms")
+  # simply reattaches the info list back to the graf and also does a final recalculation - only used for pipe functions which do any transformations of the graf
+
+
+  if(T)attr(graf,"info") <- value
+
+
+  graf %>%     pipe_recalculate_all()
+}
+
+# lcollapse <- function(x)map(x,~paste0(.,collapse=":"))%>% unlist(recursive=F)
+
+
+#' Add class
+#'
+#' @param x Object to add a class to
+#' @param cls Class to be added
+#'
+#' @export
+#' @return `x` with class `cls` added
 #' @examples
 add_class <- function(x,cls="mapfile"){
   class(x) <- c(cls,class(x)) %>% unique
   x
 }
-
-# constants ---------------------------------------------------------
-contrary_color <- "#f26d04"
-ordinary_color <- "#058488"
-
-
-operator_list=c("=", "less", "greater", "notcontains", "notequals", "notequal", "equals", "equal", "contains", "starts", "ends", "start", "end")
-buck <- "causalmap"
-table_list <- c("factors","links","statements","sources","questions","settings") #has to be in Viewer as well
-
-#library(tidygraph)
-
-s3 <- paws::s3()
 
 
 
@@ -164,7 +136,6 @@ s3file_exists <- function(object,buck){
 
 # note this is our own function , not from aws.s3 package
 s3readRDS <- function(object,bucket,version=NULL,s3confun=s3){
-  # s3confun$get_object(bucket,Key=object, VersionId = version)$Body %>% rawConnection() %>% gzcon %>% readRDS
   s3confun$get_object(bucket,Key=object, VersionId = version)$Body %>% rawConnection() %>%
     gzcon %>%
     (function(con) {on.exit(close(con)); readRDS(con)})
@@ -172,7 +143,7 @@ s3readRDS <- function(object,bucket,version=NULL,s3confun=s3){
 
 #' Title
 #'
-#' @param path
+#' @param path The path of an .xslx file to load. The .xlsx file can have worksheets called `statements`, `links`, `factors`, `sources` and `questions`.
 #'
 #' @return
 #' @export
@@ -187,9 +158,9 @@ get_mapfile_from_excel <- function(path){
     add_class
 }
 get_mapfile_from_s3 <- function(path){
-  notify("Trying cm2 file")
+  message("Trying cm2 file")
   if(!s3file_exists(object=basename(path),buck=dirname(path))) return()
-  notify("Loaded cm2 file")
+  message("Loaded cm2 file")
   s3readRDS(object=basename(path),bucket=dirname(path))
 }
 
@@ -330,7 +301,7 @@ get_map_tables_from_s3_pieces <- function(path){
   settings = NULL
 
   # browser()
-  notify("Trying cm1 file")
+  message("Trying cm1 file")
   # browser()
   pathx <- paste0(root,"/factors");
   if(s3file_exists(pathx,s3bucket))factors <- s3readRDS(object=pathx,bucket=s3bucket) %>% mutate_all(~str_remove_all(.,"\n")) else return()
@@ -382,7 +353,7 @@ get_map_tables_from_s3_pieces <- function(path){
   #
   # browser()
   # attr(graf,"statements") <- statements_with_meta
-  notify("Loaded cm1 file")
+  message("Loaded cm1 file")
   list(
     factors = factors,
     links = links,
@@ -408,9 +379,9 @@ join_statements_to_meta <- function(statements,meta){
 
 # internal general utilities-----------------------------------------------------------------------------
 
-notify <- notify # alias
+message <- message # alias
 # return_notify <- function(tex){
-#   notify(tex,3)
+#   message(tex,3)
 #   return()
 # }
 
@@ -540,17 +511,12 @@ assemble_mapfile <- function(
 }
 
 
-#' Load premap
-#' @inheritParams parse_commands
-#' @param factors
-#' @param links
-#' @param statements
-#' @param sources
-#' @param questions
-#' @param settings
-#' @param clean
+#' Title
 #'
-#' @return A table list.
+#' @param path
+#' @param connection An S3 connection
+#'
+#' @return
 #' @export
 #'
 #' @examples
@@ -577,17 +543,17 @@ load_mapfile <- function(path=NULL,connection=conn){
     if(type=="standard"){
       tmp <- safely(get)(path)
       if(tmp$result %>% is.null) return(NULL) else graf <- tmp$result
-      notify("Loaded standard file")
+      message("Loaded standard file")
 
     } else if(type=="excel"){
       graf <- get_mapfile_from_excel(path = path)
       if(is.null(graf)) return(NULL)
-      notify("Loaded sql file")
+      message("Loaded sql file")
     } else if(type=="sql"){
       graf <- make_map_from_links(get_project_table("ss2answers",path,connection))
       # graf <- get_map_tables_from_sql(path,connection=connection)
       if(is.null(graf)) return(NULL)
-      notify("Loaded sql file")
+      message("Loaded sql file")
     } else  if(type=="cm2"){
       graf <- get_mapfile_from_s3(path %>% paste0("cm2data/",.)) %>% as.list  #as list because of tidygraph format
       if(is.null(graf)) return(NULL)
@@ -597,7 +563,7 @@ load_mapfile <- function(path=NULL,connection=conn){
       graf <- get_map_tables_from_s3_pieces(path %>% paste0("causalmap/app-sync/",.))
       if(is.null(graf))return(NULL)
     } else if(type=="unknown"){
-      notify("Trying to load file, guessing origin")
+      message("Trying to load file, guessing origin")
 
       graf <- get_mapfile_from_s3(path %>% paste0("cm2data/",.))
       if(is.null(graf)) {
@@ -637,7 +603,7 @@ load_mapfile <- function(path=NULL,connection=conn){
   if(is.null(graf) & is.null(factors) & is.null(links)) {
 
     graf <- assemble_mapfile()
-    notify("creating blank map");
+    message("creating blank map");
 
   }
 # browser()
@@ -649,7 +615,7 @@ load_mapfile <- function(path=NULL,connection=conn){
   }
   if(!is.null(graf$links)){
   }
-  notify("Loading map")
+  message("Loading map")
   # browser()
   return(
     graf  %>%
@@ -947,7 +913,7 @@ pipe_update_mapfile <- function(map,
                                 all=T){
   # browser()
 
-  smessage("pipe update")
+  message("pipe update")
   if(!is.null(tables)){
     factors <- tables$factors
     links <- tables$links
@@ -983,7 +949,7 @@ pipe_update_mapfile <- function(map,
 #'
 #' @examples
 fix_columns_factors <- function(factors){
-  smessage("fix col factors")
+  message("fix col factors")
   if(!("color.background" %in% colnames(factors))) factors <- factors %>% mutate(color.background="#ffffff")
   if(!("font.color" %in% colnames(factors))) factors <- factors %>% mutate(font.color="#000000")
   if(!("color.border" %in% colnames(factors))) factors <- factors %>% mutate(color.border="#ffffff")
@@ -998,7 +964,7 @@ fix_columns_factors <- function(factors){
 
 # recalculate_links <- function(factors,links){
 #   # browser()
-#   smessage("recalc links")
+#   message("recalc links")
 #   links <-
 #   links
 # }
@@ -1083,7 +1049,7 @@ create_link_quickfields <- function(links){
 #' @examples
 #' ## PROBABLY DON'T NEED THESE NOW
 pipe_recalculate_all <- function(graf){
-  smessage("recalc all")
+  message("recalc all")
   # browser()
   graf %>%
     pipe_recalculate_factors  %>%
@@ -1114,7 +1080,7 @@ pipe_recalculate_all <- function(graf){
 #' @examples
 pipe_recalculate_factors <- function(graf){
   # browser()
-  smessage("pipe recalc factors")
+  message("pipe recalc factors")
   info <-   make_info(graf,as.list(match.call()))
 
   graf$factors <- graf$factors[,colnames(graf$factors)!=""]
@@ -1577,8 +1543,8 @@ pipe_normalise_factors_links <- function(graf){
 
 normalise_id <- function(main,referring,keyname,referring_keyname1=keyname,referring_keyname2=NULL){
   if(nrow(main)==0)return(list(main=main,referring=referring))
-  if(is.null(main[,keyname])){notify("keyname not in main table")}
-  if(is.null(referring[,referring_keyname1])){notify("keyname not in referring table")}
+  if(is.null(main[,keyname])){message("keyname not in main table")}
+  if(is.null(referring[,referring_keyname1])){message("keyname not in referring table")}
   # browser()
   if(is.null(main$label))main$label <- main$factor_id
   # if(length(unique(main[,keyname]))!=nrow(main))
@@ -1606,7 +1572,7 @@ normalise_id <- function(main,referring,keyname,referring_keyname1=keyname,refer
 # if factors are duplicates, compact them together
 compact_factors_links <- function(factors,links){
   if(factors$label %>% table %>% max %>% `>`(1)){
-    notify("Some factor labels are duplicates; compacting")
+    message("Some factor labels are duplicates; compacting")
     # browser()
     # browser()
     factors <-
@@ -2271,7 +2237,7 @@ find_fun <- function(df,field=NULL,value,operator=NULL,what){
     value <- value %>% as.numeric
   }
 
-  if(field %notin% colnames(df)) {notify("No such field");return(df)}
+  if(field %notin% colnames(df)) {message("No such field");return(df)}
 
 
   if(operator=="contains"){df <- df %>%  mutate(found=str_detect(tolower(unwrap(UQ(sym(field))) %>% replace_na("")),value %>% paste0(collapse="|")))} else
@@ -2392,7 +2358,7 @@ add_call <- function(graf,lis){
 }
 make_info <- function(graf,lis){
   # return(NULL)
-  smessage("make info")
+  message("make info")
   # takes the list - which will usuall be the current call, names it, and adds to existing graf info
 
   c(attr(graf,"info"),lis %>% (function(x)list(x) %>% set_names(x[[1]])))
@@ -2408,11 +2374,11 @@ make_info <- function(graf,lis){
 #' @export
 parse_line <- function(line1,graf){
   # browser()
-  # notify(line1)
+  # message(line1)
   if(str_trim(line1)=="")return()
   fun <- word(line1, 1,2, sep=" ")
-  if(is.na(fun)){notify("No such function");return()}
-  if(!exists(str_replace(fun," ","_") %>% paste0("pipe_",.))){notify("No such function");return(NULL)}
+  if(is.na(fun)){message("No such function");return()}
+  if(!exists(str_replace(fun," ","_") %>% paste0("pipe_",.))){message("No such function");return(NULL)}
 
   body <-
     str_remove(line1,fun) %>%
@@ -2514,7 +2480,7 @@ parse_line <- function(line1,graf){
       str_trim %>%
       str_remove_all("=$")
 
-    if(length(fields)!=length(vals)){notify("Wrong number of values");return(graf %>% filter(F))}
+    if(length(fields)!=length(vals)){message("Wrong number of values");return(graf %>% filter(F))}
 
     names(vals) <- fields
     vals$value <- str_split(vals$value," OR ") %>% unlist
@@ -2553,7 +2519,7 @@ parse_line <- function(line1,graf){
 #'cashTransferMap %>% parse_commands("select factors top=10 \n color factors field=n") %>% make_vn()
 parse_commands <- function(graf=NULL,tex){
   # browser()
-  notify("parsing")
+  message("parsing")
   tex <- tex %>% replace_null("") %>% str_split("\n") %>% `[[`(1) %>% str_trim() %>% keep(!str_detect(.,"^#"))
   if(length(tex)>1)tex <- tex %>% keep(.!="")
 
@@ -2609,7 +2575,7 @@ parse_commands <- function(graf=NULL,tex){
 pipe_find_factors <- function(graf,field="label",value,operator="contains",up=1,down=1,remove_isolated=F,highlight_only=F){
   # st <- attr(graf,"statements")
   # browser()
-  smessage("find factors")
+  message("find factors")
   info <-   make_info(graf,as.list(match.call()))
 
   df <- graf$factors %>% find_fun(field,value,operator)
@@ -2903,11 +2869,11 @@ pipe_zoom_factors <- function(graf,level=1,separator=";",preserve_frequency=+Inf
 #' @examples
 pipe_cluster_sources <- function(graf,n_clusters=3,title="#cluster_set_"){
   if(nrow(graf$links)<10){
-    notify("Not enough links to cluster")
+    message("Not enough links to cluster")
     return(graf)
   }
   if(nrow(graf$sources)<10){
-    notify("Not enough sources to cluster")
+    message("Not enough sources to cluster")
     return(graf)
   }
   if("all"==(n_clusters)){
@@ -2920,7 +2886,7 @@ pipe_cluster_sources <- function(graf,n_clusters=3,title="#cluster_set_"){
   }
   # browser()
   if(nrow(graf$sources)<4*n_clusters){
-    notify("Not enough sources to cluster",3)
+    message("Not enough sources to cluster",3)
     return(graf)
   }
   all_links <-
@@ -2932,7 +2898,7 @@ pipe_cluster_sources <- function(graf,n_clusters=3,title="#cluster_set_"){
     pivot_wider(id_cols = source_id,names_from = couple,values_from=dummy,values_fill = 0)
 
   if(nrow(all_links)<4*n_clusters){
-    notify("Not enough links and sources to cluster",3)
+    message("Not enough links and sources to cluster",3)
     return(graf)
   }
   sources <- all_links$source_id
@@ -3002,7 +2968,7 @@ pipe_trace_robustness <- function(graf,from,to,length=4,field=NULL){
   info <-   make_info(graf,as.list(match.call()))
   if(field=="")field <- NULL
 
-  if(from=="" | to==""){notify("blank from or to factor; robustness calculation may not be correct")}# this should be possible but atm results are horrible
+  if(from=="" | to==""){message("blank from or to factor; robustness calculation may not be correct")}# this should be possible but atm results are horrible
   if(is.null(field)){
 
     return(graf %>%
@@ -3127,8 +3093,8 @@ pipe_trace_paths <- function(graf,from="",to="",length=4,remove_links=F,threads_
     graf$factors %>%
     filter(factor_id %in% get_all_link_ids(graf$links))
 
-  if(is.na(length)) {notify("You have to specify length");return(graf)}
-  if(0==(length)) {notify("You have to specify length greater than 0");return(graf)}
+  if(is.na(length)) {message("You have to specify length");return(graf)}
+  if(0==(length)) {message("You have to specify length greater than 0");return(graf)}
 
   from <- from %>%  str_replace_all(" OR ","|") %>% str_split(.,"\\|") %>% `[[`(1) %>% map(make_search ) %>% tolower
   to <- to %>%  str_replace_all(" OR ","|") %>% str_split(.,"\\|") %>% `[[`(1) %>% map(make_search ) %>% tolower
@@ -3173,7 +3139,7 @@ pipe_trace_paths <- function(graf,from="",to="",length=4,remove_links=F,threads_
   sums <- factors %>% select(found_from,found_to) %>% colSums(na.rm=T)
   if((sums[1]*sums[2])>10000){
     # if(sum(found_from,na.rm=T)*sum(found_to,na.rm=T)>10){
-    notify("too much to trace")
+    message("too much to trace")
     return(graf%>%
              finalise_transforms(info))
   }
@@ -3293,7 +3259,7 @@ pipe_calculate_robustness <- function(graf){
 #' @examples
 pipe_combine_opposites <- function(graf,flipchar="~",add_colors=T){
   info <-   make_info(graf,as.list(match.call()))
-  if(add_colors)notify("Also adding colours; you can turn this off with 'combine opposites add_colors=FALSE'")
+  if(add_colors)message("Also adding colours; you can turn this off with 'combine opposites add_colors=FALSE'")
   # browser()
   # old version - bathday
   if(F){factors <-
@@ -3375,7 +3341,7 @@ trace_threads_down <- function(graf,field="source_id"){
 
 
   # how many steps away is each factor
-  if("trace_after_vec" %notin% colnames(factors)) {notify("You need to trace paths before tracing continuity",3);return(graf)}
+  if("trace_after_vec" %notin% colnames(factors)) {message("You need to trace paths before tracing continuity",3);return(graf)}
 
   origins <-                # dont think we need this
     factors %>%
@@ -3494,7 +3460,7 @@ OLDtrace_threads_up <- function(graf,field="source_id"){
 
 
   # how many steps away is each factor
-  if("trace_before_vec" %notin% colnames(factors)) {notify("You need to trace paths before tracing continuity",3);return(graf)}
+  if("trace_before_vec" %notin% colnames(factors)) {message("You need to trace paths before tracing continuity",3);return(graf)}
 
   origins <-
     factors %>%
@@ -3676,8 +3642,8 @@ pipe_bundle_links <- function(graf,field=NULL,group=field){
   links <- graf$links %>% ungroup
   coln <- colnames(links)
   group <- coln[str_detect(coln,paste0(group))][1]
-  if(is.na(group)) {notify("no such counter");return(graf)}else
-  # if(group %>% replace_null("from") %notin% coln) {notify("no such counter");return(graf)}else
+  if(is.na(group)) {message("no such counter");return(graf)}else
+  # if(group %>% replace_null("from") %notin% coln) {message("no such counter");return(graf)}else
 
   {
 # browser()
@@ -4369,20 +4335,20 @@ factor_click_name <- function(val){
 #                                 label = NULL,value=val,onclick= 'Shiny.onInputChange("factor_click_name", Math.random()'))
 # }
 link_click_delete <- function(id){
-  if(str_detect(id,";"))"" else as.character(shiny::actionLink(inputId = paste0('link_click_delete_',id), label = "Delete link",class="linky"))
+  if(str_detect(id,";"))"" else as.character(shiny::actionLink(inputId = paste0('link_click_delete_',id), label = 'Delete link',class='linky'))
 }
 link_click_edit <- function(id){
-  if(str_detect(id,";"))as.character(div("This bundle consists of multiple original links"))else
+  if(str_detect(id,";"))as.character(div('This bundle consists of multiple original links'))else
     as.character(shiny::actionLink(inputId = paste0(
-      'link_click_edit_',id), label = "Edit link",class="linky"))
+      'link_click_edit_',id), label = 'Edit link',class='linky'))
 }
 link_click_statement_go <- function(id){
   if(str_detect(id,";")) "" else as.character(shiny::actionLink(inputId = paste0(
-      'statement_go_',id), label = "Go to statement",class="linky"))
+      'statement_go_',id), label = 'Go to statement',class='linky'))
 }
 link_click_source_go <- function(id){
   if(str_detect(id,";")) "" else as.character(shiny::actionLink(inputId = paste0(
-      'source_go_',id), label = "Go to source",class="linky"))
+      'source_go_',id), label = 'Go to source',class='linky'))
 }
 
 
@@ -4488,12 +4454,13 @@ prepare_visual_bundles <- function(graf,
 #' @examples
 make_interactive_map <- function(graf,scale=1,safe_limit=200,rainbow=F){
 
+  message("making interactive map")
   # browser()
   graf <- prepare_final(graf)
   # graf <- prepare_visual_bundles(graf)
-  #notify("started vn")
+  #message("started vn")
   if(nrow(graf$factors)>replace_null(safe_limit,200)){
-    notify("Map larger than 'safe limit'; showing only most frequent factors",3)
+    message("Map larger than 'safe limit'; showing only most frequent factors",3)
     graf <- graf %>%
       pipe_select_factors(200)
 
@@ -4501,7 +4468,7 @@ make_interactive_map <- function(graf,scale=1,safe_limit=200,rainbow=F){
 
 
   if(!is_grouped_df(graf$links) & nrow(links_table(graf))>replace_null(safe_limit,200)){
-    notify("Map larger than 'safe limit'; bundling and labelling links",3)
+    message("Map larger than 'safe limit'; bundling and labelling links",3)
     graf <- graf %>%
       pipe_bundle_links() %>%
       pipe_label_links(field = "link_id",fun="count") %>%
@@ -4509,9 +4476,13 @@ make_interactive_map <- function(graf,scale=1,safe_limit=200,rainbow=F){
 
   }
 # browser()
-  #smessage("2vn")
+  #message("2vn")
 
-  if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1)graf <- graf %>% pipe_update_mapfile(factors=.$factors %>% arrange((size))) %>% pipe_remove_orphaned_links()#because this is the way to get the most important ones in front
+  if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1){
+
+    graf <- graf %>% pipe_update_mapfile(factors=.$factors %>% arrange((size))) %>%
+      pipe_remove_orphaned_links()#because this is the way to get the most important ones in front
+  }
   }
   nodes <- graf$factors %>% mutate(value=size*10) %>%
     select(any_of(xc("factor_id factor_memo factor_wrap label font.color color.background color.border title group value hidden size"))) %>% ### restrictive in attempt to reduce random freezes
@@ -4529,7 +4500,7 @@ make_interactive_map <- function(graf,scale=1,safe_limit=200,rainbow=F){
     mutate(label=str_wrap(label,max(link_wrap))) else edges <-
     edges %>%     mutate(label=add_default_wrap(label) )
 
-  #smessage("3vn")
+  #message("3vn")
 
     # browser()
   if(is_grouped_df(edges)){
@@ -4538,7 +4509,7 @@ make_interactive_map <- function(graf,scale=1,safe_limit=200,rainbow=F){
       ungroup
   }
 
-  #smessage("4vn")
+  #message("4vn")
 
 
   if(rainbow){
@@ -4556,7 +4527,7 @@ make_interactive_map <- function(graf,scale=1,safe_limit=200,rainbow=F){
         T ~ edges$color
       )
   }
-  #smessage("5vn")
+  #message("5vn")
 
   edges$width <- as.numeric(edges$width)
   edges$label[is.na(edges$label )] <- ""
@@ -4576,7 +4547,7 @@ make_interactive_map <- function(graf,scale=1,safe_limit=200,rainbow=F){
     nodes <- data.frame(nodes, layout)
     ############## don't get tempted to use the internal visnetwork layout functions - problems with fitting to screen, and they are slower ....
   }
-  #smessage("6vn")
+  #message("6vn")
   nodes <- nodes %>%   mutate(id=factor_id)
   edges <- edges %>%   mutate(id=NULL) # id would be necessary for getting ids from clicks etc, but seems to stop tooltip from working
   # browser()
@@ -4603,7 +4574,7 @@ make_interactive_map <- function(graf,scale=1,safe_limit=200,rainbow=F){
       "</br>",
       paste0("ID:", factor_id)
     ))
-  #smessage("7vn")
+  #message("7vn")
   if(nrow(nodes)<100)edges <-
     edges %>% mutate(title=paste0(
       map(statement_id,link_click_statement_go),
@@ -4622,8 +4593,8 @@ make_interactive_map <- function(graf,scale=1,safe_limit=200,rainbow=F){
       "</br><p class='link_tooltip'>",quote %>% str_replace_all(";","</br>") %>% str_wrap,"</p>"
     ))
   # browser()
-  #notify("8vn")
-  visNetwork(nodes,edges,background="white")   %>%
+  #message("8vn")
+  res <- visNetwork(nodes,edges,background="white")   %>%
     visNodes(
       shadow = list(enabled = T, size = 10),
       shape = "box"
@@ -4710,6 +4681,9 @@ make_interactive_map <- function(graf,scale=1,safe_limit=200,rainbow=F){
   # # %>%
   #     visIgraphLayout(layout = "layout_with_sugiyama", randomSeed = 123, type = "full")
 
+  message("made interactive map")
+
+  res
 }
 
 
@@ -4822,23 +4796,10 @@ prepare_final <- function(graf){
 
   if(any(as.numeric(graf$factors$is_flipped)>0,na.rm=T) %>% replace_na(F))graf$factors$`color.border`= div_gradient_pal(ordinary_color,"white",contrary_color)(graf$factors$is_flipped)
 
-# not sure what to do here. go with the factors but what if links have been removed?
-if(F){  tabl <- make_mentions_tabl(graf) %>%
-    select(factor_id,from_flipped,to_flipped,direction) %>%
-    group_by(factor_id) %>%
-    summarise(flip_prop=
-                (sum(
-                  sum(from_flipped,na.rm=T)/2,
-                  sum(to_flipped,na.rm=T)/2
-                  ,na.rm=T))/(n())
-              ) %>%
-    mutate(`color.border`= div_gradient_pal(ordinary_color,"white",contrary_color)(flip_prop)) %>%
-             select(factor_id,color.border)
-}
-# browser()
+
+
   graf
-    # factors=graf$factors %>%
-    #   select(-any_of("color.border")) %>% left_join_safe(tabl))}
+
 
 }
 
@@ -4895,15 +4856,15 @@ make_print_map <- function(
   graf <- pipe_normalise_factors_links(graf)
 
 
-  # if((nrow(graf %>% factors_table)>safe_limit/3))notify("Map larger than 'safe limit'; setting print layout to twopi")
-  # if((nrow(graf %>% links_table)>safe_limit))notify("Map larger than 'safe limit'; setting print layout to use straight edges")
+  # if((nrow(graf %>% factors_table)>safe_limit/3))message("Map larger than 'safe limit'; setting print layout to twopi")
+  # if((nrow(graf %>% links_table)>safe_limit))message("Map larger than 'safe limit'; setting print layout to use straight edges")
 
   if(is.null(graf))return()
   if(nrow(graf$factors)==0)return()
   # graf <- graf %>% pipe_fix_columns()
 
   if(!is_grouped_df(graf$links) & !is.null(safe_limit) & nrow(links_table(graf))>replace_null(safe_limit,200)){
-    notify("Map larger than 'safe limit'; bundling and labelling links")
+    message("Map larger than 'safe limit'; bundling and labelling links")
     graf <- graf %>%
       pipe_update_mapfile(factors=fix_columns_factors(graf$factors),links=fix_columns_links(graf$links)) %>%
       pipe_bundle_links() %>%

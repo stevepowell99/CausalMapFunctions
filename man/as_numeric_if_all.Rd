@@ -9,6 +9,9 @@ as_numeric_if_all(vec)
 \arguments{
 \item{vec}{}
 }
+\value{
+
+}
 \description{
 Title
 }

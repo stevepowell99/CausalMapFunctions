@@ -9,6 +9,9 @@ pipe_show_continuity(graf, field = "source_id", type = "arrowtype")
 \arguments{
 \item{field}{}
 }
+\value{
+
+}
 \description{
 Title
 }

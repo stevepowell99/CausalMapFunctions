@@ -9,6 +9,9 @@ pipe_cluster_sources(graf, n_clusters = 3, title = "#cluster_set_")
 \arguments{
 \item{n}{}
 }
+\value{
+
+}
 \description{
 Title
 }

@@ -13,6 +13,9 @@ assemble_mapfile(
   settings = standard_settings()
 )
 }
+\value{
+
+}
 \description{
 The only difference between this and just creating a list is that it provides names
 }

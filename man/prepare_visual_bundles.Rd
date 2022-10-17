@@ -21,6 +21,9 @@ prepare_visual_bundles(
 \arguments{
 \item{hi}{}
 }
+\value{
+
+}
 \description{
 NOT USED Prepare visual bundles
 }

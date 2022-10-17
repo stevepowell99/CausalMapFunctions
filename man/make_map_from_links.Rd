@@ -9,6 +9,9 @@ make_map_from_links(links, switch = F)
 \arguments{
 \item{switch}{}
 }
+\value{
+
+}
 \description{
 Make map from links
 }

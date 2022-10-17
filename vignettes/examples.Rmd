@@ -604,6 +604,22 @@ wrap factors length=40
 color text field=is_opposable lo=black hi=#f26d04
 color factors field=found lo=white hi=#7FC97F") %>% 
   make_print_map()
+
+ef %>% 
+  parse_commands("find factors field=label value=Health=contains up=4 down=1
+zoom factors level=2
+remove isolated
+find links field=source_frequency value=2 operator=greater
+remove selfloops
+hide quickfields
+bundle links field=simple_bundle
+label factors field=source_count add_field_name=FALSE clear_previous=FALSE
+scale links value=count: source_id
+label links value=count: source_id
+wrap factors length=40
+color text field=is_opposable lo=black hi=#f26d04
+color factors field=found lo=white hi=#7FC97F") %>% 
+  make_print_map()
 ```
 
 ## Bundle factors

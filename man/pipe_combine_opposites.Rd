@@ -9,6 +9,9 @@ pipe_combine_opposites(graf, flipchar = "~", add_colors = T)
 \arguments{
 \item{add_colors}{}
 }
+\value{
+
+}
 \description{
 pipe_combine_opposites
 }

@@ -9,6 +9,9 @@ js_button(id, label)
 \arguments{
 \item{label}{}
 }
+\value{
+
+}
 \description{
 Title
 }

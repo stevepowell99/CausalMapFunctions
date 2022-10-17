@@ -2,16 +2,16 @@
 % Please edit documentation in R/functions.R
 \name{load_mapfile}
 \alias{load_mapfile}
-\title{Load premap}
+\title{Title}
 \usage{
 load_mapfile(path = NULL, connection = conn)
 }
 \arguments{
-\item{clean}{}
+\item{connection}{An S3 connection}
 }
 \value{
-A table list.
+
 }
 \description{
-Load premap
+Title
 }

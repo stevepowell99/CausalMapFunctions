@@ -12,6 +12,9 @@ A mapfile is a tidygraph, which consists of a table of edges linked to a table o
 with an optional additional table of statements.
 In this package, nodes are called `factors` and edges are called `links.`}
 }
+\value{
+
+}
 \description{
 Cluster factors
 }

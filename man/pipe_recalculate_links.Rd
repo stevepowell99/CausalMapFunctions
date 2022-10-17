@@ -9,6 +9,9 @@ pipe_recalculate_links(graf)
 \arguments{
 \item{graf}{}
 }
+\value{
+
+}
 \description{
 Title
 }

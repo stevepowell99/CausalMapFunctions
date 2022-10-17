@@ -9,6 +9,9 @@ make_mentions_tabl(graf)
 \arguments{
 \item{graf}{}
 }
+\value{
+
+}
 \description{
 Title
 }

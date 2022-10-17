@@ -9,6 +9,9 @@ pipe_remove_isolated(graf)
 \arguments{
 \item{graf}{}
 }
+\value{
+
+}
 \description{
 Removes any factors which have no links.
 This can be useful after any function like pipe_select_links() which remove links.

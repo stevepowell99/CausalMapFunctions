@@ -9,6 +9,9 @@ add_metrics_to_factors(factors, links)
 \arguments{
 \item{links}{}
 }
+\value{
+
+}
 \description{
 Title
 }

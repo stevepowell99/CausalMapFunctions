@@ -14,6 +14,9 @@ In this package, nodes are called `factors` and edges are called `links.`}
 
 \item{field}{An optional field by which to split the calculate_robustness calculation and output.}
 }
+\value{
+
+}
 \description{
 This is a powerful command which allows the user to trace paths from one or more upstream factors to one or more downstream factors.
 Only links which are part of such paths are displayed.
