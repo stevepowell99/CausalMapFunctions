@@ -111,6 +111,8 @@ clean_send <- function(vec){
 
 path <- "C:/Users/steve/Downloads/kantar-swan-short-2022-09-06.xlsx"
 swan <- load_mapfile(path=path)
+example_file <- load_mapfile(path="data/example-file.xlsx")
+
 ```
 
 ## Basic examples

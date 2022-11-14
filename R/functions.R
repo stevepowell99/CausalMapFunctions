@@ -91,7 +91,7 @@ add_attribute <- function(graf,value,attr){
 }
 
 finalise <- function(graf,value){
-  message("finalise")
+  #message("finalise")
   # simply reattaches the info list back to the graf. so you may need to update info during a function.
   # attr(graf,"info") <- value
   graf
@@ -553,7 +553,7 @@ load_mapfile <- function(path=NULL,connection=conn){
     } else if(type=="excel"){
       graf <- get_mapfile_from_excel(path = path)
       if(is.null(graf)) return(NULL)
-      message("Loaded sql file")
+      message("Loaded excel file")
     } else if(type=="sql"){
       graf <- make_map_from_links(get_project_table("ss2answers",path,connection))
       # graf <- get_map_tables_from_sql(path,connection=connection)
@@ -580,47 +580,10 @@ load_mapfile <- function(path=NULL,connection=conn){
 
   # browser()
 
-  # this should not really be here, because pipe_coerce_mapfile was supposed to only operate on new unfiltered maps
-  if(!is.null(graf$statements)){
-    if(nrow(graf$statements)==0)graf$statements <- standard_statements() else
-      if(!identical(graf$statements$statement_id,1:nrow(graf$statements))){
-        # browser()
-      # browser()
-        if("statement_id" %in% colnames(graf$statements))
-        {
-          graf$statements$statement_id <- as.numeric(graf$statements$statement_id)
-          graf$statements$statement_id <- replace_na(graf$statements$statement_id,Inf)
-          }
-        if(!is.null(graf$links))graf$links$statement_id <- recode(graf$links$statement_id,!!!(row_index(graf$statements) %>% set_names(graf$statements$statement_id)))
-        graf$statements <-  graf$statements %>%
-          mutate(statement_id=row_number())
-      }
-  }
-
-
-  if(is.null(graf) & is.null(factors) & is.null(links)) {
-
-    graf <- pipe_update_mapfile()
-    message("creating blank map");
-
-  }
-
-  if(!is.null(graf$links)){
-    graf$links <- graf$links %>% select(-any_of(c("link_id.1","statement_id.2","from.2","to.2","quote.2","frequency.1","weight.2","actualisation.2","strength.2","certainty.2","from_flipped.1","to_flipped.1","link_label.1","from_label.1","to_label.1","hashtags.2","link_memo.1","link_map_id.1","link_id.2","statement_id.3","from.3","to.3","quote.3","frequency.2","weight.3","actualisation.3","strength.3","certainty.3","from_flipped.2","to_flipped.2","link_label.2","from_label.2","to_label.2","hashtags.3","link_memo.2","link_map_id.2","statement_id.1","from.1","to.1","quote.1","weight.1","actualisation.1","strength.1","certainty.1","hashtags.1")))#FIXME TODO  this is just legacy/transition
-  }
   message("Loading map")
   # browser()
   return(
-    graf  %>%
-           pipe_coerce_mapfile() %>%
-           pipe_update_mapfile(links=.$links  %>%
-                                 add_before_and_after_ids_to_links()
-           ) %>%
-
-           pipe_recalculate_all()%>%
-           pipe_cluster_sources(n_clusters = "all",title="#unfiltered_cluster_set_") %>%
-
-           finalise(list(load_mapfile=list(graf="",glue::glue("load_mapfile path={path}"))))
+    graf %>% pipe_coerce_mapfile()
   )
 
 
@@ -648,6 +611,43 @@ pipe_coerce_mapfile <- function(tables){
   # tmp <- pipe_remove_orphaned_links(list(factors=factors,links=links))
   # factors <- tmp$factors
   # links <- tmp$links
+
+
+  # FROM DELTA
+  # this should not really be here, because pipe_coerce_mapfile was supposed to only operate on new unfiltered maps
+  if(!is.null(graf$statements)){
+    if(nrow(graf$statements)==0)graf$statements <- standard_statements() else
+      if(!identical(graf$statements$statement_id,1:nrow(graf$statements))){
+        # browser()
+        # browser()
+        if("statement_id" %in% colnames(graf$statements))
+        {
+          graf$statements$statement_id <- as.numeric(graf$statements$statement_id)
+          graf$statements$statement_id <- replace_na(graf$statements$statement_id,Inf)
+        }
+        if(!is.null(graf$links))graf$links$statement_id <- recode(graf$links$statement_id,!!!(row_index(graf$statements) %>% set_names(graf$statements$statement_id)))
+        graf$statements <-  graf$statements %>%
+          mutate(statement_id=row_number())
+      }
+  }
+
+
+  if(is.null(graf) & is.null(factors) & is.null(links)) {
+
+    graf <- pipe_update_mapfile()
+    message("creating blank map");
+
+  }
+
+  if(!is.null(graf$links)){
+    graf$links <- graf$links %>% select(-any_of(c("link_id.1","statement_id.2","from.2","to.2","quote.2","frequency.1","weight.2","actualisation.2","strength.2","certainty.2","from_flipped.1","to_flipped.1","link_label.1","from_label.1","to_label.1","hashtags.2","link_memo.1","link_map_id.1","link_id.2","statement_id.3","from.3","to.3","quote.3","frequency.2","weight.3","actualisation.3","strength.3","certainty.3","from_flipped.2","to_flipped.2","link_label.2","from_label.2","to_label.2","hashtags.3","link_memo.2","link_map_id.2","statement_id.1","from.1","to.1","quote.1","weight.1","actualisation.1","strength.1","certainty.1","hashtags.1")))#FIXME TODO  this is just legacy/transition
+  }
+
+
+
+
+
+
 
   # preparation
   if(is.null(factors) &
@@ -1089,7 +1089,8 @@ pipe_recalculate_links <- function(graf){
 # browser()
   graf %>%
     pipe_update_mapfile(
-      links = graf$links %>%   add_labels_to_links(graf$factors) %>%
+      links = graf$links %>%
+        add_labels_to_links(graf$factors) %>%
         create_link_quickfields() %>%
         add_simple_bundle_to_links()
 
@@ -2342,7 +2343,7 @@ add_call <- function(graf,lis){
 }
 make_info <- function(graf,lis){
   # return(NULL)
-  message("make info")
+  # message("make info")
   # takes the list - which will usuall be the current call, names it, and adds to existing graf info
 
   # c(attr(graf,"info"),lis %>% (function(x)list(x) %>% set_names(x[[1]])))
@@ -4436,7 +4437,6 @@ prepare_visual_bundles <- function(graf,
 #' @examples
 make_interactive_map <- function(graf,scale=1,safe_limit=200,rainbow=F){
 
-  # browser()
   message("making interactive map")
   graf <- prepare_final(graf)
 
