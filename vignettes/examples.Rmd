@@ -1845,15 +1845,6 @@ ee %>%
   make_interactive_map
 ```
 
-Coercing to a standard mapfile:
-
-```{r }  
-ee %>% 
-  pipe_update_mapfile(factors = ee$factors %>% mutate(label="one")) %>% 
-  pipe_compact_mapfile() %>% 
-  pipe_coerce_mapfile() %>% 
-  make_interactive_map
-```
 
 ### Printing the filters
 
