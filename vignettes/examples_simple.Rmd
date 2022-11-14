@@ -1,0 +1,1778 @@
+---
+title: "Causal Map Functions - simple"
+author: "Steve Powell"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_collapsed: true
+    toc_depth: 3
+    number_sections: false
+    theme: lumen
+editor_options: 
+  chunk_output_type: console
+---
+
+
+```{r setup, cache=F,include=F}
+# devtools::load_all();devtools::document();pkgdown::build_site(lazy=F)
+
+options(dplyr.summarise.inform = FALSE)
+library(CausalMapFunctions)
+library(knitr)
+library(htmltools)
+library(configr)
+library(dbplyr)
+library(DBI)
+library(kableExtra)
+library(scales)
+knitr::opts_chunk$set(echo = T,warning=F,message=F)
+
+pp=function(x,N=99){
+  print(x,n=N)
+}
+
+replace_null <- function(x,replacement=0){
+  if(is.null(x)) replacement else x
+}
+
+
+append_rows <- function(val,name){
+  val <- val %>% mutate_all(clean_send)
+  dbWriteTable(con=conn,name = local(name),value=local(val) ,append=TRUE,row.names=FALSE)
+}
+print_inner_filter <- function(xx){
+  # browser()
+xx$graf <- NULL
+fil <- xx[[1]] %>% unlist %>% str_remove_all("^pipe_") %>% str_replace("_"," ")
+xx <- xx[-1]
+nams=names(xx)
+tibble(names=nams,vals=unlist(xx)) %>% 
+  unite(filter,sep="=") %>% 
+  pull(filter) %>% 
+  unlist %>% 
+  paste0(.,collapse=" ") %>% 
+  paste0(fil," ",.)
+}
+print_filter <- function(graf){
+  
+  if(!exists("xtitle"))xtitle <- ""
+  if(!exists("xdescription"))xdescription <- ""
+  
+  if(is.null(attr(graf,"info")))return()
+  # browser()
+story <- attr(graf,"info")[[1]] %>% keep(~str_detect(.,"^load_mapfile")) %>% unlist %>% str_remove("load_mapfile *path=")
+input_ace <- attr(graf,"info") %>% list_modify("load_mapfile" = NULL) %>% unlist %>% keep(.!=".") %>% map(~str_remove_all(.,"^pipe_") %>% str_replace("_"," ")) %>%  paste0(collapse = "\n")
+filters <- paste0("&filters=",URLencode(input_ace %>% replace_null(""),reserved=T))
+
+message("appending")
+append_rows(
+  tibble(likes=1,recommended=T,filter=input_ace %>% replace_null(""),hidden=F,title=xtitle %>%    replace_null(""),description=xdescription %>% replace_null(""),date=time_stamp(),project=story)
+  ,"shortlinks")
+
+
+attr(graf,"info") %>% 
+  map(~print_inner_filter(.) %>% 
+      str_trim %>% 
+      div(style=";")
+  ) %>%  tagList %>% div(style="padding:10px;background-color:aliceblue;") %>% div(
+    if(xtitle!="")h5(xtitle),
+    if(xdescription!="")p(xdescription),                                                                     
+    .,
+    a("Link",href=paste0("https://causalmap.shinyapps.io/CausalMap2?story=",story,filters)),style="padding:10px;background-color:aliceblue;")
+
+
+}
+
+# make_interactive_map <- function(graf){
+#   tagList(print_filter(graf),CausalMapFunctions::make_interactive_map(graf))
+# }
+# make_print_map <- function(graf){
+#   tagList(print_filter(graf),CausalMapFunctions::make_print_map(graf))
+# }
+clean_send <- function(vec){
+  if(vec %>% unique %>% `%in%`(c(F,T)) %>% all) vec <- as.numeric(vec)
+  if(F & is.character(vec)) {
+    # Encoding(vec)="UTF-8"
+    vec <- stri_enc_toascii(vec)
+  }
+  vec
+}
+
+
+
+```
+
+
+```{r }
+# ll <- quip_example
+#  ee <- load_mapfile("example2") #%>% pipe_recalculate_all()
+  ee <- example2 %>% pipe_coerce_mapfile()
+
+path <- "C:/Users/steve/Downloads/kantar-swan-short-2022-09-06.xlsx"
+swan <- load_mapfile(path=path)
+```
+
+## Basic examples
+
+
+### Interactive and Print maps
+
+```{r }  
+  ee %>%
+    pipe_label_links("link_id",fun = "unique") %>%
+    make_print_map()
+  
+
+  ee %>%
+    pipe_set_print(grv_layout="circo") %>%
+    make_print_map()
+```
+
+
+
+### Selecting and finding 
+
+
+If you filter the factors of a mapfile, e.g. show only factors with labels beginning xyz,
+
+- also the links are filtered (removing links to removed factors)
+- the statements are not touched
+
+If you filter the links of a mapfile, e.g. show only links with hashtags containing xyz,
+
+- the factors are not filtered (but using a different command you can remove any factors which no longer have any links)
+- the statements are not touched
+
+If you filter the statements of a mapfile, e.g. show only statements with texts containing xyz,
+
+- also the links are filtered (removing links to removed statements)
+- the factors are filtered
+
+
+
+
+```{r first}
+
+graf <- ee
+tic();graf$factors <- graf$factors %>% arrange(size);graf$links <- graf$links %>% arrange(link_id);toc()
+tic();graf %>% pipe_update_mapfile(factors <- graf$factors %>% arrange(size),links <- graf$links %>% arrange(link_id));toc()
+
+tic();graf <- pipe_update_mapfile(graf,factors=graf$factors);graf;toc()
+
+ee %>%
+    pipe_select_factors(3) %>%
+    make_interactive_map
+
+
+```
+
+
+Simple frequency
+
+```{r }  
+ee %>%
+    pipe_find_factors("frequency",value = 1,"greater") %>%
+    make_interactive_map
+ee %>%
+    pipe_find_factors("frequency",value = 1,"greater") %>%
+    make_print_map
+
+```
+
+
+
+```{r }  
+ee %>%
+    pipe_find_factors("frequency",value = 1,"greater",up=0,down=0) %>%
+    make_interactive_map
+
+```
+
+
+
+
+#### Showing interlinks or not
+
+If you don't want to show interlinks between downstream factors, use `find links` instead.
+
+```{r }  
+oo %>%
+  pipe_find_factors(value="more/better seeds",up=0,down=1,remove_isolated = T) %>%
+    pipe_bundle_links() %>% 
+    make_print_map
+
+oo %>%
+  pipe_find_links(value="more/better seeds",field="from_label",operator="contains") %>%
+    pipe_bundle_links() %>% 
+    make_print_map
+
+
+```
+
+#### Zero up and down
+
+```{r }  
+ee %>%
+    pipe_find_factors(value="rainfall",up=0,down=0,remove_isolated = T) %>%
+    make_interactive_map
+ee %>%
+    pipe_find_factors(value="rainfall",up=0,down=0,remove_isolated = F) %>%
+    make_interactive_map
+
+```
+
+#### Case insensitive
+
+```{r }  
+ee %>%
+    pipe_find_factors(value="business") %>%
+    make_interactive_map
+
+```
+
+
+### notcontains
+
+```{r }  
+ee %>%
+    pipe_find_factors(value="sea",operator="notcontains") %>%
+    make_interactive_map
+
+```
+
+
+
+```{r }  
+ee %>% pipe_find_statements(value="1",operator="notcontains",field="statement_id")%>%
+    make_interactive_map
+
+```
+
+```{r }  
+ee %>% pipe_find_statements(value="1",operator="notcontains",field="statement_id")%>%
+    make_interactive_map
+
+```
+
+### notequals
+
+```{r }  
+ee %>% pipe_find_statements(value="1",operator="notequals",field="statement_id")%>%
+    make_interactive_map
+
+```
+
+
+```{r }  
+ee %>%
+    pipe_find_factors(value="Coastal erosion",operator="notequals") %>%
+    make_interactive_map
+
+```
+
+
+### OR
+
+Does not work in functions, but works when parsed:
+
+```{r }  
+ee %>%
+    pipe_find_factors(value="business OR property") %>%
+    make_interactive_map
+
+```
+
+
+```{r }  
+ee %>%
+    parse_commands("find factors field=label operator=contains value=Business OR Property") %>%
+    make_interactive_map
+
+```
+
+
+Order matters
+
+```{r }  
+ll %>%
+    pipe_find_factors(value="economic") %>%
+    pipe_select_factors(5) %>%
+    make_interactive_map
+
+```
+
+No result
+
+```{r }  
+ll %>%
+    pipe_find_factors(value="asdfasdfasdf") %>%
+    make_interactive_map
+```
+
+
+
+```{r }  
+ll %>%
+    pipe_find_links(field="from_label",value="economic",operator="contains") %>%
+    make_interactive_map
+```
+
+### Numerical comparison
+
+```{r }  
+ll %>%
+    pipe_find_statements(field="statement_id",value=20,operator="less") %>%
+    make_interactive_map
+```
+
+No result
+
+```{r }  
+ll %>%
+    pipe_find_statements(field="statement_id",value=20000000,operator="greater") %>%
+    make_interactive_map
+```
+
+### Highlight only
+
+```{r }  
+e3  %>% 
+  pipe_find_factors(value="Damage",highlight_only=T) %>% pipe_color_factors(field="found") %>% 
+  make_interactive_map()
+
+```
+
+Note this doesn't work in the app:
+
+```{r }  
+e3  %>% 
+  pipe_find_links(field="from_label",value="Damage",highlight_only=T) %>%     
+  pipe_color_links(field="found",fun="literal") %>% 
+  make_interactive_map()
+
+```
+
+## Clustering sources
+
+```{r}
+pipe_cluster_sources(oi)
+
+```
+
+
+
+## Calculated fields
+
+```{r}
+
+oi %>% 
+  pipe_find_factors(value="Take a loan",up = 1,down=1) %>% 
+  make_mentions_tabl()
+oi %>% 
+  pipe_find_factors(value="Take a loan",up = 1,down=1) %>% 
+.$factors %>% select(label,source_count)
+
+```
+
+
+
+## Conditional formatting
+
+```{r }  
+ll %>%
+    pipe_select_factors(5) %>%
+    pipe_scale_factors(field="frequency") %>%
+    make_interactive_map
+
+ll %>%
+    pipe_select_factors(5) %>%
+    pipe_color_text(field="frequency") %>%
+    make_interactive_map
+
+ll %>%
+    pipe_select_factors(5) %>%
+    pipe_scale_factors(field="frequency") %>%
+    make_print_map
+```
+
+```{r }
+ll %>%
+    pipe_select_factors(5) %>%
+    pipe_color_factors(field="frequency") %>%
+    pipe_color_borders(field="betweenness") %>%
+    pipe_wrap_factors(5) %>%
+    make_interactive_map
+
+```
+
+### Wrap factors
+
+```{r }
+ll %>%
+    pipe_select_factors(5) %>%
+    pipe_color_links(value="count: link_id") %>%
+    pipe_wrap_factors(5) %>%
+    make_interactive_map
+ll %>%
+    pipe_select_factors(5) %>%
+    pipe_color_links(value="count: link_id") %>%
+    pipe_wrap_factors(5) %>%
+    make_print_map
+
+```
+
+### Wrap links
+
+```{r }  
+
+ee %>%
+    pipe_label_links("from_label",fun = "unique") %>%
+    pipe_wrap_links(6) %>%
+    make_interactive_map
+
+ee %>%
+    pipe_label_links("from_label",fun = "unique") %>%
+    pipe_wrap_links(6) %>%
+    make_print_map
+
+```
+
+```{r }  
+
+ee %>%
+    pipe_label_links(value="unique: from_label") %>%
+    pipe_wrap_links(6) %>%
+    make_interactive_map
+
+```
+
+```{r }  
+
+ll %>%
+    make_interactive_map
+
+```
+
+## Remove brackets
+
+```{r }  
+ll %>%
+    pipe_select_factors(5) %>%
+    pipe_remove_brackets() %>%
+    make_interactive_map
+
+```
+
+## Self loops
+
+```{r }  
+ks %>% 
+  parse_commands("find factors field=label value=~People feeling safe operator=notcontains up=4 down=1
+find factors field=label value=People feeling safe operator=contains up=4 down=1
+zoom factors level=2
+remove isolated
+find links field=source_frequency value=2 operator=greater
+remove selfloops
+hide quickfields
+bundle links field=simple_bundle
+label factors field=source_count add_field_name=FALSE clear_previous=FALSE
+scale links value=count: source_id
+label links value=count: source_id
+wrap factors length=40
+color text field=is_opposable lo=black hi=#f26d04
+color factors field=found lo=white hi=#7FC97F") %>% 
+  make_print_map()
+
+ef %>% 
+  parse_commands("find factors field=label value=Health=contains up=4 down=1
+zoom factors level=2
+remove isolated
+find links field=source_frequency value=2 operator=greater
+remove selfloops
+hide quickfields
+bundle links field=simple_bundle
+label factors field=source_count add_field_name=FALSE clear_previous=FALSE
+scale links value=count: source_id
+label links value=count: source_id
+wrap factors length=40
+color text field=is_opposable lo=black hi=#f26d04
+color factors field=found lo=white hi=#7FC97F") %>% 
+  make_print_map()
+```
+
+## Bundle factors
+
+```{r }  
+ll %>%
+    pipe_bundle_factors(value = "IEA") %>%
+    pipe_select_factors(5) %>%
+    make_interactive_map
+
+
+
+```
+
+## Format links without bundling
+
+```{r }  
+ee %>%
+  pipe_color_links("link_id",fun = "mean") %>%
+  make_interactive_map
+ee %>%
+  pipe_scale_links("link_id",fun = "mean") %>%
+  make_interactive_map
+
+```
+
+
+## Label factors with and without field names
+
+```{r}
+
+cc %>%
+  pipe_find_factors(value="Improved health") %>% 
+    # pipe_zoom_factors(1) %>%
+  pipe_select_factors(top=10) %>% 
+  pipe_bundle_links(field="simple_bundle") %>% 
+  pipe_label_links(field="source_id",fun = "count") %>% 
+  pipe_label_factors(field="source_count",add_field_name = F) %>% 
+  pipe_wrap_factors() %>% 
+    make_print_map 
+
+cc %>%
+  pipe_find_factors(value="Improved health") %>% 
+    # pipe_zoom_factors(1) %>%
+  pipe_select_factors(top=10) %>% 
+  pipe_bundle_links(field="simple_bundle") %>% 
+  pipe_label_links(field="source_id",fun = "count") %>% 
+  pipe_label_factors(field="source_count",add_field_name = T) %>% 
+  pipe_wrap_factors() %>% 
+    make_print_map 
+
+```
+
+
+## Label links
+
+```{r }  
+oo %>%
+    pipe_select_factors(5) %>%
+    pipe_bundle_links(("#Name of village")   ) %>%
+    pipe_label_links(field = "#Name of village",fun="unique") %>%
+    make_interactive_map
+
+
+oo %>%
+    pipe_select_factors(5) %>%
+    pipe_bundle_links(("vill")   ) %>%
+    pipe_label_links(field = "#Name of village",fun="unique") %>%
+    make_interactive_map
+
+
+
+
+
+e3 %>%
+  pipe_label_links("link_id",fun = "literal") %>%
+  pipe_label_links("from_label",fun = "literal",add_field_name = T,clear_previous = F) %>%
+  make_interactive_map
+
+e3 %>%
+  pipe_bundle_links() %>% 
+  pipe_label_links("link_id",fun = "literal",add_field_name = T) %>%
+  make_interactive_map
+
+e3 %>%
+  pipe_bundle_links() %>% 
+  pipe_label_links("link_id",fun = "literal") %>%
+  pipe_label_links("from_label",fun = "literal",clear_previous = F) %>%
+  make_interactive_map
+
+e3 %>%
+  pipe_bundle_links() %>% 
+  parse_commands("label links field=statement_id fun=unique clear_previous=F") %>%
+  make_interactive_map
+
+
+```
+
+
+## Bundling links
+
+Note the defaults for `bundle_links` and `label_links`:
+
+```{r }  
+oo %>%
+    pipe_select_factors(5) %>%
+    pipe_bundle_links(("#Name of province")   ) %>%
+    pipe_label_links(("#Name of province")   ) %>%
+    make_interactive_map
+
+oo %>%
+    parse_commands("
+    select links top=15
+select factors top=10
+bundle links field=#2
+label factors field=frequency add_field_name=FALSE clear_previous=FALSE
+scale links value=count: link_id
+label links field=#2Name of village fun=unique add_field_name=FALSE clear_previous=TRUE
+color text field=is_opposable lo=black hi=#f26d04") %>%
+    make_interactive_map
+```
+
+```{r }  
+oo %>%
+    pipe_select_factors(5) %>%
+    pipe_bundle_links("village"   ) %>%
+    pipe_label_links("village" ,fun = "unique"  ) %>%
+    make_interactive_map
+
+
+```
+
+```{r }  
+ll %>%
+    pipe_find_factors(value="economic") %>%
+    pipe_select_factors(5) %>%
+    pipe_bundle_links() %>%
+    pipe_label_links() %>%
+    make_interactive_map
+
+
+```
+
+```{r }  
+ll %>%
+    pipe_find_factors(value="economic") %>%
+    pipe_select_factors(5) %>%
+    pipe_bundle_links() %>%
+    pipe_label_links() %>%
+    make_interactive_map
+
+
+```
+
+Note the default for `bundle_links` is equivalent to simple_bundle:
+
+```{r }  
+ll %>%
+    pipe_find_factors(value="economic") %>%
+    pipe_select_factors(5) %>%
+    pipe_bundle_links(group="simple_bundle") %>%
+    pipe_label_links() %>%
+    make_interactive_map
+
+
+```
+
+### Group and label by sex and scale by count:
+
+```{r }  
+ll %>%
+    pipe_select_factors(5) %>%
+    pipe_bundle_links(field="1. Sex") %>%
+    pipe_scale_links("link_id",fun = "count") %>%
+    pipe_label_links("1. Sex",fun = "unique") %>%
+    pipe_color_links("1. Sex",fun = "unique") %>%
+    make_interactive_map
+```
+
+```{r }  
+ll %>%
+    pipe_select_links(16) %>%
+    pipe_bundle_links(field="1. Sex") %>%
+    pipe_label_links("link_id",fun = "count") %>%
+    make_interactive_map
+```
+
+
+### Group by sex and scale and colour by count:
+
+```{r }  
+ll %>%
+    pipe_select_factors(5) %>%
+    pipe_bundle_links(field="1. Sex") %>%
+    pipe_color_links("link_id",fun = "count") %>%
+    pipe_scale_links("link_id",fun = "count") %>%
+    pipe_label_links("link_id",fun = "count") %>%
+    make_interactive_map
+```
+
+### Proportion
+
+```{r}
+ll %>%    
+  pipe_find_factors(value="sed yield") %>%
+  pipe_bundle_links(field="District") %>% 
+  pipe_color_links(field="District",fun="unique") %>% 
+  pipe_label_links(value="percent: link_id") %>%  
+  pipe_scale_links(field="link_id",fun="count") %>%  
+  make_print_map
+```
+
+```{r}
+ll %>%    
+  pipe_find_factors(value="sed yield") %>%
+  pipe_bundle_links(field="1. Sex") %>% 
+  pipe_color_links(field="1. Sex",fun="unique") %>% 
+  pipe_label_links(field="link_id",fun="percent") %>%  
+  pipe_scale_links(field="link_id",fun="count") %>%  
+  make_print_map
+```
+
+```{r}
+ll %>%    
+  pipe_find_factors(value="sed yield") %>%
+  pipe_bundle_links(field="1. Sex") %>% 
+  pipe_color_links(field="1. Sex",fun="unique") %>% 
+  pipe_label_links(field="source_id",fun="percent") %>%  
+  pipe_scale_links(field="source_id",fun="percent") %>%  
+  make_print_map
+
+```
+
+```{r}
+ll %>%    
+  pipe_find_factors(value="sed yield",down=0) %>%
+  pipe_bundle_links(field="1. Sex") %>% 
+  pipe_color_links(field="source_id",fun="percent") %>% 
+  pipe_label_links(field="source_id",fun="percent") %>%  
+  pipe_scale_links(field="source_id",fun="count") %>%  
+  make_print_map
+
+```
+
+### Surprise
+
+```{r}
+ll %>%    
+  pipe_find_factors(value="sed yield",down=0) %>%
+  pipe_bundle_links(field="1. Sex") %>% 
+  pipe_color_links(field="1. Sex",fun="unique") %>% 
+  pipe_label_links(field="source_id",fun="surprise") %>%  
+  pipe_scale_links(field="source_id",fun="count") %>%  
+  make_print_map
+
+```
+
+```{r}
+ll %>%    
+  pipe_find_factors(value="sed yield",down=0) %>%
+  pipe_bundle_links(field="1. Sex") %>% 
+  pipe_label_links(field="1. Sex",fun="unique") %>% 
+  pipe_color_links(field="source_id",fun="surprise") %>%  
+  pipe_scale_links(field="source_id",fun="count") %>%  
+  make_print_map
+
+```
+
+
+### Using initials to shorten the labels
+
+```{r}
+oo %>%    
+  pipe_find_factors(value="crops",down=0) %>%
+  pipe_bundle_links(field="#4Sex of the respondent") %>% 
+  pipe_label_links(field="#4Sex of the respondent",fun="initials") %>% 
+  pipe_color_links(field="source_id",fun="surprise") %>%  
+  pipe_scale_links(field="source_id",fun="count") %>%  
+  make_print_map
+
+```
+
+
+```{r}
+oh %>%    
+  pipe_select_factors(10) %>%
+  pipe_bundle_links(field="simple_bundle") %>% 
+  pipe_label_links(field="from_label",fun="initials") %>% 
+  make_print_map
+
+```
+
+
+
+
+## Recalculating
+
+Shouldn't make any difference as factor and link fields are now recalculated after every transform; but beforeids and afterids are added only on load_mapfile.
+
+```{r}
+ll %>% 
+  pipe_find_factors(value="WASH") %>% 
+  pipe_color_factors(field="betweenness") %>% 
+  make_interactive_map
+
+ll %>% 
+  pipe_find_factors(value="WASH") %>% 
+  pipe_recalculate_factors() %>% 
+  pipe_color_factors(field="betweenness") %>% 
+  make_interactive_map
+
+```
+
+## Mark links
+
+```{r}
+so %>% 
+  pipe_label_links(field = "source_id",fun="literal") %>% 
+  pipe_mark_links(field="source_id") %>% 
+  make_print_map
+
+e3 %>% 
+  pipe_label_links(field = "source_id",fun="literal") %>% 
+  pipe_mark_links(field="source_id") %>% 
+  make_print_map
+
+ee %>% 
+  pipe_label_links(field = "source_id",fun="literal") %>% 
+  pipe_mark_links(field="source_id") %>% 
+  make_print_map
+
+
+so %>% 
+  pipe_bundle_links(field = "source_id") %>% 
+  pipe_label_links(field = "source_id",fun="literal") %>% 
+  pipe_mark_links(field="source_id") %>% 
+  make_print_map
+
+so %>% 
+  pipe_combine_opposites() %>% 
+  pipe_bundle_links(field = "flipped_bundle") %>% 
+  pipe_label_links(field = "source_id",fun="literal") %>% 
+  pipe_mark_links(field="source_id") %>% 
+  make_print_map
+
+ll %>% 
+  pipe_select_factors(5) %>% 
+  pipe_bundle_links(field = "simple_bundle") %>% 
+  pipe_mark_links(field="source_id") %>% 
+  make_print_map
+
+
+```
+
+## Show continuity
+
+```{r}
+#original:
+
+so %>% 
+  pipe_label_links(field = "source_id",fun="unique") %>% 
+  make_print_map
+
+so %>% 
+  pipe_label_links(field = "source_id",fun="unique") %>% 
+  pipe_show_continuity(field="source_id",type="label") %>% 
+  make_print_map
+so %>% 
+  pipe_label_links(field = "source_id",fun="unique") %>% 
+  pipe_show_continuity(field="source_id") %>% 
+  make_print_map
+
+
+ee %>% 
+  pipe_label_links(field = "source_id",fun="unique") %>% 
+  pipe_show_continuity(field="source_id") %>% 
+  make_print_map
+
+e3 %>% 
+  pipe_label_links(field = "source_id",fun="unique") %>% 
+  pipe_show_continuity(field="source_id") %>% 
+  make_print_map
+
+e3 %>% 
+  pipe_zoom_factors() %>% 
+  pipe_show_continuity(field="source_id") %>% 
+  pipe_label_links(field = "source_id",fun="unique") %>% 
+  make_print_map
+
+e3 %>% 
+  pipe_bundle_factors("Flooding") %>% 
+  pipe_show_continuity(field="source_id") %>% 
+  pipe_label_links(field = "source_id",fun="unique") %>% 
+  make_print_map
+
+e3 %>% 
+  pipe_bundle_factors("Flooding") %>% 
+  pipe_bundle_links(field = "source_id") %>% 
+  pipe_label_links(field = "source_id",fun="literal") %>% 
+  pipe_show_continuity(field="source_id") %>% 
+  make_print_map
+
+
+
+so %>% 
+  pipe_bundle_links() %>% 
+  pipe_label_links(field = "source_id",fun="unique") %>% 
+  pipe_show_continuity(field="source_id") %>% 
+  make_print_map
+
+
+
+so %>% 
+  pipe_combine_opposites() %>% 
+  pipe_label_links("link_id","literal") %>% 
+  pipe_show_continuity(field="source_id") %>% 
+  make_print_map
+
+so %>% 
+  pipe_combine_opposites() %>% 
+  pipe_show_continuity() %>% 
+  make_print_map
+
+so %>% 
+  pipe_combine_opposites() %>% 
+  pipe_bundle_links(field = "flipped_bundle") %>% 
+  pipe_show_continuity(field="source_id") %>% 
+  pipe_label_links(field = "source_id",fun="unique") %>% 
+  make_print_map
+
+
+
+
+# Order should not matter, but you can't put bundle links later
+
+
+so %>% 
+  pipe_combine_opposites() %>% 
+  pipe_show_continuity(field="source_id") %>% 
+  pipe_bundle_links(field = "flipped_bundle") %>% 
+  pipe_label_links(field = "source_id",fun="unique") %>% 
+  make_print_map
+
+```
+
+
+```{r}
+ll %>% 
+  pipe_select_factors(5) %>% 
+  pipe_bundle_links(field = "simple_bundle") %>% 
+  pipe_scale_links(field = "link_id",fun="count") %>% 
+  pipe_show_continuity(field="source_id") %>% 
+  make_print_map
+
+
+hz %>%
+  pipe_show_continuity(field="source_id") %>% 
+    make_print_map 
+
+hz %>%
+  pipe_zoom_factors(1) %>%
+  pipe_show_continuity(field="source_id") %>% 
+    make_print_map 
+
+
+
+```
+
+Group and label by sex and scale by count:
+
+```{r }  
+ll %>%
+    pipe_select_factors(5) %>%
+    pipe_bundle_links(field="1. Sex") %>%
+    pipe_scale_links("link_id",fun = "count") %>%
+    pipe_label_links("1. Sex",fun = "unique") %>%
+    pipe_color_links("1. Sex",fun = "unique") %>%
+    pipe_show_continuity(field="source_id") %>% 
+    make_print_map
+
+ll %>%
+    pipe_select_factors(5) %>%
+    pipe_find_links(field = "statement_id",value=90,operator="greater") %>%
+    pipe_find_links(field = "statement_id",value=290,operator="less") %>%
+    pipe_bundle_links(field="1. Sex") %>%
+    pipe_scale_links("link_id",fun = "count") %>%
+    pipe_label_links("source_id",fun = "unique") %>%
+    pipe_color_links("1. Sex",fun = "unique") %>%
+    pipe_show_continuity(field="source_id") %>% 
+    make_print_map
+```
+
+
+## Nested maps
+
+```{r }  
+tt %>%
+    pipe_zoom_factors(1) %>%
+    pipe_select_factors(5) %>%
+    make_interactive_map
+
+```
+
+
+```{r }  
+tt %>%
+    pipe_zoom_factors(1) %>%
+    pipe_bundle_links() %>%
+    pipe_label_links() %>%
+    pipe_scale_links() %>%
+    make_print_map
+
+```
+
+## Zooming out and showing source count / frequency
+
+```{r }  
+sz %>%
+    pipe_zoom_factors(1) %>%
+  pipe_bundle_links(field="simple_bundle") %>% 
+  pipe_label_links(field="source_id",fun = "count") %>% 
+  pipe_label_factors(field="frequency",add_field_name = F) %>% 
+  pipe_wrap_factors() %>% 
+    make_print_map 
+sz %>%
+  pipe_zoom_factors(1,preserve_frequency = 4,frequency_field = "frequency",frequency_other = "(other)") %>%
+  pipe_bundle_links(field="simple_bundle") %>% 
+  pipe_label_factors(field="frequency",add_field_name = F) %>% 
+  pipe_wrap_factors() %>% 
+    make_print_map 
+oig %>%
+    pipe_zoom_factors(1,preserve_frequency = 20,frequency_field = "source_count") %>%
+  pipe_bundle_links(field="simple_bundle") %>% 
+  pipe_label_links(field="source_id",fun = "count") %>% 
+  pipe_label_factors(field="source_count",add_field_name = F) %>% 
+  pipe_color_borders(field="frequency_preserved",lo="white") %>% 
+  pipe_wrap_factors() %>% 
+    make_print_map 
+tt %>%
+    pipe_zoom_factors(1,preserve_frequency = 80) %>%
+  pipe_bundle_links(field="simple_bundle") %>% 
+  pipe_label_links(field="link_id",fun = "count") %>% 
+  pipe_label_factors(field="frequency",add_field_name = F) %>% 
+  pipe_color_borders(field="frequency_preserved",lo="white") %>% 
+  pipe_wrap_factors() %>% 
+    make_print_map 
+
+cc %>%
+  pipe_find_factors(value="Improved health") %>% 
+    pipe_zoom_factors(1) %>%
+  pipe_select_factors(top=10) %>% 
+  pipe_bundle_links(field="simple_bundle") %>% 
+  pipe_label_links(field="source_id",fun = "count") %>% 
+  pipe_label_factors(field="source_count",add_field_name = F) %>% 
+  pipe_label_factors(field="frequency",add_field_name = F) %>% 
+  pipe_wrap_factors() %>% 
+    make_print_map 
+
+cc %>%
+  pipe_find_factors(value="Improved health") %>% 
+  pipe_zoom_factors(1) %>%
+  pipe_select_factors(top=10) %>% 
+  pipe_bundle_links(field="simple_bundle") %>% 
+  pipe_label_links(field="source_id",fun = "count") %>% 
+  pipe_label_factors(field="source_count",add_field_name = F) %>% 
+  pipe_label_factors(field="frequency",add_field_name = F) %>% 
+  pipe_wrap_factors() %>% 
+    make_print_map 
+
+oi %>% 
+  pipe_find_factors(value="Take a loan") %>%
+  pipe_zoom_factors(1,preserve_frequency = 2,frequency_other = "(other)") %>%
+  # pipe_label_factors("source_count") %>% 
+  # pipe_label_links(value="unique:source_id") %>% 
+  make_print_map
+
+```
+
+## Combining opposites
+
+
+```{r}
+hh %>% 
+  make_print_map()
+hh %>% 
+  pipe_combine_opposites %>% 
+  pipe_label_links(value="count:link_id") %>% 
+  make_print_map()
+
+# artificial arrowlabels
+hh %>% 
+    pipe_combine_opposites %>% pipe_update_mapfile(.,links=.$links %>% mutate(color="limegreen",taillabel=c("","","\u274C","\u274C","","\u274C"),headlabel=c("","","\u274C","\u274C","\u274C","\u274C")))  %>% make_print_map()
+
+hh %>% 
+    pipe_combine_opposites %>% pipe_update_mapfile(.,links=.$links %>% mutate(color="limegreen",taillabel=c("+","+","~","~","+","~"),headlabel=c("+","+","~","~","~","~")))  %>% make_print_map()
+
+hh %>% 
+    pipe_combine_opposites %>% pipe_update_mapfile(.,links=.$links %>% mutate(color="limegreen",arrowtail=c("","","nonetee","nonetee","","nonetee"),arrowhead=c("nonetee","","veenonenonetee","veenonenonetee","veenonenonetee","veenonenonetee")))  %>% make_print_map()
+
+
+
+```
+
+
+
+## Nested maps with opposites
+
+Note colours in Interactive view
+
+```{r }  
+tt %>%
+    pipe_zoom_factors(1) %>%
+    pipe_combine_opposites() %>%
+    pipe_select_links(3) %>%
+    make_print_map
+
+
+tt %>%
+    pipe_zoom_factors(1) %>%
+    pipe_select_links(15) %>%
+    pipe_combine_opposites() %>%
+  pipe_bundle_links("flipped_bundle") %>% 
+  pipe_label_links(value="count:link_id") %>% 
+    make_print_map
+
+
+tt %>%
+    pipe_zoom_factors(1) %>%
+    pipe_combine_opposites() %>%
+    pipe_select_links(3) %>%
+    make_interactive_map
+
+```
+
+
+## Factor quick fields
+
+```{r}
+# factors <- de$factors
+
+de %>% 
+  pipe_color_text(field="time") %>% 
+  make_print_map
+```
+
+Hiding quickfields
+
+```{r}
+de %>% 
+  pipe_hide_quickfields %>% 
+  make_print_map
+
+
+de %>% 
+  pipe_color_borders(field="happiness") %>% 
+  pipe_label_factors(field = "time") %>% 
+  pipe_hide_quickfields %>% 
+  make_print_map
+```
+
+equivalent:
+
+```{r}
+de %>% 
+  pipe_find_factors(field="time",value="after",up=0,down=0) %>% 
+  make_print_map
+
+de %>% 
+  pipe_find_factors(field="label",value="time:after",up=0,down=0) %>% 
+  make_print_map
+
+
+```
+
+zoom
+
+```{r}
+de %>% 
+  pipe_zoom_factors(1) %>% 
+  pipe_color_factors(field="time") %>% 
+  make_print_map
+
+
+
+```
+
+
+## Link quick fields
+
+```{r}
+
+# factors <- de$factors
+
+de %>% 
+  pipe_recalculate_all() %>% 
+  pipe_color_links(field="plausibility") %>% 
+  make_print_map
+
+
+de %>% 
+  pipe_color_text(field="happiness") %>% 
+  pipe_hide_quickfields %>% 
+  make_print_map
+
+
+de %>% 
+  pipe_label_factors(field = "time") %>% 
+  pipe_hide_quickfields %>% 
+  make_print_map
+
+```
+
+## Path tracing
+
+```{r }  
+
+cat("### Single\n")  
+
+ll %>% 
+  pipe_trace_paths(from = "main_drivers",to="main_outcomes",length = 3) %>% 
+  pipe_select_factors(15) %>% 
+  make_interactive_map
+
+ma %>%    
+  pipe_trace_paths(from = "Shared roles",to="balanced",length = 1) %>% 
+  pipe_select_factors(15) %>% 
+  make_interactive_map
+ma %>%    
+  pipe_trace_paths(from = "Covid-19",to="Business",length = 2) %>% 
+  pipe_select_factors(15) %>% 
+  make_interactive_map
+
+oo %>%    
+  pipe_select_factors(15) %>% 
+  pipe_trace_paths(from = "Learnt about farming",to="",length = 5) %>% 
+  make_interactive_map
+
+ee %>%    
+  pipe_trace_paths(from = "Funds",to="area",length = 5) %>% 
+  make_interactive_map
+
+cat("### Case insensitive\n")  
+
+ee %>%    
+  pipe_trace_paths(from = "funds",to="aREa",length = 5) %>% 
+  make_interactive_map
+
+cat("### Failing; no paths at all\n")  
+
+ee %>%    
+  pipe_trace_paths(from = "xx",to="yy",length = 5) %>% 
+  make_interactive_map
+
+cat("### Failing; no paths\n")  
+ee %>%    
+  pipe_trace_paths(from = "Funds",to="yy",length = 5) %>% 
+  make_interactive_map
+
+ee %>%    
+  pipe_trace_paths(from = "xx",to="Property",length = 5) %>% 
+  make_interactive_map
+
+cat("### Implicit multiple\n")  
+
+ee %>%    
+  pipe_trace_paths(from = "High",to="Damage",length = 5) %>% 
+  make_interactive_map
+
+cat("### Explicit multiple\n")  
+
+ee %>%    
+  pipe_trace_paths(from = "High",to="Property | Business",length = 5) %>% 
+  make_interactive_map
+
+ee %>%    
+  pipe_trace_paths(from = "High",to="Property OR Business",length = 5) %>% 
+  make_interactive_map
+
+cat("Should this be possible?")
+
+ee %>%    
+  pipe_trace_paths(from = "High",to="Property OR Business",length = 5) %>% 
+  make_interactive_map
+
+tt %>%
+  pipe_trace_paths(from = "Capabilities",to="[OP3]",length = 2) %>% 
+  make_interactive_map
+
+ee %>%    
+  pipe_trace_paths(from = "Funds",to="area",length = 5) %>% 
+  make_print_map()
+
+
+
+```
+
+### Robustness
+
+```{r}  
+
+## request is large but ok
+pa %>%    
+  pipe_trace_paths(from = "",to="~Impact on wellbeing",length = 1) %>% 
+  make_print_map()
+pa %>%    
+  pipe_trace_paths(from = "Covid",to="",length = 3) %>% 
+  make_print_map()
+
+## request is large
+
+if(F){e3 %>%    
+  pipe_trace_robustness(from = "High",to="Damage",length = 5) %>% 
+  make_print_map()
+
+ee %>%    
+  pipe_trace_robustness(from = "High",to="Damage",length = 5) %>% 
+  get_robustness()
+
+tt %>%
+  pipe_trace_robustness(from = "Capabilities",to="[OP3]",length = 2) %>% 
+  pipe_wrap_factors() %>% 
+  make_print_map()
+
+tt %>%
+  pipe_trace_robustness(from = "Capabilities",to="[OP3",length = 2) %>% 
+  pipe_wrap_factors() %>% 
+  make_print_map()
+
+## checking the robustness gets transferred
+tt %>%
+  pipe_trace_robustness(from = "Capabilities",to="[OP3]",length = 2) %>% 
+  pipe_wrap_factors() %>%
+  pipe_wrap_links() %>%
+  pipe_select_links(10) %>%
+  get_robustness()
+
+tt %>%
+  pipe_trace_robustness(from = "Capabilities",to="[OP3",length = 2) %>% 
+  get_robustness()
+
+tt %>%
+  pipe_trace_robustness(from = "Capabilities; [P13",to="[OP3]",length = 2) %>% 
+  get_robustness()
+
+e3  %>%
+  pipe_trace_robustness(from = "High",to="People moving",length = 5) %>% 
+  make_print_map()
+
+e3  %>%
+  pipe_trace_robustness(from = "High",to="",length = 5) %>% 
+  make_print_map()
+
+e3  %>%
+  pipe_trace_robustness(from = "High",to="People moving",length = 5) %>% 
+  get_robustness() %>% 
+  kable
+e3  %>%
+  pipe_trace_robustness(from = "High",to="Flooding",length = 5) %>% 
+  get_robustness() %>% 
+  kable
+e3  %>%
+  pipe_trace_robustness(from = "High",to="Damage",length = 5) %>% 
+  get_robustness() %>% 
+  kable
+e3  %>%
+  pipe_trace_robustness(from = "External",to="Damage",length = 5) %>% 
+  get_robustness() %>% 
+  kable
+e3  %>%
+  pipe_trace_robustness(from = "External",to="Outcome",length = 5) %>% 
+  get_robustness()%>% 
+  kable
+
+}
+
+```
+
+
+### Robustness by field
+
+Just one source:
+
+```{r}
+ee  %>%
+  pipe_trace_robustness(from = "Funds",to="Increased",length = 5,field = "source_id") %>% get_robustness
+
+ll  %>%
+  pipe_trace_robustness(from = "Cash",to="Income",length = 5,field="source_id") %>% 
+  get_robustness()
+
+```
+
+
+
+Check that opposites colouring is always preserved?
+
+```{r}
+if(F){
+hh  %>%
+  pipe_trace_robustness(from = "Revision",to="happy",length = 5) %>% 
+  pipe_combine_opposites %>% 
+  make_print_map()
+
+hh  %>%
+  pipe_combine_opposites %>% 
+  pipe_find_factors(value="exam") %>% 
+  make_print_map()
+
+hh  %>%
+  pipe_combine_opposites %>% 
+  pipe_zoom_factors() %>% 
+  pipe_find_factors(value="exam") %>% 
+  pipe_select_factors(2) %>% 
+  pipe_select_links(3) %>% 
+  make_print_map()
+}
+
+```
+
+
+Colours in interactive map
+
+```{r}
+hh  %>%
+  pipe_combine_opposites %>% 
+  pipe_zoom_factors() %>% 
+  make_interactive_map()
+
+
+```
+
+
+### Trace threads
+
+```{r}
+
+
+
+e3  %>%
+  pipe_trace_paths(from = "rainfall",to="",length = 4) %>% 
+  pipe_trace_threads() %>% 
+  pipe_bundle_links() %>% 
+  pipe_label_links(field = "has_downstream_threads",fun = "sum") %>% 
+  pipe_label_links(field = "source_id",fun = "literal",clear_previous = F) %>% 
+  pipe_color_links(field = "has_downstream_threads",fun = "sum") %>% 
+  pipe_color_borders(field="n_downstream_threads_surviving") %>% 
+  make_print_map() 
+
+e3  %>%
+  pipe_trace_paths(from = "rainfall",to="",length = 4) %>% 
+  pipe_trace_threads() %>% 
+  pipe_bundle_links() %>% 
+  pipe_label_links(field = "downstream_threads",fun = "literal") %>% 
+  pipe_color_links(field = "has_downstream_threads",fun = "sum") %>% 
+  pipe_color_borders(field="n_downstream_threads_surviving") %>% 
+  make_print_map() 
+
+e3  %>%
+  pipe_trace_paths(from = "rainfall",to="",length = 4) %>% 
+  pipe_trace_threads() %>% 
+  pipe_bundle_links() %>% 
+  pipe_label_links(field = "downstream_threads",fun = "count") %>% 
+  pipe_color_links(field = "has_downstream_threads",fun = "sum") %>% 
+  pipe_color_borders(field="n_downstream_threads_surviving") %>% 
+  make_print_map() 
+
+# with multiple origins
+e3  %>%
+  pipe_trace_paths(from = "External",to="",length = 2) %>% 
+  pipe_trace_threads() %>% 
+  pipe_bundle_links() %>% 
+  pipe_label_links(field = "has_downstream_threads",fun = "sum") %>% 
+  pipe_color_links(field = "has_downstream_threads",fun = "sum") %>% 
+  pipe_color_factors(field="found_type") %>% 
+  pipe_color_borders(field="n_downstream_threads_surviving") %>% 
+  make_print_map() 
+
+ll  %>%
+  pipe_trace_paths(from = "OrgX",to="Income",length = 4) %>% 
+  pipe_trace_threads() %>% 
+  pipe_bundle_links() %>% 
+  pipe_label_links(field = "has_downstream_threads",fun = "sum") %>% 
+  pipe_color_links(field = "has_downstream_threads",fun = "sum") %>% 
+  make_print_map() 
+
+# works also with other fields
+ll  %>%
+  pipe_trace_paths(from = "OrgX",to="Income",length = 4) %>% 
+  pipe_trace_threads(field="r.2. Village") %>% 
+  # pipe_bundle_links(field="r.2. Village") %>% 
+  pipe_label_links(field = "downstream_threads",fun = "unique") %>% 
+  pipe_color_links(field = "has_downstream_threads",fun = "sum") %>% 
+  make_print_map() 
+
+# with no target
+ll  %>%
+  pipe_trace_paths(from = "OrgX",to="",length = 2) %>% 
+  pipe_trace_threads() %>% 
+  pipe_bundle_links() %>% 
+  pipe_label_links(field = "has_downstream_threads",fun = "sum") %>% 
+  pipe_color_links(field = "has_downstream_threads",fun = "sum") %>% 
+  make_print_map() 
+
+ll  %>%
+  pipe_trace_paths(from = "doesnotexist",to="Income",length = 4) %>% 
+  pipe_trace_threads() %>% 
+  pipe_bundle_links() %>% 
+  pipe_label_links(field = "has_downstream_threads",fun = "sum") %>% 
+  pipe_color_links(field = "has_downstream_threads",fun = "sum") %>% 
+  make_print_map() 
+
+ll  %>%
+  pipe_trace_paths(from = "OrgX",to="doesnotexist",length = 4) %>% 
+  pipe_trace_threads() %>% 
+  pipe_bundle_links() %>% 
+  pipe_label_links(field = "has_downstream_threads",fun = "sum") %>% 
+  pipe_color_links(field = "has_downstream_threads",fun = "sum") %>% 
+  make_print_map() 
+
+
+oo %>%    
+  pipe_select_factors(15) %>% 
+  pipe_trace_paths(from = "Learnt about farming",to="",length = 5) %>% 
+  pipe_trace_threads() %>% 
+  pipe_bundle_links() %>% 
+  pipe_label_links(field = "has_downstream_threads",fun = "sum") %>% 
+  pipe_color_links(field = "has_downstream_threads",fun = "sum") %>% 
+  make_print_map
+
+oo %>%    
+  pipe_select_factors(10) %>% 
+  pipe_trace_paths(from = "Learnt about farming",to="Health",length = 3) %>% 
+  pipe_trace_threads() %>% 
+  pipe_bundle_links() %>% 
+  pipe_label_links(field = "has_downstream_threads",fun = "sum") %>% 
+  pipe_label_links(field = "source_id",fun = "count",clear_previous = F) %>% 
+  pipe_color_links(field = "has_downstream_threads",fun = "sum") %>% 
+  pipe_color_factors(field="found_type") %>% 
+  make_print_map
+
+# note that sum of has_downstream_threads can be more than number of unique sources
+oo %>%    
+  pipe_select_factors(10) %>% 
+  pipe_trace_paths(from = "Learnt about farming",to="Health",length = 3) %>% 
+  pipe_trace_threads() %>% 
+  pipe_bundle_links() %>% 
+  # pipe_label_links(field = "has_downstream_threads",fun = "sum") %>% 
+  # pipe_label_links(field = "continuation_id",fun = "count",clear_previous = F) %>% 
+  pipe_label_links(field = "downstream_threads",fun = "unique",clear_previous = F) %>%
+  pipe_color_links(field = "has_downstream_threads",fun = "sum") %>% 
+  pipe_color_factors(field="found_type") %>% 
+  pipe_wrap_links() %>% 
+  make_print_map
+
+
+oi %>%    
+  # pipe_select_factors(20) %>% 
+  pipe_trace_paths(from = "Take a loan",to="",length = 4) %>% 
+  pipe_trace_threads() %>% 
+  pipe_bundle_links() %>% 
+  pipe_label_links(field = "has_downstream_threads",fun = "sum") %>% 
+  pipe_label_links(field = "source_id",fun = "count",clear_previous = F) %>% 
+  pipe_color_links(field = "has_downstream_threads",fun = "sum") %>% 
+  pipe_color_factors(field="found_type") %>% 
+  make_print_map
+oi %>%    
+  # pipe_select_factors(20) %>% 
+  pipe_trace_paths(from = "Need more",to="",length = 2) %>% 
+  pipe_trace_threads() %>% 
+  pipe_bundle_links() %>% 
+  pipe_label_links(field = "has_downstream_threads",fun = "sum") %>% 
+  pipe_label_links(field = "source_id",fun = "count",clear_previous = F) %>% 
+  pipe_label_links(field = "source_id",fun = "literal",clear_previous = F) %>% 
+  pipe_color_links(field = "has_downstream_threads",fun = "sum") %>% 
+  pipe_color_factors(field="found_type") %>% 
+  make_print_map
+
+# kb <- load_mapfile("kenya-beka")
+# 
+# kb %>%    
+#   pipe_trace_paths(from = "Covid-19",to="~Performance",length = 3) %>% 
+#   pipe_trace_threads() %>% 
+#   pipe_bundle_links() %>% 
+#   pipe_label_links(field = "downstream_threads",fun = "initials") %>% 
+#   make_print_map
+
+
+```
+
+### upstream
+```{r}
+
+e3  %>%
+  pipe_trace_paths(from = "",to="Outcome",length = 4) %>% 
+  pipe_trace_threads(direction="up") %>% 
+  pipe_bundle_links() %>% 
+  pipe_label_links(field = "source_id",fun = "literal") %>% 
+  pipe_label_links(field = "has_upstream_threads",fun = "sum",clear_previous = F) %>% 
+  pipe_color_links(field = "has_upstream_threads",fun = "sum") %>% 
+  pipe_color_borders(field="n_upstream_threads_surviving") %>% 
+  pipe_label_factors(field="n_upstream_threads_surviving") %>% 
+  make_print_map() 
+
+oi %>%    
+  pipe_trace_paths(from = "Flee",to="",length = 3) %>% 
+  pipe_trace_threads(direction="down") %>% 
+  pipe_bundle_links() %>% 
+  pipe_label_links(field = "has_downstream_threads",fun = "sum") %>% 
+  pipe_label_links(field = "source_id",fun = "literal",clear_previous = F) %>% 
+  pipe_color_links(field = "has_downstream_threads",fun = "sum") %>% 
+  pipe_color_factors(field="found_type") %>% 
+  make_print_map
+
+oi %>%    
+  pipe_trace_paths(from = "",to="Financial diary",length = 2) %>% 
+  pipe_trace_threads(direction="up") %>% 
+  pipe_bundle_links() %>% 
+  pipe_label_links(field = "has_upstream_threads",fun = "sum") %>% 
+  pipe_label_links(field = "source_id",fun = "literal",clear_previous = F) %>% 
+  pipe_color_links(field = "has_upstream_threads",fun = "sum") %>% 
+  pipe_color_factors(field="found_type") %>% 
+  make_print_map
+
+
+```
+
+```{r }  
+if(F){
+graf <- tt1
+graf$factors %>% filter(factor_id %notin% graf$links$from & factor_id %notin% graf$links$to)  %>% nrow
+
+graf$links %>% filter(from %notin% graf$factors$factor_id & to %notin% graf$factors$factor_id)  %>% nrow
+
+graf$links %>% filter(statement_id %notin% graf$statements$statement_id) %>% nrow
+  }
+
+
+```
+
+## Cluster factors
+
+```{r}
+ee %>% 
+  pipe_coerce_mapfile %>% 
+  pipe_cluster_factors("Damage OR Flood") %>% 
+  make_print_map
+```
+
+Pipe-able:
+
+```{r}
+ee %>% 
+  pipe_cluster_factors("Damage OR Flood") %>% 
+  pipe_cluster_factors("Rising") %>% 
+  make_print_map
+```
+
+## Large map
+```{r}
+cm <- 
+  load_mapfile("cmi-gender")
+library("tictoc")
+tic()
+make_interactive_map(cm)
+toc()
+
+```
+
+
+## Data manipulation, file management etc
+
+### Accessing the data 
+
+One column in one table
+
+```{r }  
+ll %>%
+    pipe_find_factors(value="economic") %>%
+    .$factors %>%
+    .$label %>% 
+  knitr::kable()
+```
+
+### Merging two maps 
+
+```{r }  
+if(T)merge_mapfile(ee,tt %>% pipe_select_factors(top=8)) %>% 
+  pipe_color_factors(field="map_id") %>% 
+  pipe_color_links(field="map_id",fun="unique") %>% 
+  make_interactive_map
+
+```
+
+Note warning if factor labels are shared
+
+
+```{r }  
+if(T)load_mapfile("example2") %>%
+  pipe_coerce_mapfile %>% 
+  pipe_merge_mapfile("example2") %>% 
+  pipe_color_factors(field="map_id") %>% 
+  pipe_color_links(field="map_id",fun="unique") %>% 
+  make_interactive_map
+
+```
+
+### Editing maps directly
+
+There is no guarantee that the resulting map is still a standard mapfile.
+
+```{r }  
+ee$factors$label[1] <- "Label changed"
+ee %>% make_interactive_map
+```
+
+### Editing maps with pipe_update_mapfile
+
+There is no guarantee that the resulting map is still a standard mapfile.
+
+```{r }  
+ee %>% 
+  pipe_update_mapfile(factors = ee$factors %>% mutate(label="one")) %>% 
+  make_interactive_map
+```
+
+
+### Printing the filters
+
+```{r}
+# example2 %>% 
+#   pipe_coerce_mapfile %>% 
+#   pipe_find_links(field = "link_id",value=1)  %>% 
+#   pipe_select_factors(20) %>%  
+#   pipe_remove_isolated() %>% 
+#   pipe_select_links(20) %>%  
+#   pipe_zoom_factors() %>% 
+#   pipe_find_statements(field = "text",value="Flo") %>% 
+#   pipe_find_factors(value="Flo") %>%
+#   pipe_remove_brackets("[") %>% 
+#   pipe_trace_robustness(from = "Flood",to="Damage") %>% 
+#   pipe_trace_paths(from = "Flood",to="Damage") %>% 
+#   pipe_combine_opposites() %>% 
+#   pipe_bundle_links() %>% 
+#   pipe_label_links() %>% 
+#   attr("info") %>% 
+#   str
+# 
+# example2 %>%
+#   pipe_coerce_mapfile() %>%
+#   pipe_bundle_links() %>%
+#   pipe_scale_links() %>%
+#   pipe_label_links() %>%
+#   pipe_color_links() %>%
+#   pipe_scale_factors(field = "frequency") %>%
+#   pipe_label_factors() %>%
+#   pipe_color_factors() %>%
+#   pipe_color_borders() %>%
+#   pipe_mark_links() %>%
+#   pipe_show_continuity() %>%
+#   pipe_cluster_factors() %>%
+#   pipe_wrap_factors() %>%
+#   pipe_wrap_links() %>%
+#   print_filter()
+
+
+```
+
+
+
+
+You can also load up an Excel file:
+
+```{r }
+# system.file("extdata", "quip-lorem", package = "CausalMapFunctions") %>% 
+#   get_mapfile_from_excel()
+
+```

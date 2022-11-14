@@ -22,7 +22,7 @@ library(shiny)
 
 
 # constants ---------------------------------------------------------------
-
+safe_limit <- 200
 contrary_color <- "#f26d04"
 ordinary_color <- "#058488"
 
@@ -93,7 +93,7 @@ add_attribute <- function(graf,value,attr){
 finalise <- function(graf,value){
   message("finalise")
   # simply reattaches the info list back to the graf. so you may need to update info during a function.
-  attr(graf,"info") <- value
+  # attr(graf,"info") <- value
   graf
 }
 
@@ -480,35 +480,35 @@ escapeRegex <- function(string){ #from hmisc
 # major functions and pipes but not for use with parser -------------------------------------------------------------
 
 
-#' Assemble map
-#' @param factors
-#' @param links
-#' @param statements
-#' @param sources
-#' @param questions
-#' @param settings
-#' @description The only difference between this and just creating a list is that it provides names
-#' @return
-#' @export
+#' #' Assemble map
+#' #' @param factors
+#' #' @param links
+#' #' @param statements
+#' #' @param sources
+#' #' @param questions
+#' #' @param settings
+#' #' @description The only difference between this and just creating a list is that it provides names
+#' #' @return
+#' #' @export
+#' #'
+#' #' @examples
+#' assemble_mapfile <- function(
+#'   factors=standard_factors(),
+#'   links=standard_links(),
+#'   statements=standard_statements(),
+#'   sources=standard_sources(),
+#'   questions=standard_questions(),
+#'   settings=standard_settings()){
 #'
-#' @examples
-assemble_mapfile <- function(
-  factors=standard_factors(),
-  links=standard_links(),
-  statements=standard_statements(),
-  sources=standard_sources(),
-  questions=standard_questions(),
-  settings=standard_settings()){
-
-  list(factors ,
-       links ,
-       statements ,
-       sources ,
-       questions ,
-       settings
-  ) %>%
-    set_names(xc("factors links statements sources questions settings"))
-}
+#'   list(factors ,
+#'        links ,
+#'        statements ,
+#'        sources ,
+#'        questions ,
+#'        settings
+#'   ) %>%
+#'     set_names(xc("factors links statements sources questions settings"))
+#' }
 
 
 #' Title
@@ -531,6 +531,10 @@ load_mapfile <- function(path=NULL,connection=conn){
   newtables <- NULL
   # browser()
   if(!is.null(path)){
+    if(str_detect(path,"xlsx$")){
+      type <- "excel"
+
+    } else
     if(!(str_detect(path,"/"))){
       type <- "unknown"
 
@@ -539,6 +543,7 @@ load_mapfile <- function(path=NULL,connection=conn){
       path <- path %>% str_remove("^.*?/")
     }#
   } else type <- "individual"
+
   if(type=="file") graf <- readRDS(path) else
     if(type=="standard"){
       tmp <- safely(get)(path)
@@ -573,12 +578,7 @@ load_mapfile <- function(path=NULL,connection=conn){
 
     }
 
-  # graf$factors <- graf$factors %>% replace_null(standard_factors()) %>% replace_zero_rows(standard_factors())
-  # graf$links <- graf$links %>% replace_null(standard_links()) %>% replace_zero_rows(standard_links())
-  # graf$statements <- graf$statements %>% replace_null(standard_statements()) %>% replace_zero_rows(standard_statements())
-  # graf$sources <- graf$sources %>% replace_null(standard_sources()) %>% replace_zero_rows(standard_sources())
-  # graf$questions <- graf$questions %>% replace_null(standard_questions()) %>% replace_zero_rows(standard_questions())
-  # graf$settings <- graf$settings %>% replace_null(standard_settings()) %>% replace_zero_rows(standard_settings())  # graf$settings <- graf$settings %>% replace_null(standard_settings()) %>% replace_zero_rows(standard_settings())
+  # browser()
 
   # this should not really be here, because pipe_coerce_mapfile was supposed to only operate on new unfiltered maps
   if(!is.null(graf$statements)){
@@ -598,22 +598,15 @@ load_mapfile <- function(path=NULL,connection=conn){
   }
 
 
-# browser()
-
   if(is.null(graf) & is.null(factors) & is.null(links)) {
 
-    graf <- assemble_mapfile()
+    graf <- pipe_update_mapfile()
     message("creating blank map");
 
   }
-# browser()
-
-
 
   if(!is.null(graf$links)){
     graf$links <- graf$links %>% select(-any_of(c("link_id.1","statement_id.2","from.2","to.2","quote.2","frequency.1","weight.2","actualisation.2","strength.2","certainty.2","from_flipped.1","to_flipped.1","link_label.1","from_label.1","to_label.1","hashtags.2","link_memo.1","link_map_id.1","link_id.2","statement_id.3","from.3","to.3","quote.3","frequency.2","weight.3","actualisation.3","strength.3","certainty.3","from_flipped.2","to_flipped.2","link_label.2","from_label.2","to_label.2","hashtags.3","link_memo.2","link_map_id.2","statement_id.1","from.1","to.1","quote.1","weight.1","actualisation.1","strength.1","certainty.1","hashtags.1")))#FIXME TODO  this is just legacy/transition
-  }
-  if(!is.null(graf$links)){
   }
   message("Loading map")
   # browser()
@@ -645,7 +638,6 @@ load_mapfile <- function(path=NULL,connection=conn){
 pipe_coerce_mapfile <- function(tables){
 
   # say()
-  # browser()
 
   factors <- tables$factors %>% replace_null(standard_factors()) %>% replace_zero_rows(standard_factors())
   links <- tables$links %>% replace_null(standard_links()) %>% replace_zero_rows(standard_links())
@@ -693,6 +685,7 @@ pipe_coerce_mapfile <- function(tables){
       distinct(link_id,.keep_all = T)
 
   }
+  # browser()
   if(is.null(factors)) factors <- standard_factors() else {
 
     if("factor_id" %notin% colnames(factors))  factors <-  factors %>%
@@ -843,13 +836,13 @@ pipe_coerce_mapfile <- function(tables){
 
   factors <- factors[,colnames(factors)!=""]
 
+  # browser()
 
 
-  graf <- assemble_mapfile(factors,links,statements,sources,questions,settings) %>%
-    pipe_remove_orphaned_links() %>%
-    add_class()
+  graf <- pipe_update_mapfile(factors=factors,links=links,statements=statements,sources=sources,questions=questions,settings=settings) %>%
+    pipe_remove_orphaned_links()
 
-  attr(graf,"info") <- attr(tables,"info")
+  # attr(graf,"info") <- attr(tables,"info")
   graf %>% pipe_recalculate_all
 }
 
@@ -901,40 +894,29 @@ add_simple_bundle_to_links <- function(links){
 #' @export
 #'
 #' @examples
-pipe_update_mapfile <- function(map,
+pipe_update_mapfile <- function(
                                 tables=NULL,
                                 factors=NULL,
                                 links=NULL,
                                 statements=NULL,
                                 sources=NULL,
                                 questions=NULL,
-                                settings=NULL,
-                                clean=T,
-                                all=T){
+                                settings=NULL
+                                # ,
+                                # clean=T,
+                                # all=T
+                                ){
   # browser()
 
   message("pipe update")
-  if(!is.null(tables)){
-    factors <- tables$factors
-    links <- tables$links
-    statements <- tables$statements
-    sources <- tables$sources
-    questions <- tables$questions
-    settings <- tables$settings
-  }
-
-  map2 <-
-    list(
-      factors = factors %>% replace_null(map$factors) ,
-      links = links %>% replace_null(map$links) ,
-      statements = statements %>% replace_null(map$statements) ,
-      sources = sources %>% replace_null(map$sources) ,
-      questions = questions %>% replace_null(map$questions) ,
-      settings = settings %>% replace_null(map$settings)
-    )
-  # browser()
-  attr(map2,"call") <- attr(map,"call")
-  map2
+  list(
+    factors=factors %>% replace_null(tables$factors) %>% replace_null(standard_factors()),
+    links=links %>% replace_null(tables$links) %>% replace_null(standard_links()),
+    statements=statements %>% replace_null(tables$statements) %>% replace_null(standard_statements()),
+    sources=sources %>% replace_null(tables$sources) %>% replace_null(standard_sources()),
+    questions=questions %>% replace_null(tables$questions) %>% replace_null(standard_questions()),
+    settings=settings %>% replace_null(tables$settings) %>% replace_null(standard_settings())
+  )
 
 }
 
@@ -1344,7 +1326,7 @@ factors_links_from_named_edgelist <- function(links){
 merge_factors_links <- function(map1,map2){
   maxfactorid <- max(as.numeric(map1$factors$factor_id))
   # browser()
-  assemble_mapfile(
+  pipe_update_mapfile(
 
     factors=map1$factors %>%
       bind_rows_safe(map2$factors %>%
@@ -1396,7 +1378,7 @@ merge_mapfile <- function(map1,map2){
      any(map2$factors$label %in% map1$factors$label)) warning("Factor labels are shared!")
 
   # browser()
-  assemble_mapfile(
+  pipe_update_mapfile(
 
     factors=map1$factors %>%
       bind_rows_safe(map2$factors %>%
@@ -1511,6 +1493,8 @@ pipe_remove_orphaned_links <- function(graf){
     pipe_update_mapfile(factors=factors,links=links)
   return(graf)
 }
+
+
 
 
 pipe_normalise_factors_links <- function(graf){
@@ -2361,7 +2345,8 @@ make_info <- function(graf,lis){
   message("make info")
   # takes the list - which will usuall be the current call, names it, and adds to existing graf info
 
-  c(attr(graf,"info"),lis %>% (function(x)list(x) %>% set_names(x[[1]])))
+  # c(attr(graf,"info"),lis %>% (function(x)list(x) %>% set_names(x[[1]])))
+  graf
 
 }
 
@@ -2573,24 +2558,22 @@ parse_commands <- function(graf=NULL,tex){
 #' pipe_find_factors(example2,value="Flood")
 #' pipe_find_factors(example2,field="id",value=5,operator="greater")
 pipe_find_factors <- function(graf,field="label",value,operator="contains",up=1,down=1,remove_isolated=F,highlight_only=F){
-  # st <- attr(graf,"statements")
-  # browser()
-  message("find factors")
-  info <-   make_info(graf,as.list(match.call()))
 
-  df <- graf$factors %>% find_fun(field,value,operator)
-  # pager <- df %>% attr("pager")
+    message("find factors")
+
+    df <- graf$factors %>% find_fun(field,value,operator)
+
 
   if(df$found %>% sum %>% `==`(0)) {
     graf <- (pipe_update_mapfile(graf,factors=graf$factors %>% filter(F),links=graf$links %>% filter(F)))
-    return( graf  %>% finalise_transforms(info))
+    return( graf  )
   }
 
 
 
   if(operator=="notcontains" | operator=="notequals"){
-    graf <- pipe_update_mapfile(graf,factors=df %>% filter(found)) %>% pipe_coerce_mapfile()
-    return(graf %>% finalise_transforms(info))
+    graf <- pipe_update_mapfile(graf,factors=df %>% filter(found))
+    return(graf )
 
   }
 
@@ -2598,7 +2581,7 @@ pipe_find_factors <- function(graf,field="label",value,operator="contains",up=1,
 
   if(highlight_only){
     graf <- (pipe_update_mapfile(graf,factors=df,links=graf$links))
-    return(graf %>% finalise_transforms(info))
+    return(graf )
 
   }
 
@@ -2608,13 +2591,12 @@ pipe_find_factors <- function(graf,field="label",value,operator="contains",up=1,
   # browser()
   graf <- {if(any(trace_before_vec)|any(trace_after_vec)){
     graf %>% pipe_update_mapfile(factors=factors_table(graf) %>% filter(found|trace_before_vec|trace_after_vec)) %>%
-      # pipe_remove_orphaned_links %>%
       pipe_remove_isolated_links() %>%
       {if(remove_isolated) pipe_remove_isolated(.) else .}} else{
         graf %>% filter(F)
-      }} %>% pipe_coerce_mapfile()
+      }} #%>% pipe_coerce_mapfile()
 
-  return(graf %>% finalise_transforms(info))
+  return(graf)
 }
 
 #' Find links
@@ -2762,7 +2744,7 @@ pipe_select_factors <- function(graf,top=10,bottom=NULL,all=F,field="frequency")
 #' This can be useful after any function like pipe_select_links() which remove links.
 #' @examples
 pipe_remove_isolated <- function(graf){
-  info <-   make_info(graf,as.list(match.call()))
+  # info <-   make_info(graf,as.list(match.call()))
 
 
   # browser()
@@ -2775,7 +2757,7 @@ pipe_remove_isolated <- function(graf){
     pipe_update_mapfile(factors=factors,links=graf$links) %>%
     pipe_remove_isolated_links()
 
-  finalise(graf,info)
+  finalise(graf)#,info)
 
 
 }
@@ -3117,7 +3099,7 @@ pipe_trace_paths <- function(graf,from="",to="",length=4,remove_links=F,threads_
   if(!any(factors$found_from) | !any(factors$found_to)) return(graf %>% pipe_update_mapfile(factors=graf$factors %>% filter(F))%>%
                                                                  finalise_transforms(info))
 
-  tmp <- pipe_normalise_factors_links(assemble_mapfile(factors,links))
+  tmp <- pipe_normalise_factors_links(pipe_update_mapfile(factors,links))
   factors <- tmp$factors
   links <- tmp$links
 
@@ -4454,34 +4436,13 @@ prepare_visual_bundles <- function(graf,
 #' @examples
 make_interactive_map <- function(graf,scale=1,safe_limit=200,rainbow=F){
 
-  message("making interactive map")
   # browser()
+  message("making interactive map")
   graf <- prepare_final(graf)
-  # graf <- prepare_visual_bundles(graf)
-  #message("started vn")
-  if(nrow(graf$factors)>replace_null(safe_limit,200)){
-    message("Map larger than 'safe limit'; showing only most frequent factors",3)
-    graf <- graf %>%
-      pipe_select_factors(200)
 
-  }
+    if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1){
 
-
-  if(!is_grouped_df(graf$links) & nrow(links_table(graf))>replace_null(safe_limit,200)){
-    message("Map larger than 'safe limit'; bundling and labelling links",3)
-    graf <- graf %>%
-      pipe_bundle_links() %>%
-      pipe_label_links(field = "link_id",fun="count") %>%
-      pipe_scale_links(field = "link_id",fun="count")
-
-  }
-# browser()
-  #message("2vn")
-
-  if(nrow(graf$factors)>0){  if(max(table(graf$factors$size),na.rm=T)>1){
-
-    graf <- graf %>% pipe_update_mapfile(factors=.$factors %>% arrange((size))) %>%
-      pipe_remove_orphaned_links()#because this is the way to get the most important ones in front
+    graf$factors <- graf$factors %>% arrange((size))
   }
   }
   nodes <- graf$factors %>% mutate(value=size*10) %>%
@@ -4789,14 +4750,27 @@ average_color <- function(colvec,combine_doubles=F){
 }
 
 prepare_final <- function(graf){
-# browser()
 
-  if(nrow(graf$factors)>200)  graf <- graf %>%
-    pipe_select_factors(200)
+  if(nrow(graf$factors)>replace_null(safe_limit,200)){
+    message("Map larger than 'safe limit'; showing only most frequent factors",3)
+    graf <- graf %>%
+      pipe_select_factors(200)
 
+  }
+
+
+  if(!is_grouped_df(graf$links) & nrow(links_table(graf))>replace_null(safe_limit,200)){
+    message("Map larger than 'safe limit'; bundling and labelling links",3)
+    graf <- graf %>%
+      pipe_bundle_links() %>%
+      pipe_label_links(field = "link_id",fun="count") %>%
+      pipe_scale_links(field = "link_id",fun="count")
+
+  }
   if(any(as.numeric(graf$factors$is_flipped)>0,na.rm=T) %>% replace_na(F))graf$factors$`color.border`= div_gradient_pal(ordinary_color,"white",contrary_color)(graf$factors$is_flipped)
 
 
+# browser()
 
   graf
 
