@@ -372,7 +372,7 @@ If operator and field are both NULL, the value is treated as a simple search str
 <span class="r-in"><span class="fu">pipe_find_factors</span><span class="op">(</span><span class="va">example2</span>,field<span class="op">=</span><span class="st">"id"</span>,value<span class="op">=</span><span class="fl">5</span>,operator<span class="op">=</span><span class="st">"greater"</span><span class="op">)</span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> find factors</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> make info</span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in if (df$found %&gt;% sum %&gt;% ==0) {    graf &lt;- (pipe_update_mapfile(graf, factors = graf$factors %&gt;%         filter(F), links = graf$links %&gt;% filter(F)))    return(graf %&gt;% finalise_transforms(info))}:</span> missing value where TRUE/FALSE needed</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in if (df$found %&gt;% sum %&gt;% ==0) {    graf &lt;- (pipe_update_mapfile(graf, factors = graf$factors %&gt;%         filter(F), links = graf$links %&gt;% filter(F)))    return(graf %&gt;% pipe_recalculate_all())}:</span> missing value where TRUE/FALSE needed</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>

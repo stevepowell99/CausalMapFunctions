@@ -129,6 +129,26 @@ example_file <- load_mapfile(path="data/example-file.xlsx")
   ee %>%
     pipe_set_print(grv_layout="circo") %>%
     make_print_map()
+
+  example_file %>% 
+    make_interactive_map()
+  
+  tic()
+  example_file %>% 
+    pipe_select_factors(10) %>% 
+    pipe_bundle_links() %>% 
+    pipe_scale_links() %>% 
+    make_print_map()
+  toc()
+
+  
+  example_file %>% 
+    pipe_find_factors(value="Nutrition") %>% 
+    pipe_bundle_links() %>% 
+    pipe_scale_links() %>% 
+    make_print_map()
+
+
 ```
 
 
