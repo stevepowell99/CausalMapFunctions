@@ -9,9 +9,6 @@ left_join_safe(x, y, by = NULL, winner = "y", ...)
 \arguments{
 \item{...}{}
 }
-\value{
-
-}
 \description{
 Left join safe
 }

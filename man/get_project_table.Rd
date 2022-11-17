@@ -9,9 +9,6 @@ get_project_table(tab = "data", proj = sess$project, connection = conn)
 \arguments{
 \item{connection}{}
 }
-\value{
-
-}
 \description{
 Title
 }

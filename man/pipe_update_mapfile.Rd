@@ -5,16 +5,13 @@
 \title{Update mapfile}
 \usage{
 pipe_update_mapfile(
-  map,
   tables = NULL,
   factors = NULL,
   links = NULL,
   statements = NULL,
   sources = NULL,
   questions = NULL,
-  settings = NULL,
-  clean = T,
-  all = T
+  settings = NULL
 )
 }
 \arguments{

@@ -6,6 +6,14 @@
 \usage{
 add_class(x, cls = "mapfile")
 }
+\arguments{
+\item{x}{Object to add a class to}
+
+\item{cls}{Class to be added}
+}
+\value{
+`x` with class `cls` added
+}
 \description{
 Add class
 }

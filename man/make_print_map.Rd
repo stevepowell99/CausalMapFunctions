@@ -34,9 +34,6 @@ such as `color.border`.}
 If !is.null(safe_limit), the resulting map is simplified by bundling edges and selecting
 most frequent factors.}
 }
-\value{
-
-}
 \description{
 Make a Graphviz map: https://graphviz.org/documentation/
 }

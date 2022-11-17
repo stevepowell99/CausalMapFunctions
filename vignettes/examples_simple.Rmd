@@ -126,10 +126,10 @@ pipe_update_mapfile() %>%
   make_interactive_map()
 
 example2 
-example2 %>% pipe_update_mapfile() %>% make_interactive_map()
-example2 %>% pipe_update_mapfile(factors=example2$factors) %>% make_interactive_map()
+example2 %>% pipe_coerce_mapfile %>% pipe_update_mapfile() %>% make_interactive_map()
+example2 %>% pipe_coerce_mapfile %>% pipe_update_mapfile(factors=example2$factors) %>% make_interactive_map()
 
-message(2)
+
 
 ee <- example2 
 
@@ -184,8 +184,16 @@ example2 %>% pipe_coerce_mapfile() %>% make_interactive_map()
 
 ```{r }  
 example_file %>%
-    pipe_find_links("simple_frequency",value = 50,"greater") %>%
+    pipe_find_links("simple_frequency",value = 15,"greater") %>%
     make_interactive_map
+example_file %>%
+    pipe_find_links("simple_frequency",value = 1500,"greater") %>%
+    make_interactive_map
+
+example_file %>%
+    pipe_find_links("simple_frequency",value = 1500,"greater") %>%
+    make_print_map
+
 
 ```
 
@@ -429,7 +437,7 @@ No result
 
 ```{r }  
 
-#TODO
+
 example_file %>%
     pipe_find_statements(field="statement_id",value=20000000,operator="greater") %>%
     make_interactive_map

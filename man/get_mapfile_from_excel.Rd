@@ -7,10 +7,7 @@
 get_mapfile_from_excel(path)
 }
 \arguments{
-\item{path}{}
-}
-\value{
-
+\item{path}{The path of an .xslx file to load. The .xlsx file can have worksheets called `statements`, `links`, `factors`, `sources` and `questions`.}
 }
 \description{
 Title

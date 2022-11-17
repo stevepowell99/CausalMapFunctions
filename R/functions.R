@@ -34,6 +34,10 @@ table_list <- c("factors","links","statements","sources","questions","settings")
 
 s3 <- paws::s3()
 
+empty_visnetwork <- visNetwork(
+  nodes = data.frame(id=1) %>% filter(F)
+  )
+
 standard_factors <- function(){
   tibble(label="blank factor",
          factor_memo="",map_id=1L,size=1L,factor_id=1L,is_flipped=F)
@@ -473,41 +477,13 @@ escapeRegex <- function(string){ #from hmisc
 # major functions and pipes but not for use with parser -------------------------------------------------------------
 
 
-#' #' Assemble map
-#' #' @param factors
-#' #' @param links
-#' #' @param statements
-#' #' @param sources
-#' #' @param questions
-#' #' @param settings
-#' #' @description The only difference between this and just creating a list is that it provides names
-#' #' @return
-#' #' @export
-#' #'
-#' #' @examples
-#' assemble_mapfile <- function(
-#'   factors=standard_factors(),
-#'   links=standard_links(),
-#'   statements=standard_statements(),
-#'   sources=standard_sources(),
-#'   questions=standard_questions(),
-#'   settings=standard_settings()){
-#'
-#'   list(factors ,
-#'        links ,
-#'        statements ,
-#'        sources ,
-#'        questions ,
-#'        settings
-#'   ) %>%
-#'     set_names(xc("factors links statements sources questions settings"))
-#' }
 
 
-#' Title
+
+#' Load mapfile
 #'
 #' @param path
-#' @param connection An S3 connection
+#' @param connection
 #'
 #' @return
 #' @export
@@ -891,6 +867,7 @@ add_simple_bundle_to_links <- function(links){
 fix_columns_factors <- function(factors){
   message("fix col factors")
   if(!("color.background" %in% colnames(factors))) factors <- factors %>% mutate(color.background="#ffffff")
+  if(!("is_flipped" %in% colnames(factors))) factors <- factors %>% mutate(is_flipped=F)
   if(!("font.color" %in% colnames(factors))) factors <- factors %>% mutate(font.color="#000000")
   if(!("color.border" %in% colnames(factors))) factors <- factors %>% mutate(color.border="#ffffff")
   if(!("size" %in% colnames(factors))) factors <- factors %>% mutate(size=1L)
@@ -4399,6 +4376,8 @@ prepare_visual_bundles <- function(graf,
 #' @examples
 make_interactive_map <- function(graf,scale=1,safe_limit=200,rainbow=F){
 
+  if(nrow(graf$factors %>% replace_null(tibble()))==0) return(empty_visnetwork)
+
   message("making interactive map")
   graf <- prepare_final(graf)
 
@@ -4411,7 +4390,6 @@ make_interactive_map <- function(graf,scale=1,safe_limit=200,rainbow=F){
     select(any_of(xc("factor_id factor_memo factor_wrap label font.color color.background color.border title group value hidden size"))) %>% ### restrictive in attempt to reduce random freezes
     fix_columns_factors()
 
-  # browser()
   if("factor_wrap" %in% colnames(nodes))nodes <- nodes %>%
     mutate(label=str_wrap(label,max(factor_wrap))) else nodes <-
     nodes %>%     mutate(label=add_default_wrap(label) )
@@ -4515,7 +4493,6 @@ make_interactive_map <- function(graf,scale=1,safe_limit=200,rainbow=F){
       "<p class='link_tooltip'>Question ID:", question_id  %>% str_wrap,"</p>",
       "</br><p class='link_tooltip'>",quote %>% str_replace_all(";","</br>") %>% str_wrap,"</p>"
     ))
-  # browser()
   #message("8vn")
   res <- visNetwork(nodes,edges,background="white")   %>%
     visNodes(
@@ -4686,9 +4663,9 @@ pipe_set_print <- function(
     )
 }
 
-add_default_wrap <- function(labelvec){
+  add_default_wrap <- function(labelvec){
   # browser()
-  if(!any(str_detect(labelvec,"\n"))) str_wrap(labelvec,22) else labelvec
+  if(!any(str_detect(labelvec %>% na.omit,"\n"))) str_wrap(labelvec,22) else labelvec
 }
 
 # combine doubles deals with double colours of the form red:blue, then recursively works out the average
@@ -4729,10 +4706,12 @@ prepare_final <- function(graf){
       pipe_scale_links(field = "link_id",fun="count")
 
   }
+  if("is_flipped" %in% colnames(graf$factors)){
   if(any(as.numeric(graf$factors$is_flipped)>0,na.rm=T) %>% replace_na(F))graf$factors$`color.border`= div_gradient_pal(ordinary_color,"white",contrary_color)(graf$factors$is_flipped)
 
+  }
 
-# browser()
+
 
   graf
 
@@ -4772,6 +4751,10 @@ make_print_map <- function(
   safe_limit=NULL
 
 ){
+
+
+  if(nrow(graf$factors %>% replace_null(tibble()))==0) return(DiagrammeR::create_graph() %>%  DiagrammeR::render_graph())
+
   graf <- prepare_final(graf)
 
   # browser()
@@ -4791,9 +4774,6 @@ make_print_map <- function(
   ranksep <- ranksep_slider %>% replace_null(2*log(nrow(factors_table(graf))))
   graf <- pipe_normalise_factors_links(graf)
 
-
-  # if((nrow(graf %>% factors_table)>safe_limit/3))message("Map larger than 'safe limit'; setting print layout to twopi")
-  # if((nrow(graf %>% links_table)>safe_limit))message("Map larger than 'safe limit'; setting print layout to use straight edges")
 
   if(is.null(graf))return()
   if(nrow(graf$factors)==0)return()

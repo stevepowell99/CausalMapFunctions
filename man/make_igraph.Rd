@@ -9,9 +9,6 @@ make_igraph(factors, links, use_labels = F)
 \arguments{
 \item{use_labels}{}
 }
-\value{
-
-}
 \description{
 Make igraph (from factors and links)
 }

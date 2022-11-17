@@ -2,16 +2,13 @@
 % Please edit documentation in R/functions.R
 \name{load_mapfile}
 \alias{load_mapfile}
-\title{Title}
+\title{Load mapfile}
 \usage{
 load_mapfile(path = NULL, connection = conn)
 }
 \arguments{
-\item{connection}{An S3 connection}
-}
-\value{
-
+\item{connection}{}
 }
 \description{
-Title
+Load mapfile
 }

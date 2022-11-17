@@ -21,9 +21,6 @@ A mapfile is a tidygraph, which consists of a table of edges linked to a table o
 with an optional additional table of statements.
 In this package, nodes are called `factors` and edges are called `links.`}
 }
-\value{
-
-}
 \description{
 This is a powerful command which allows the user to trace paths from one or more upstream factors to one or more downstream factors.
 Only links which are part of such paths are displayed.

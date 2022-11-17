@@ -4,7 +4,7 @@
 \alias{add_attribute}
 \title{Add attribute}
 \usage{
-add_attribute(graf, value)
+add_attribute(graf, value, attr)
 }
 \arguments{
 \item{graf}{A mapfile}
