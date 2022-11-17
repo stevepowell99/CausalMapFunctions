@@ -26,7 +26,22 @@ library(dbplyr)
 library(DBI)
 library(kableExtra)
 library(scales)
+library(tictoc)
 knitr::opts_chunk$set(echo = T,warning=F,message=F)
+
+
+source("C:/Users/steve/Dropbox/Projects/CausalMapFunctions/R/functions.R")
+## REMOVE ME
+## REMOVE ME
+## REMOVE ME
+## REMOVE ME
+## REMOVE ME
+## REMOVE ME
+## REMOVE ME
+## REMOVE ME
+## REMOVE ME
+## REMOVE ME
+## REMOVE ME
 
 pp=function(x,N=99){
   print(x,n=N)
@@ -105,31 +120,47 @@ clean_send <- function(vec){
 
 
 ```{r }
-# ll <- quip_example
-#  ee <- load_mapfile("example2") #%>% pipe_recalculate_all()
-  ee <- example2 %>% pipe_coerce_mapfile()
+message(1)
+pipe_update_mapfile()  # creates an empty map
+pipe_update_mapfile() %>% 
+  make_interactive_map()
+
+example2 
+example2 %>% pipe_update_mapfile() %>% make_interactive_map()
+example2 %>% pipe_update_mapfile(factors=example2$factors) %>% make_interactive_map()
+
+message(2)
+
+ee <- example2 
 
 path <- "C:/Users/steve/Downloads/kantar-swan-short-2022-09-06.xlsx"
+
+example_file <- load_mapfile("example-file")
+
+
 swan <- load_mapfile(path=path)
-example_file <- load_mapfile(path="data/example-file.xlsx")
+# example_file <- load_mapfile(path="data/example-file.xlsx")
+example_file <- load_mapfile(path="C:/Users/steve/Dropbox/Projects/CausalMapFunctions/data/example-file.xlsx")
 
-```
+tic();swan %>% pipe_coerce_mapfile() %>% make_interactive_map();toc()
+tic();swan %>% pipe_coerce_mapfile();toc()
 
-## Basic examples
+example2 %>% pipe_coerce_mapfile() %>% make_interactive_map()
 
-
-### Interactive and Print maps
-
-```{r }  
+  ee %>%
+    pipe_label_links("link_id",fun = "unique") %>%
+    make_interactive_map
+  
   ee %>%
     pipe_label_links("link_id",fun = "unique") %>%
     make_print_map()
   
-
   ee %>%
     pipe_set_print(grv_layout="circo") %>%
     make_print_map()
 
+
+  
   example_file %>% 
     make_interactive_map()
   
@@ -148,6 +179,62 @@ example_file <- load_mapfile(path="data/example-file.xlsx")
     pipe_scale_links() %>% 
     make_print_map()
 
+
+```
+
+```{r }  
+example_file %>%
+    pipe_find_links("simple_frequency",value = 50,"greater") %>%
+    make_interactive_map
+
+```
+
+
+```{r }  
+example_file %>%
+    pipe_select_links(5) %>%
+    make_interactive_map
+
+```
+
+```{r }  
+example_file %>%
+    pipe_find_statements(field="statement_id",value=5,operator="equals") %>%
+    make_interactive_map
+```
+
+```{r }  
+example_file %>%
+    pipe_find_factors(value="health") %>%
+    make_interactive_map
+```
+
+
+#### Zero up and down
+
+```{r }  
+
+# shows nothing because isolated are removed
+ee %>%
+    pipe_find_factors(value="rainfall",up=0,down=0,remove_isolated = T) %>%
+    make_interactive_map
+
+ee %>%
+    pipe_find_factors(value="rainfall",up=0,down=0,remove_isolated = F) %>%
+    make_interactive_map
+
+# shows nothing because isolated are removed
+ee %>%
+    pipe_find_factors(value="Damage",up=0,down=0,remove_isolated = T) %>%
+    make_interactive_map
+
+ee %>%
+    pipe_find_factors(value="Damage",up=1,down=1,remove_isolated = F) %>%
+    make_interactive_map
+
+ee %>%
+    pipe_find_factors(value="Damage",up=1,down=1,remove_isolated = F) %>%
+    make_interactive_map
 
 ```
 
@@ -177,8 +264,6 @@ If you filter the statements of a mapfile, e.g. show only statements with texts 
 ```{r first}
 
 graf <- ee
-tic();graf$factors <- graf$factors %>% arrange(size);graf$links <- graf$links %>% arrange(link_id);toc()
-tic();graf %>% pipe_update_mapfile(factors <- graf$factors %>% arrange(size),links <- graf$links %>% arrange(link_id));toc()
 
 tic();graf <- pipe_update_mapfile(graf,factors=graf$factors);graf;toc()
 
@@ -219,30 +304,20 @@ ee %>%
 If you don't want to show interlinks between downstream factors, use `find links` instead.
 
 ```{r }  
-oo %>%
-  pipe_find_factors(value="more/better seeds",up=0,down=1,remove_isolated = T) %>%
+example_file %>%
+  pipe_find_factors(value="health",up=0,down=1,remove_isolated = T) %>%
     pipe_bundle_links() %>% 
     make_print_map
 
-oo %>%
-  pipe_find_links(value="more/better seeds",field="from_label",operator="contains") %>%
+example_file %>%
+  pipe_find_links(value="health",field="from_label",operator="contains") %>%
     pipe_bundle_links() %>% 
     make_print_map
 
 
 ```
 
-#### Zero up and down
 
-```{r }  
-ee %>%
-    pipe_find_factors(value="rainfall",up=0,down=0,remove_isolated = T) %>%
-    make_interactive_map
-ee %>%
-    pipe_find_factors(value="rainfall",up=0,down=0,remove_isolated = F) %>%
-    make_interactive_map
-
-```
 
 #### Case insensitive
 
@@ -299,6 +374,8 @@ ee %>%
 Does not work in functions, but works when parsed:
 
 ```{r }  
+
+
 ee %>%
     pipe_find_factors(value="business OR property") %>%
     make_interactive_map
@@ -317,8 +394,8 @@ ee %>%
 Order matters
 
 ```{r }  
-ll %>%
-    pipe_find_factors(value="economic") %>%
+example_file %>%
+    pipe_find_factors(value="health") %>%
     pipe_select_factors(5) %>%
     make_interactive_map
 
@@ -327,7 +404,7 @@ ll %>%
 No result
 
 ```{r }  
-ll %>%
+example_file %>%
     pipe_find_factors(value="asdfasdfasdf") %>%
     make_interactive_map
 ```
@@ -335,15 +412,15 @@ ll %>%
 
 
 ```{r }  
-ll %>%
-    pipe_find_links(field="from_label",value="economic",operator="contains") %>%
+example_file %>%
+    pipe_find_links(field="from_label",value="health",operator="contains") %>%
     make_interactive_map
 ```
 
 ### Numerical comparison
 
 ```{r }  
-ll %>%
+example_file %>%
     pipe_find_statements(field="statement_id",value=20,operator="less") %>%
     make_interactive_map
 ```
@@ -351,25 +428,27 @@ ll %>%
 No result
 
 ```{r }  
-ll %>%
+
+#TODO
+example_file %>%
     pipe_find_statements(field="statement_id",value=20000000,operator="greater") %>%
     make_interactive_map
+
+
 ```
 
 ### Highlight only
 
 ```{r }  
-e3  %>% 
+ee  %>% 
   pipe_find_factors(value="Damage",highlight_only=T) %>% pipe_color_factors(field="found") %>% 
   make_interactive_map()
 
 ```
 
-Note this doesn't work in the app:
-
 ```{r }  
-e3  %>% 
-  pipe_find_links(field="from_label",value="Damage",highlight_only=T) %>%     
+ee  %>% 
+  pipe_find_links(field="to_label",value="Damage",highlight_only=T) %>%     
   pipe_color_links(field="found",fun="literal") %>% 
   make_interactive_map()
 
@@ -378,7 +457,9 @@ e3  %>%
 ## Clustering sources
 
 ```{r}
-pipe_cluster_sources(oi)
+pipe_cluster_sources(example_file) %>% 
+  .$sources %>% 
+  select(contains("cluster"))
 
 ```
 
@@ -388,11 +469,11 @@ pipe_cluster_sources(oi)
 
 ```{r}
 
-oi %>% 
-  pipe_find_factors(value="Take a loan",up = 1,down=1) %>% 
+example_file %>% 
+  pipe_find_factors(value="health",up = 1,down=1) %>% 
   make_mentions_tabl()
-oi %>% 
-  pipe_find_factors(value="Take a loan",up = 1,down=1) %>% 
+example_file %>% 
+  pipe_find_factors(value="health",up = 1,down=1) %>% 
 .$factors %>% select(label,source_count)
 
 ```
@@ -402,44 +483,50 @@ oi %>%
 ## Conditional formatting
 
 ```{r }  
-ll %>%
+example_file %>%
     pipe_select_factors(5) %>%
     pipe_scale_factors(field="frequency") %>%
-    make_interactive_map
+    pipe_bundle_links %>% 
+  make_interactive_map
 
-ll %>%
+example_file %>%
     pipe_select_factors(5) %>%
     pipe_color_text(field="frequency") %>%
-    make_interactive_map
+    pipe_bundle_links %>% 
+  make_interactive_map
 
-ll %>%
+example_file %>%
     pipe_select_factors(5) %>%
     pipe_scale_factors(field="frequency") %>%
     make_print_map
 ```
 
 ```{r }
-ll %>%
+example_file %>%
     pipe_select_factors(5) %>%
     pipe_color_factors(field="frequency") %>%
     pipe_color_borders(field="betweenness") %>%
     pipe_wrap_factors(5) %>%
-    make_interactive_map
+    pipe_bundle_links %>% 
+  make_interactive_map
 
 ```
 
 ### Wrap factors
 
 ```{r }
-ll %>%
+example_file %>%
     pipe_select_factors(5) %>%
     pipe_color_links(value="count: link_id") %>%
     pipe_wrap_factors(5) %>%
-    make_interactive_map
-ll %>%
+    pipe_bundle_links %>% 
+  make_interactive_map
+
+example_file %>%
     pipe_select_factors(5) %>%
     pipe_color_links(value="count: link_id") %>%
     pipe_wrap_factors(5) %>%
+    pipe_bundle_links %>% 
     make_print_map
 
 ```
@@ -451,7 +538,8 @@ ll %>%
 ee %>%
     pipe_label_links("from_label",fun = "unique") %>%
     pipe_wrap_links(6) %>%
-    make_interactive_map
+    pipe_bundle_links %>% 
+  make_interactive_map
 
 ee %>%
     pipe_label_links("from_label",fun = "unique") %>%
@@ -469,69 +557,46 @@ ee %>%
 
 ```
 
-```{r }  
-
-ll %>%
-    make_interactive_map
-
-```
-
 ## Remove brackets
 
 ```{r }  
-ll %>%
+example_file$factors$label[32] <- "Income [E]"
+
+example_file %>%
+    pipe_select_factors(5) %>%
+    make_interactive_map
+
+example_file %>%
     pipe_select_factors(5) %>%
     pipe_remove_brackets() %>%
     make_interactive_map
 
+example_file$factors$label[32] <- "Income"
+
 ```
 
-## Self loops
-
-```{r }  
-ks %>% 
-  parse_commands("find factors field=label value=~People feeling safe operator=notcontains up=4 down=1
-find factors field=label value=People feeling safe operator=contains up=4 down=1
-zoom factors level=2
-remove isolated
-find links field=source_frequency value=2 operator=greater
-remove selfloops
-hide quickfields
-bundle links field=simple_bundle
-label factors field=source_count add_field_name=FALSE clear_previous=FALSE
-scale links value=count: source_id
-label links value=count: source_id
-wrap factors length=40
-color text field=is_opposable lo=black hi=#f26d04
-color factors field=found lo=white hi=#7FC97F") %>% 
-  make_print_map()
-
-ef %>% 
-  parse_commands("find factors field=label value=Health=contains up=4 down=1
-zoom factors level=2
-remove isolated
-find links field=source_frequency value=2 operator=greater
-remove selfloops
-hide quickfields
-bundle links field=simple_bundle
-label factors field=source_count add_field_name=FALSE clear_previous=FALSE
-scale links value=count: source_id
-label links value=count: source_id
-wrap factors length=40
-color text field=is_opposable lo=black hi=#f26d04
-color factors field=found lo=white hi=#7FC97F") %>% 
-  make_print_map()
-```
 
 ## Bundle factors
 
 ```{r }  
-ll %>%
-    pipe_bundle_factors(value = "IEA") %>%
+example_file %>%
+    pipe_bundle_factors(value = "health") %>%
     pipe_select_factors(5) %>%
+  pipe_bundle_links() %>% 
     make_interactive_map
 
+```
 
+
+## Self loops
+
+```{r }  
+example_file %>%
+    pipe_bundle_factors(value = "health") %>%
+    pipe_select_factors(5) %>%
+    pipe_bundle_links() %>% 
+    pipe_remove_selfloops() %>% 
+    make_interactive_map
 
 ```
 
@@ -552,7 +617,7 @@ ee %>%
 
 ```{r}
 
-cc %>%
+example_file %>%
   pipe_find_factors(value="Improved health") %>% 
     # pipe_zoom_factors(1) %>%
   pipe_select_factors(top=10) %>% 
@@ -562,7 +627,9 @@ cc %>%
   pipe_wrap_factors() %>% 
     make_print_map 
 
-cc %>%
+
+
+example_file %>%
   pipe_find_factors(value="Improved health") %>% 
     # pipe_zoom_factors(1) %>%
   pipe_select_factors(top=10) %>% 
@@ -712,9 +779,9 @@ ll %>%
 ### Group by sex and scale and colour by count:
 
 ```{r }  
-ll %>%
+example_file %>%
     pipe_select_factors(5) %>%
-    pipe_bundle_links(field="1. Sex") %>%
+    pipe_bundle_links(field="Sex of the head of the household") %>%
     pipe_color_links("link_id",fun = "count") %>%
     pipe_scale_links("link_id",fun = "count") %>%
     pipe_label_links("link_id",fun = "count") %>%
@@ -1239,8 +1306,10 @@ de %>%
 
 cat("### Single\n")  
 
-ll %>% 
-  pipe_trace_paths(from = "main_drivers",to="main_outcomes",length = 3) %>% 
+
+
+example_file %>% 
+  pipe_trace_paths(from = "Organisation 1",to="Ability to buy food",length = 3) %>% 
   pipe_select_factors(15) %>% 
   make_interactive_map
 

@@ -1,3 +1,5 @@
 ## code to prepare `DATASET` dataset goes here
 
-usethis::use_data(DATASET, overwrite = TRUE)
+example_file <- load_mapfile("example-file")
+
+usethis::use_data(example_file)
