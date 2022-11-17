@@ -2220,6 +2220,14 @@ get_standard_table <- function(table_name){
 #'
 links_table_full <- links_table
 
+#' Make mentions table
+#'
+#' @param graf
+#'
+#' @return
+#' @export
+#'
+#' @examples
 make_mentions_tabl <- function(graf){
 
   graf$factors <- graf$factors[,colnames(graf$factors)!=""]
