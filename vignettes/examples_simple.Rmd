@@ -1394,6 +1394,24 @@ ee %>%
 
 ```
 
+### Threads
+
+```{r}
+example_file %>% 
+  pipe_zoom_factors(1) %>% 
+  pipe_select_factors(10) %>% 
+  pipe_trace_paths(length=4,from="knowledge",threads_direction="down") %>% 
+  pipe_bundle_links() %>% 
+  pipe_scale_links() %>% 
+  pipe_color_links(field="threads") %>% 
+  pipe_label_links(field="threads") %>% 
+  pipe_color_factors(field="thread_count") %>% 
+  make_print_map()
+
+
+
+```
+
 ### Robustness
 
 ```{r}  
@@ -1530,162 +1548,7 @@ hh  %>%
 ```
 
 
-### Trace threads
 
-```{r}
-
-
-
-e3  %>%
-  pipe_trace_paths(from = "rainfall",to="",length = 4) %>% 
-  pipe_trace_threads() %>% 
-  pipe_bundle_links() %>% 
-  pipe_label_links(field = "has_downstream_threads",fun = "sum") %>% 
-  pipe_label_links(field = "source_id",fun = "literal",clear_previous = F) %>% 
-  pipe_color_links(field = "has_downstream_threads",fun = "sum") %>% 
-  pipe_color_borders(field="n_downstream_threads_surviving") %>% 
-  make_print_map() 
-
-e3  %>%
-  pipe_trace_paths(from = "rainfall",to="",length = 4) %>% 
-  pipe_trace_threads() %>% 
-  pipe_bundle_links() %>% 
-  pipe_label_links(field = "downstream_threads",fun = "literal") %>% 
-  pipe_color_links(field = "has_downstream_threads",fun = "sum") %>% 
-  pipe_color_borders(field="n_downstream_threads_surviving") %>% 
-  make_print_map() 
-
-e3  %>%
-  pipe_trace_paths(from = "rainfall",to="",length = 4) %>% 
-  pipe_trace_threads() %>% 
-  pipe_bundle_links() %>% 
-  pipe_label_links(field = "downstream_threads",fun = "count") %>% 
-  pipe_color_links(field = "has_downstream_threads",fun = "sum") %>% 
-  pipe_color_borders(field="n_downstream_threads_surviving") %>% 
-  make_print_map() 
-
-# with multiple origins
-e3  %>%
-  pipe_trace_paths(from = "External",to="",length = 2) %>% 
-  pipe_trace_threads() %>% 
-  pipe_bundle_links() %>% 
-  pipe_label_links(field = "has_downstream_threads",fun = "sum") %>% 
-  pipe_color_links(field = "has_downstream_threads",fun = "sum") %>% 
-  pipe_color_factors(field="found_type") %>% 
-  pipe_color_borders(field="n_downstream_threads_surviving") %>% 
-  make_print_map() 
-
-ll  %>%
-  pipe_trace_paths(from = "OrgX",to="Income",length = 4) %>% 
-  pipe_trace_threads() %>% 
-  pipe_bundle_links() %>% 
-  pipe_label_links(field = "has_downstream_threads",fun = "sum") %>% 
-  pipe_color_links(field = "has_downstream_threads",fun = "sum") %>% 
-  make_print_map() 
-
-# works also with other fields
-ll  %>%
-  pipe_trace_paths(from = "OrgX",to="Income",length = 4) %>% 
-  pipe_trace_threads(field="r.2. Village") %>% 
-  # pipe_bundle_links(field="r.2. Village") %>% 
-  pipe_label_links(field = "downstream_threads",fun = "unique") %>% 
-  pipe_color_links(field = "has_downstream_threads",fun = "sum") %>% 
-  make_print_map() 
-
-# with no target
-ll  %>%
-  pipe_trace_paths(from = "OrgX",to="",length = 2) %>% 
-  pipe_trace_threads() %>% 
-  pipe_bundle_links() %>% 
-  pipe_label_links(field = "has_downstream_threads",fun = "sum") %>% 
-  pipe_color_links(field = "has_downstream_threads",fun = "sum") %>% 
-  make_print_map() 
-
-ll  %>%
-  pipe_trace_paths(from = "doesnotexist",to="Income",length = 4) %>% 
-  pipe_trace_threads() %>% 
-  pipe_bundle_links() %>% 
-  pipe_label_links(field = "has_downstream_threads",fun = "sum") %>% 
-  pipe_color_links(field = "has_downstream_threads",fun = "sum") %>% 
-  make_print_map() 
-
-ll  %>%
-  pipe_trace_paths(from = "OrgX",to="doesnotexist",length = 4) %>% 
-  pipe_trace_threads() %>% 
-  pipe_bundle_links() %>% 
-  pipe_label_links(field = "has_downstream_threads",fun = "sum") %>% 
-  pipe_color_links(field = "has_downstream_threads",fun = "sum") %>% 
-  make_print_map() 
-
-
-oo %>%    
-  pipe_select_factors(15) %>% 
-  pipe_trace_paths(from = "Learnt about farming",to="",length = 5) %>% 
-  pipe_trace_threads() %>% 
-  pipe_bundle_links() %>% 
-  pipe_label_links(field = "has_downstream_threads",fun = "sum") %>% 
-  pipe_color_links(field = "has_downstream_threads",fun = "sum") %>% 
-  make_print_map
-
-oo %>%    
-  pipe_select_factors(10) %>% 
-  pipe_trace_paths(from = "Learnt about farming",to="Health",length = 3) %>% 
-  pipe_trace_threads() %>% 
-  pipe_bundle_links() %>% 
-  pipe_label_links(field = "has_downstream_threads",fun = "sum") %>% 
-  pipe_label_links(field = "source_id",fun = "count",clear_previous = F) %>% 
-  pipe_color_links(field = "has_downstream_threads",fun = "sum") %>% 
-  pipe_color_factors(field="found_type") %>% 
-  make_print_map
-
-# note that sum of has_downstream_threads can be more than number of unique sources
-oo %>%    
-  pipe_select_factors(10) %>% 
-  pipe_trace_paths(from = "Learnt about farming",to="Health",length = 3) %>% 
-  pipe_trace_threads() %>% 
-  pipe_bundle_links() %>% 
-  # pipe_label_links(field = "has_downstream_threads",fun = "sum") %>% 
-  # pipe_label_links(field = "continuation_id",fun = "count",clear_previous = F) %>% 
-  pipe_label_links(field = "downstream_threads",fun = "unique",clear_previous = F) %>%
-  pipe_color_links(field = "has_downstream_threads",fun = "sum") %>% 
-  pipe_color_factors(field="found_type") %>% 
-  pipe_wrap_links() %>% 
-  make_print_map
-
-
-oi %>%    
-  # pipe_select_factors(20) %>% 
-  pipe_trace_paths(from = "Take a loan",to="",length = 4) %>% 
-  pipe_trace_threads() %>% 
-  pipe_bundle_links() %>% 
-  pipe_label_links(field = "has_downstream_threads",fun = "sum") %>% 
-  pipe_label_links(field = "source_id",fun = "count",clear_previous = F) %>% 
-  pipe_color_links(field = "has_downstream_threads",fun = "sum") %>% 
-  pipe_color_factors(field="found_type") %>% 
-  make_print_map
-oi %>%    
-  # pipe_select_factors(20) %>% 
-  pipe_trace_paths(from = "Need more",to="",length = 2) %>% 
-  pipe_trace_threads() %>% 
-  pipe_bundle_links() %>% 
-  pipe_label_links(field = "has_downstream_threads",fun = "sum") %>% 
-  pipe_label_links(field = "source_id",fun = "count",clear_previous = F) %>% 
-  pipe_label_links(field = "source_id",fun = "literal",clear_previous = F) %>% 
-  pipe_color_links(field = "has_downstream_threads",fun = "sum") %>% 
-  pipe_color_factors(field="found_type") %>% 
-  make_print_map
-
-# kb <- load_mapfile("kenya-beka")
-# 
-# kb %>%    
-#   pipe_trace_paths(from = "Covid-19",to="~Performance",length = 3) %>% 
-#   pipe_trace_threads() %>% 
-#   pipe_bundle_links() %>% 
-#   pipe_label_links(field = "downstream_threads",fun = "initials") %>% 
-#   make_print_map
-
-
-```
 
 ### upstream
 ```{r}

@@ -66,9 +66,9 @@ standard_links <- function(){tibble(
   map_id=1L
 )
 }
-standard_statements <- function()tibble(statement_id=1,text="blank statement",statement_memo="",source_id="1",question_id="1",statement_map_id=1)
-standard_sources <- function()tibble(source_id="1",source_memo="global source",source_map_id=1)
-standard_questions <- function()tibble(question_id="1",question_text="global question",question_memo="",question_map_id=1)
+standard_statements <- function()tibble(statement_id=1,text="example statement",statement_memo="",source_id="1",question_id="1",statement_map_id=1)
+standard_sources <- function()tibble(source_id="1",source_memo="example source",source_map_id=1)
+standard_questions <- function()tibble(question_id="1",question_text="example question",question_memo="",question_map_id=1)
 standard_settings <- function()tibble(setting_id="background_colour",value="",map_id=1)
 
 standard_table <- function(tab){
@@ -552,7 +552,9 @@ load_mapfile <- function(path=NULL,connection=conn){
   message("Loading map")
   # browser()
   return(
-    graf %>% pipe_coerce_mapfile()
+    graf %>%
+      pipe_coerce_mapfile() %>%
+      pipe_update_mapfile(.,links=add_before_and_after_ids_to_links(.$links)) # note this is the only thing which needs to be added on initial load
   )
 
 
@@ -602,6 +604,7 @@ pipe_update_mapfile <- function(
 dismantle_mapfile <- function(graf){
   walk(names(graf),function(x)assign(x
                            ,
+                           # graf[[x]] %>% replace_null(standard_table(x))
                            graf[[x]] %>% replace_null(standard_table(x)) %>% replace_zero_rows(standard_table(x))
                            ,
                            envir = .GlobalEnv))
@@ -4812,8 +4815,8 @@ make_print_map <- function(
     # tooltip causes error with panzoom    mutate(tooltip= clean_grv(label)) %>%   # seemed to cause intermittent error!!!
     mutate(fillcolor=color.background) %>%
     mutate(color=color.border) %>%
-    mutate(penwidth=14) %>% #if_else(color.border %>% unique %>% length %>% `==`(1),0,14)) %>% # if borders are all same colour, don't print border
-    mutate(fontsize=(size+4)*25) %>%
+    mutate(penwidth=3) %>% #if_else(color.border %>% unique %>% length %>% `==`(1),0,14)) %>% # if borders are all same colour, don't print border
+    mutate(fontsize=(size+3)*4) %>%
     mutate(fontcolor=font.color) %>%
     # mutate(xlabel="blue") %>%
     select(any_of(xc("label size tooltip factor_wrap fillcolor color fontsize fontcolor cluster penwidth")))
@@ -4850,9 +4853,9 @@ make_print_map <- function(
     mutate(label=clean_grv(label) )%>%
     mutate(label=replace_na(label,"     .     "))%>% # obscure! if all are =="", error
     mutate(width=as.numeric(width))%>%
-    mutate(penwidth=width*48)%>%
+    mutate(penwidth=(width+.2)*3)%>%
     # mutate(fontcolor=color)%>%
-    mutate(arrowsize=(3+(width*9))) %>%
+    # mutate(arrowsize=width) %>% #(3+(width*9))) %>%
     mutate(tooltip=clean_grv(simple_bundle))
   # browser()
 
@@ -4888,36 +4891,30 @@ make_print_map <- function(
     add_global_graph_attrs("outputorder", "nodesfirst","graph") %>%
     add_global_graph_attrs("tooltip", " ", "graph") %>%
     add_global_graph_attrs("rankdir", "LR", "graph") %>%
-    add_global_graph_attrs("fontsize", "64", "graph") %>%
+    add_global_graph_attrs("fontsize", "24", "graph") %>%
     add_global_graph_attrs("fontname", "Arial", "graph") %>%
-    add_global_graph_attrs("nodesep", nodesep, "graph") %>%
-    add_global_graph_attrs("ranksep", ranksep, "graph") %>%
+    add_global_graph_attrs("nodesep", as.numeric(nodesep)/8, "graph") %>%
+    add_global_graph_attrs("ranksep", as.numeric(ranksep)/8, "graph") %>%
     add_global_graph_attrs("style", "filled,dashed", "graph") %>%
     add_global_graph_attrs("color", color, "graph") %>%
     add_global_graph_attrs("fillcolor", color, "graph") %>%
 
     add_global_graph_attrs("shape", "box", "node") %>%
-    # add_global_graph_attrs("class", "linky_grviz", "node") %>%
     add_global_graph_attrs("style", "rounded, filled", "node") %>%
     add_global_graph_attrs("fixedsize", "false", "node") %>%
-    # add_global_graph_attrs("fontcolor", "black", "node") %>%
-    # add_global_graph_attrs("fontsize", "80", "node") %>%
-    add_global_graph_attrs("margin", "0.9", "node") %>%
-    # add_global_graph_attrs("penwidth", "14", "node") %>%
+    add_global_graph_attrs("margin", "0.19", "node") %>%
     add_global_graph_attrs("width", "0", "node") %>%
     add_global_graph_attrs("height", "0", "node")  %>%
 
-    # add_global_graph_attrs("margin", "888", "subgraph")    %>%
-    # add_global_graph_attrs("margin", "888", "cluster")    %>%
 
-    add_global_graph_attrs("arrowhead", "vee", "edge")    %>%
+    # add_global_graph_attrs("arrowhead", "vee", "edge")    %>%
     add_global_graph_attrs("arrowtail", "none", "edge")    %>%
     add_global_graph_attrs("dir", "both", "edge")    %>%
-    add_global_graph_attrs("fontsize", 100, "edge")    %>%
+    add_global_graph_attrs("fontsize", 12, "edge")    %>%
     add_global_graph_attrs("forcelabels", T, "graph")
   # browser()
   return(
-    grv %>% DiagrammeR::render_graph()
+    grv %>% DiagrammeR::render_graph() %>% add_attribute(as.character(nrow(factors)),"n_nodes")
   )
 
 }
