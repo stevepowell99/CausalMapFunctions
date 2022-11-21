@@ -124,6 +124,8 @@ message(1)
 pipe_update_mapfile()  # creates an empty map
 pipe_update_mapfile() %>% 
   make_interactive_map()
+load_mapfile() %>% # creates an empty map
+  make_interactive_map()
 
 example2 
 example2 %>% pipe_coerce_mapfile %>% pipe_update_mapfile() %>% make_interactive_map()

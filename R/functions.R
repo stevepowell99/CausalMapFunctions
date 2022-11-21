@@ -548,6 +548,7 @@ load_mapfile <- function(path=NULL,connection=conn){
     }
 
   # browser()
+  if(is.null(graf))graf <- pipe_update_mapfile()
 
   message("Loading map")
   # browser()
@@ -622,6 +623,7 @@ dismantle_mapfile <- function(graf){
 pipe_coerce_mapfile <- function(tables){
 
   # say()
+# browser()
 
   # enable creating map from edgelist
   if(is.null(tables$factors) &
@@ -682,7 +684,6 @@ pipe_coerce_mapfile <- function(tables){
 
 
 
-# browser()
 
     if("factor_id" %notin% colnames(factors))  factors <-  factors %>%
         mutate(factor_id=row_number())
@@ -4853,7 +4854,7 @@ make_print_map <- function(
     mutate(label=clean_grv(label) )%>%
     mutate(label=replace_na(label,"     .     "))%>% # obscure! if all are =="", error
     mutate(width=as.numeric(width))%>%
-    mutate(penwidth=(width+.2)*3)%>%
+    mutate(penwidth=(width+.01)*5)%>%
     # mutate(fontcolor=color)%>%
     # mutate(arrowsize=width) %>% #(3+(width*9))) %>%
     mutate(tooltip=clean_grv(simple_bundle))
