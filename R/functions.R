@@ -906,6 +906,7 @@ fix_columns_links <- function(links){
   if(!("capacity" %in% colnames(links))) links <- links %>% mutate(capacity=1L)
   if(!("label" %in% colnames(links))) links <- links %>% mutate(label="")
   if(!("width" %in% colnames(links))) links <- links %>% mutate(width=.2)
+  if(!("flipped_bundle" %in% colnames(links))) links <- links %>% mutate(flipped_bundle=simple_bundle)
   #if(!("link_id0" %in% colnames(links))) links <- links %>% mutate(link_id0=1L)  # if(!("link_id0" %in% colnames(links))) links <- links %>% mutate(link_id0=1L)
   links
 }
@@ -4817,7 +4818,7 @@ make_print_map <- function(
     mutate(fillcolor=color.background) %>%
     mutate(color=color.border) %>%
     mutate(penwidth=3) %>% #if_else(color.border %>% unique %>% length %>% `==`(1),0,14)) %>% # if borders are all same colour, don't print border
-    mutate(fontsize=(size+3)*4) %>%
+    mutate(fontsize=(size+3)*5) %>%
     mutate(fontcolor=font.color) %>%
     # mutate(xlabel="blue") %>%
     select(any_of(xc("label size tooltip factor_wrap fillcolor color fontsize fontcolor cluster penwidth")))
@@ -4892,7 +4893,7 @@ make_print_map <- function(
     add_global_graph_attrs("outputorder", "nodesfirst","graph") %>%
     add_global_graph_attrs("tooltip", " ", "graph") %>%
     add_global_graph_attrs("rankdir", "LR", "graph") %>%
-    add_global_graph_attrs("fontsize", "24", "graph") %>%
+    # add_global_graph_attrs("fontsize", "24", "graph") %>%
     add_global_graph_attrs("fontname", "Arial", "graph") %>%
     add_global_graph_attrs("nodesep", as.numeric(nodesep)/8, "graph") %>%
     add_global_graph_attrs("ranksep", as.numeric(ranksep)/8, "graph") %>%
