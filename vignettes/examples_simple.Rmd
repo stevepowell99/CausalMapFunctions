@@ -138,6 +138,9 @@ ee <- example2
 path <- "C:/Users/steve/Downloads/kantar-swan-short-2022-09-06.xlsx"
 
 example_file <- load_mapfile("example-file")
+test <- load_mapfile("resignations2")
+test %>% 
+  make_interactive_map()
 
 
 swan <- load_mapfile(path=path)

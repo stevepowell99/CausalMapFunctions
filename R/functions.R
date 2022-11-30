@@ -869,6 +869,7 @@ add_simple_bundle_to_links <- function(links){
 #'
 #' @examples
 fix_columns_factors <- function(factors){
+  # browser()
   message("fix col factors")
   if(!("color.background" %in% colnames(factors))) factors <- factors %>% mutate(color.background="#ffffff")
   if(!("is_flipped" %in% colnames(factors))) factors <- factors %>% mutate(is_flipped=F)
@@ -4282,6 +4283,7 @@ link_click_statement_go <- function(id){
       'statement_go_',id), label = 'Go to statement',class='linky'))
 }
 link_click_source_go <- function(id){
+  if(is.na(id))return(div())
   if(str_detect(id,";")) "" else as.character(shiny::actionLink(inputId = paste0(
       'source_go_',id), label = 'Go to source',class='linky'))
 }
@@ -4388,7 +4390,7 @@ prepare_visual_bundles <- function(graf,
 #'
 #' @examples
 make_interactive_map <- function(graf,scale=1,safe_limit=200,rainbow=F){
-
+# browser()
   if(nrow(graf$factors %>% replace_null(tibble()))==0) return(empty_visnetwork)
 
   message("making interactive map")
@@ -4488,6 +4490,7 @@ make_interactive_map <- function(graf,scale=1,safe_limit=200,rainbow=F){
       "</br>",
       paste0("ID:", factor_id)
     ))
+  # browser()
   #message("7vn")
   if(nrow(nodes)<100)edges <-
     edges %>% mutate(title=paste0(
@@ -4912,7 +4915,7 @@ make_print_map <- function(
     # add_global_graph_attrs("arrowhead", "vee", "edge")    %>%
     add_global_graph_attrs("arrowtail", "none", "edge")    %>%
     add_global_graph_attrs("dir", "both", "edge")    %>%
-    add_global_graph_attrs("fontsize", 12, "edge")    %>%
+    add_global_graph_attrs("fontsize", 14, "edge")    %>%
     add_global_graph_attrs("forcelabels", T, "graph")
   # browser()
   return(
