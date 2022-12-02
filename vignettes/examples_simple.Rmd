@@ -183,6 +183,13 @@ example2 %>% pipe_coerce_mapfile() %>% make_interactive_map()
     pipe_bundle_links() %>% 
     pipe_scale_links() %>% 
     make_print_map()
+  
+  example_file %>% 
+    pipe_select_factors() %>% 
+    pipe_bundle_links() %>% 
+    pipe_scale_links() %>% 
+    pipe_color_factors() %>% 
+    make_print_map()
 
 
 ```

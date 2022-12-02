@@ -1698,11 +1698,17 @@ rescale_with_zero <- function(vec){
   }
   else rescale(vec)
 }
-div_pal_n <- function(vec,lo,hi,mid){
+div_pal_n <- function(vec,lo,hi,mid,pal=1){
   if(min(vec,na.rm=T)<0){
     lo="#4B0092"
     hi="#1AFF1A" # these are colorblind friendly
     mid="#eeeeee"
+  } else
+  if(pal!=1){
+    lo=brewer_pal_n(3,pal)[1]#"#4B0092"
+    hi=brewer_pal_n(3,pal)[3]#"#1AFF1A" # these are colorblind friendly
+    mid=brewer_pal_n(3,pal)[2]#"#eeeeee"
+
   }
   div_gradient_pal(low=lo,high=hi,mid=mid)(rescale_with_zero(vec)) %>% alpha(.95)
 }
@@ -1729,7 +1735,7 @@ create_colors <- function(vec,lo="#FCFDBF",hi="#5F187F",mid="#D3436E",type,field
       else
     if(class(vec)=="character") res <- brewer_pal_n(vec,pal = as.numeric(pal)) else
     if(lo %in% xc("white gray lightgray")) res <- colour_ramp(c(lo,hi))(rescale(vec)) else
-      res <- div_pal_n(vec,lo=lo,hi=hi,mid=mid)
+      res <- div_pal_n(vec,lo=lo,hi=hi,mid=mid,pal=pal)
 
     attr(res,type) <-   list(table=tibble(vec,res) %>% unique,field=field,fun=fun)
     res
@@ -3992,7 +3998,7 @@ pipe_show_continuity <- function(graf,field="source_id",type="arrowtype"){
 #'
 #'
 #' @examples
-pipe_color_factors <- function(graf,field="frequency",lo="#FCFDBF",hi="#5F187F",mid="#D3436E",fixed=NULL,pal=1){
+pipe_color_factors <- function(graf,field="frequency",lo="#FCFDBF",hi="#9F189F",mid="#D5438E",fixed=NULL,pal=1){
 
 
   if(field %notin% factor_colnames(graf)){warning("No such column");return(graf%>%
