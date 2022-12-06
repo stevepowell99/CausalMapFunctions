@@ -665,40 +665,30 @@ example_file %>%
 ## Label links
 
 ```{r }  
-oo %>%
-    pipe_select_factors(5) %>%
-    pipe_bundle_links(("#Name of village")   ) %>%
-    pipe_label_links(field = "#Name of village",fun="unique") %>%
-    make_interactive_map
-
-
-oo %>%
-    pipe_select_factors(5) %>%
-    pipe_bundle_links(("vill")   ) %>%
-    pipe_label_links(field = "#Name of village",fun="unique") %>%
-    make_interactive_map
 
 
 
-
-
-e3 %>%
+example_file %>%
+  pipe_select_links(10) %>% 
   pipe_label_links("link_id",fun = "literal") %>%
   pipe_label_links("from_label",fun = "literal",add_field_name = T,clear_previous = F) %>%
   make_interactive_map
 
-e3 %>%
+example_file %>%
+  pipe_select_links(10) %>% 
   pipe_bundle_links() %>% 
   pipe_label_links("link_id",fun = "literal",add_field_name = T) %>%
   make_interactive_map
 
-e3 %>%
+example_file %>%
+  pipe_select_links(10) %>% 
   pipe_bundle_links() %>% 
   pipe_label_links("link_id",fun = "literal") %>%
   pipe_label_links("from_label",fun = "literal",clear_previous = F) %>%
   make_interactive_map
 
-e3 %>%
+example_file %>%
+  pipe_select_links(10) %>% 
   pipe_bundle_links() %>% 
   parse_commands("label links field=statement_id fun=unique clear_previous=F") %>%
   make_interactive_map

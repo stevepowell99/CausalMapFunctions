@@ -60,6 +60,7 @@ standard_links <- function(){tibble(
   to_flipped=F,
   link_label="",
   from_label="",
+  simple_bundle="",
   to_label="",
   hashtags="",
   link_memo="",
@@ -1568,6 +1569,7 @@ full_function_name <- function(df,nam){
   else if(nam=="proportion")"count_unique"
   else if(nam=="surprise")"count_unique"
   else if(nam=="count")"count_unique"
+  else if(nam=="equals")"=="
   else nam
 
 }
@@ -3717,6 +3719,26 @@ pipe_label_factors <- function(graf,field="frequency",clear_previous=F,add_field
 }
 
 
+pipe_dash_links <- function(graf,field="hashtags",operator="notequals",value="",type="dashed"){
+  if(is.null(value))return(graf)
+  if(is.null(field))return(graf)
+  if(is.null(operator))return(graf)
+  if(is.na(field)){warning("No such column");return(graf)}
+  if(type %notin% xc("dotted dashed")){warning("No such style");return(graf)}
+  if(field %notin% colnames(links)){warning("No such column");return(graf)}
+
+  # browser()
+  links <-
+    graf$links %>%
+    find_fun(field=field,value=value,operator=operator) %>%
+    mutate(style=ifelse(found,type,"solid"))
+
+
+
+  # browser()
+  graf %>% pipe_update_mapfile(links=links)
+
+}
 
 #' Label links
 #'
@@ -4430,6 +4452,7 @@ make_interactive_map <- function(graf,scale=1,safe_limit=200,rainbow=F){
     edges <- edges %>% summarise(across(color,~average_color(.,combine_doubles = T)),across(quote,collapse_unique_5),across(everything(),collapse_unique)) %>%
       ungroup
   }
+  # browser()
 
   #message("4vn")
 
@@ -4462,13 +4485,14 @@ make_interactive_map <- function(graf,scale=1,safe_limit=200,rainbow=F){
   edges <-  edges %>% vn_fan_edges()
   if(is.list(edges$width))edges$width=2 else edges$width=edges$width*10
   edges <-  edges  %>%
-    select(any_of(xc("from to id source_id statement_id question_id quote color hashtags width label link_memo smooth.roundness smooth.enabled smooth.type link_id")))
+    select(any_of(xc("from to style id source_id statement_id question_id quote color hashtags width label link_memo smooth.roundness smooth.enabled smooth.type link_id")))
   if(nrow(nodes)>1){
     layout <- layout_with_sugiyama(make_igraph(nodes,edges))$layout*-scale
     colnames(layout) <- c("y", "x")
     nodes <- data.frame(nodes, layout)
     ############## don't get tempted to use the internal visnetwork layout functions - problems with fitting to screen, and they are slower ....
   }
+  edges$dashes <- edges$style!="solid"
   #message("6vn")
   nodes <- nodes %>%   mutate(id=factor_id)
   edges <- edges %>%   mutate(id=NULL) # id would be necessary for getting ids from clicks etc, but seems to stop tooltip from working
@@ -4844,7 +4868,6 @@ make_print_map <- function(
 
 
   if(is_grouped_df(links)){
-    # browser()
     links <-
       links %>% summarise(across(color,average_color),across(everything(),collapse_unique)) %>%
       ungroup
@@ -4854,9 +4877,10 @@ make_print_map <- function(
 
     }
 
+    # browser()
   # mutate_all(first_map)%>%
   links <- links %>%
-    select(any_of(xc("from to color link_wrap simple_bundle width link_label width from_label headlabel taillabel arrowhead arrowtail to_label"))) %>%
+    select(any_of(xc("from to style color link_wrap simple_bundle width link_label width from_label headlabel taillabel arrowhead arrowtail to_label"))) %>%
     rename(label=link_label) %>%
     mutate(from=as.numeric(from))%>%
     mutate(to=as.numeric(to))%>%
@@ -4882,9 +4906,9 @@ make_print_map <- function(
   edges <- graf$links %>% select(-any_of("label")) %>% rename(label=link_label) %>%
     fix_columns_links()
 
-  if("link_wrap" %in% colnames(links))links <- links %>%
-    mutate(label=str_wrap(label,max(link_wrap))) else links <-
-    links %>%     mutate(label=add_default_wrap(label) )
+  if("link_wrap" %in% colnames(edges))edges <- edges %>%
+    mutate(label=str_wrap(label,max(link_wrap))) else edges <-
+    edges %>%     mutate(label=add_default_wrap(label) )
 
   # browser()
 
@@ -4921,6 +4945,7 @@ make_print_map <- function(
     # add_global_graph_attrs("arrowhead", "vee", "edge")    %>%
     add_global_graph_attrs("arrowtail", "none", "edge")    %>%
     add_global_graph_attrs("dir", "both", "edge")    %>%
+    add_global_graph_attrs("style", "solid", "edge")    %>%
     add_global_graph_attrs("fontsize", 14, "edge")    %>%
     add_global_graph_attrs("forcelabels", T, "graph")
   # browser()
