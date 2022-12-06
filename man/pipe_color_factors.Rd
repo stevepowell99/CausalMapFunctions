@@ -8,8 +8,8 @@ pipe_color_factors(
   graf,
   field = "frequency",
   lo = "#FCFDBF",
-  hi = "#5F187F",
-  mid = "#D3436E",
+  hi = "#9F189F",
+  mid = "#D5438E",
   fixed = NULL,
   pal = 1
 )
