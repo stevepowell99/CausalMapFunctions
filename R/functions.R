@@ -4505,7 +4505,7 @@ make_interactive_map <- function(graf,scale=1,safe_limit=200,rainbow=F){
     nodes <- data.frame(nodes, layout)
     ############## don't get tempted to use the internal visnetwork layout functions - problems with fitting to screen, and they are slower ....
   }
-  edges$dashes <- edges$style!="solid"
+  if("solid" %in% colnames(edges))edges$dashes <- edges$style!="solid"
   #message("6vn")
   nodes <- nodes %>%   mutate(id=factor_id)
   edges <- edges %>%   mutate(id=NULL) # id would be necessary for getting ids from clicks etc, but seems to stop tooltip from working
