@@ -3737,11 +3737,12 @@ pipe_dash_links <- function(graf,field="hashtags",operator="notequals",value="",
   if(is.null(operator))return(graf)
   if(is.na(field)){warning("No such column");return(graf)}
   if(type %notin% xc("dotted dashed")){warning("No such style");return(graf)}
-  if(field %notin% colnames(links)){warning("No such column");return(graf)}
 
-  # browser()
   links <-
-    graf$links %>%
+    graf$links
+  if(field %notin% colnames(links)){warning("No such column");return(graf)}
+  links <-
+    links%>%
     find_fun(field=field,value=value,operator=operator) %>%
     mutate(style=ifelse(found,type,"solid"))
 
