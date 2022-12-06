@@ -3719,6 +3719,18 @@ pipe_label_factors <- function(graf,field="frequency",clear_previous=F,add_field
 }
 
 
+#' Dash links
+#'
+#' @param graf
+#' @param field
+#' @param operator
+#' @param value
+#' @param type
+#'
+#' @return
+#' @export
+#'
+#' @examples
 pipe_dash_links <- function(graf,field="hashtags",operator="notequals",value="",type="dashed"){
   if(is.null(value))return(graf)
   if(is.null(field))return(graf)
