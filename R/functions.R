@@ -623,6 +623,7 @@ dismantle_mapfile <- function(graf){
 #' @examples
 pipe_coerce_mapfile <- function(tables){
 
+  message("Coercing")
   # say()
 # browser()
 
@@ -654,6 +655,7 @@ pipe_coerce_mapfile <- function(tables){
 
 
 
+  message("Coercing 2")
 
 
 
@@ -1470,6 +1472,8 @@ pipe_normalise_factors_links <- function(graf){
 
 # if factors are duplicates, compact them together
 compact_factors_links <- function(factors,links){
+
+  message("Compacting factors links")
   if(factors$label %>% table %>% max %>% `>`(1)){
     message("Some factor labels are duplicates; compacting")
     # browser()
@@ -1491,6 +1495,7 @@ compact_factors_links <- function(factors,links){
     links$to <-
       links$to %>% recode(!!!new_id %>% set_names(factors$factor_id))
     # browser()
+  message("Compacting factors links summarising")
     factors <-
       factors %>%
       summarise(across(yesfreq,sum),
@@ -1505,6 +1510,7 @@ compact_factors_links <- function(factors,links){
       ) %>%
       select(-new_id)
 
+  message("Compacting factors links summarised")
     ## if all werent flipped there is no need to have colour border
     if(sum(factors$is_flipped)==0){
       factors <- factors %>% select(-is_flipped)
@@ -1528,6 +1534,7 @@ compact_factors_links <- function(factors,links){
 # }
 
 pipe_compact_mapfile <- function(graf){
+  message("Compacting")
   factors <- graf$factors
   links <- graf$links
   tmp <- compact_factors_links(factors,links)
@@ -2772,7 +2779,7 @@ pipe_zoom_factors <- function(graf,level=1,separator=";",preserve_frequency=+Inf
 
   level=as.numeric(level)
   hide=as.logical(hide)
-
+message("Zooming")
 # browser()
   preserve_frequency=as.numeric(preserve_frequency)
   if(level>0) graf <-
@@ -3010,6 +3017,7 @@ pipe_trace_robustness <- function(graf,from,to,length=4,field=NULL){
 #'
 #' @examples
 pipe_trace_paths <- function(graf,from="",to="",length=4,remove_links=F,threads_direction="none",field="source_id",calculate_robustness=F){
+  message("Trace paths start")
 
   calculate_robustness <- as.logical(calculate_robustness)
 # browser()
@@ -3257,11 +3265,15 @@ pipe_combine_opposites <- function(graf,flipchar="~",add_colors=T){
 #'
 #' @examples
 pipe_trace_threads <- function(graf,field="source_id",direction="down"){
-  # browser()
-
+  message("Trace threads start")
+ # browser()
 
   #get the thread ids and put them in the links table for every link
-  graf$links$these_ids <- map(graf$links$link_id,~{get_field(graf$links,field,.)}) %>% unlist
+  if(field=="source_id" & "source_id" %in% colnames(graf$links)){  # saves time
+  graf$links$these_ids <- graf$links$source_id
+  }
+  else
+    graf$links$these_ids <- map(graf$links$link_id,~{get_field(graf$links,field,.)}) %>% unlist
 
 
   if(direction=="down")trace_threads_down(graf,field="source_id") %>%
@@ -3274,8 +3286,13 @@ pipe_trace_threads <- function(graf,field="source_id",direction="down"){
 }
 trace_threads_down <- function(graf,field="source_id"){
 
+  message("Trace threads up/down start")
   #get the thread ids and put them in the links table for every link
-  graf$links$downstream_threads <- map(graf$links$link_id,~{get_field(graf$links,field,.)}) %>% unlist
+
+
+  # browser()
+  graf$links$downstream_threads <- graf$links$these_ids
+  # graf$links$downstream_threads <- map(graf$links$link_id,~{get_field(graf$links,field,.)}) %>% unlist
 
   factors <- graf$factors
   links <- graf$links
@@ -3283,14 +3300,15 @@ trace_threads_down <- function(graf,field="source_id"){
 
   # how many steps away is each factor
   if("trace_after_vec" %notin% colnames(factors)) {message("You need to trace paths before tracing continuity",3);return(graf)}
-
-  origins <-                # dont think we need this
-    factors %>%
-    select(factor_id,trace_after_vec) %>%
-    filter(trace_after_vec==0) %>%
-    pull(factor_id)
+#
+#   origins <-                # dont think we need this
+#     factors %>%
+#     select(factor_id,trace_after_vec) %>%
+#     filter(trace_after_vec==0) %>%
+#     pull(factor_id)
 
   # the list of each factor id in the map which we will process in turn
+  message("Trace threads up/down pointers")
   pointers <-
     factors %>%
     select(factor_id,trace_after_vec) %>%
@@ -3298,6 +3316,8 @@ trace_threads_down <- function(graf,field="source_id"){
     pull(factor_id)
 
 
+  message("Trace threads loop pointers")
+  if(length(pointers)>20)warning("Large map, thread tracing may be slow, consider reducing the number of factors.")
   # starting with the origins, go through each successively further away node and add the downstream threads info to factors and links
   for(node in pointers){
     graf <- graf %>%
@@ -3327,6 +3347,7 @@ trace_threads_down <- function(graf,field="source_id"){
     )
 
   # browser()
+  message("Trace threads finish")
 
   graf %>%
     pipe_update_mapfile(.,links=graf$links %>%
@@ -4163,7 +4184,7 @@ pipe_color_links <- function(graf,field="link_id",lo="#FCFDBF",hi="#5F187F",mid=
       links <- get_surprises(links,field)
       links$color=links$stdres
     }
-
+# browser()
     links$color=create_colors(links$color,type="color_links",lo=lo,mid=mid,hi=hi,field=field,fun=oldfun,pal=pal)
 
     if(did_group) {

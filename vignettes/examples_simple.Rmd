@@ -191,6 +191,66 @@ example2 %>% pipe_coerce_mapfile() %>% make_interactive_map()
     pipe_color_factors() %>% 
     make_print_map()
 
+  
+tf <- load_mapfile("tearfund-all")  
+
+tf %>% 
+  parse_commands("zoom factors level=1
+find links field=source_frequency value=7 operator=greater
+trace paths length=3 remove_links=FALSE threads_direction=down from=CCM to=Good family/ personal relationships/ support
+find links field=hashtags value=#plain_coding operator=notcontains
+bundle links field=simple_bundle
+label factors field=thread_count add_field_name=FALSE clear_previous=FALSE
+label links value=count: downstream_threads add_field_name=FALSE clear_previous=TRUE
+scale links value=count: downstream_threads
+color factors field=found_type
+color links field=threads fun=count") %>% 
+  make_print_map()
+
+
+tic()
+tf %>% pipe_zoom_factors() # 6 times as long
+toc()
+
+tic()
+example_file %>% pipe_zoom_factors()
+toc()
+
+tic();example_file %>% pipe_trace_paths(from="method/practice",to="Income",length = 3,remove_links = F);toc()
+
+# increases from .3 to 3 seconds
+tic();example_file %>% pipe_trace_paths(from="method/practice",to="Income",length = 3,threads_direction = "down",remove_links = F);toc()
+
+# length doesnt make a difference
+tic();example_file %>% pipe_trace_paths(from="method/practice",to="Income",length = 6,remove_links = F);toc()
+
+# increases from .3 to 3 seconds
+tic();example_file %>% pipe_trace_paths(from="method/practice",to="Income",length = 6,threads_direction = "down",remove_links = F);toc()
+
+tic();tf %>% pipe_trace_paths(from="Christian faith",to="Increased material",length = 3,remove_links = F);toc()
+
+
+tic();tf %>% pipe_trace_paths(from="Christian faith",to="Increased material",length = 3,remove_links = F) %>% make_interactive_map();toc()
+
+tic();tf %>% pipe_zoom_factors() %>% pipe_trace_paths(from="Christian faith",to="Increased material",length = 3,remove_links = F) %>% pipe_cluster_factors("e") %>% pipe_remove_brackets() %>% pipe_color_factors()%>% pipe_color_links();toc()
+
+
+
+
+
+# oh my gosh, this is the one
+tic();tf %>% pipe_trace_paths(from="Christian faith",to="Increased material",length = 3,remove_links = F,threads_direction = "down");toc()
+
+
+
+
+
+tf$links %>% nrow
+example_file$links %>% nrow
+
+tf
+
+
 
 ```
 
@@ -1408,6 +1468,7 @@ example_file %>%
   pipe_color_links(field="threads") %>% 
   pipe_label_links(field="threads") %>% 
   pipe_color_factors(field="thread_count") %>% 
+  pipe_label_factors(field="thread_count") %>% 
   make_print_map()
 
 
