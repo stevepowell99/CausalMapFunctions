@@ -2775,10 +2775,10 @@ finalise(graf,info)
 #' @export
 #'
 #' @examples
-pipe_zoom_factors <- function(graf,level=1,separator=";",preserve_frequency=+Inf,frequency_field="frequency",frequency_other="(other)",hide=T){
+pipe_zoom_factors <- function(graf,level=1,separator=";",preserve_frequency=+Inf,frequency_field="frequency",frequency_other="(other)"){
 
   level=as.numeric(level)
-  hide=as.logical(hide)
+  # hide=as.logical(hide)
 message("Zooming")
 # browser()
   preserve_frequency=as.numeric(preserve_frequency)
@@ -2798,8 +2798,9 @@ message("Zooming")
                             label
                             ))
     ) %>%
-    pipe_compact_mapfile %>%
-    pipe_coerce_mapfile()
+    pipe_compact_mapfile
+  # %>%
+  #   pipe_coerce_mapfile()
 
   pipe_recalculate_all(graf)
 
@@ -2861,8 +2862,9 @@ pipe_cluster_sources <- function(graf,n_clusters=3,title="#cluster_set_"){
   sources <-
     graf$sources %>% left_join(df %>% dplyr::select(-clus_))
 
-  pipe_update_mapfile(graf,sources=sources) %>%
-    pipe_coerce_mapfile()
+  pipe_update_mapfile(graf,sources=sources)
+  # %>%
+  #   pipe_coerce_mapfile()
 
 }
 
@@ -2887,8 +2889,9 @@ pipe_bundle_factors <- function(graf,value=""){
                                   else if_else(str_detect(label,value),str_match(label,paste0(value)),label)
                                 )
   ) %>%
-    pipe_compact_mapfile() %>%
-    pipe_coerce_mapfile()
+    pipe_compact_mapfile()
+  # %>%
+  #   pipe_coerce_mapfile()
 
   pipe_recalculate_all(graf)
 }

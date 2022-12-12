@@ -1036,24 +1036,25 @@ ee %>%
   pipe_show_continuity(field="source_id") %>% 
   make_print_map
 
-e3 %>% 
+example_file %>% 
   pipe_label_links(field = "source_id",fun="unique") %>% 
   pipe_show_continuity(field="source_id") %>% 
   make_print_map
 
-e3 %>% 
+example2 %>% 
   pipe_zoom_factors() %>% 
+  pipe_select_factors() %>% 
   pipe_show_continuity(field="source_id") %>% 
   pipe_label_links(field = "source_id",fun="unique") %>% 
   make_print_map
 
-e3 %>% 
+example2 %>% 
   pipe_bundle_factors("Flooding") %>% 
   pipe_show_continuity(field="source_id") %>% 
   pipe_label_links(field = "source_id",fun="unique") %>% 
   make_print_map
 
-e3 %>% 
+example2 %>% 
   pipe_bundle_factors("Flooding") %>% 
   pipe_bundle_links(field = "source_id") %>% 
   pipe_label_links(field = "source_id",fun="literal") %>% 
@@ -1154,7 +1155,7 @@ ll %>%
 ## Nested maps
 
 ```{r }  
-tt %>%
+tf %>%
     pipe_zoom_factors(1) %>%
     pipe_select_factors(5) %>%
     make_interactive_map
@@ -1163,7 +1164,7 @@ tt %>%
 
 
 ```{r }  
-tt %>%
+tf %>%
     pipe_zoom_factors(1) %>%
     pipe_bundle_links() %>%
     pipe_label_links() %>%
@@ -1175,19 +1176,33 @@ tt %>%
 ## Zooming out and showing source count / frequency
 
 ```{r }  
-sz %>%
-    pipe_zoom_factors(1) %>%
+example_file %>%
+    pipe_zoom_factors(level = 1) %>%
+    pipe_select_factors(10) %>%
+  pipe_bundle_links(field="simple_bundle") %>% 
+  pipe_label_links(field="source_id",fun = "count") %>% 
+  pipe_label_factors(field="frequency",add_field_name = F) %>% 
+  pipe_wrap_factors() %>% 
+    make_print_map
+
+example_file %>%
+    pipe_zoom_factors(level = 2) %>%
+    pipe_select_factors(10) %>%
   pipe_bundle_links(field="simple_bundle") %>% 
   pipe_label_links(field="source_id",fun = "count") %>% 
   pipe_label_factors(field="frequency",add_field_name = F) %>% 
   pipe_wrap_factors() %>% 
     make_print_map 
-sz %>%
+
+example_file %>%
   pipe_zoom_factors(1,preserve_frequency = 4,frequency_field = "frequency",frequency_other = "(other)") %>%
+    pipe_select_factors(10) %>%
   pipe_bundle_links(field="simple_bundle") %>% 
   pipe_label_factors(field="frequency",add_field_name = F) %>% 
   pipe_wrap_factors() %>% 
     make_print_map 
+
+
 oig %>%
     pipe_zoom_factors(1,preserve_frequency = 20,frequency_field = "source_count") %>%
   pipe_bundle_links(field="simple_bundle") %>% 
@@ -1467,6 +1482,19 @@ example_file %>%
   pipe_scale_links() %>% 
   pipe_color_links(field="threads") %>% 
   pipe_label_links(field="threads") %>% 
+  pipe_color_factors(field="thread_count") %>% 
+  pipe_label_factors(field="thread_count") %>% 
+  make_print_map()
+
+example_file %>% 
+  pipe_zoom_factors(1) %>% 
+  pipe_select_factors(6) %>% 
+  pipe_trace_paths(length=4,from="knowledge",threads_direction="down") %>% 
+  pipe_bundle_links() %>% 
+  pipe_scale_links() %>% 
+  # pipe_color_links(field="threads") %>% 
+  pipe_label_links(field="threads",fun = "unique") %>% 
+  pipe_wrap_links(12) %>% 
   pipe_color_factors(field="thread_count") %>% 
   pipe_label_factors(field="thread_count") %>% 
   make_print_map()
