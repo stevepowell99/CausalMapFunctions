@@ -541,6 +541,22 @@ pipe_cluster_sources(example_file) %>%
   .$sources %>% 
   select(contains("cluster"))
 
+example_file %>%
+  parse_commands("cluster sources n_clusters=all") %>% 
+  .$sources %>% 
+  select(contains("cluster"))
+
+example_file %>%
+  parse_commands("cluster sources n_clusters=2") %>% 
+  .$sources %>% 
+  select(contains("cluster"))
+
+
+example_file %>%
+  parse_commands("cluster sources") %>% 
+  .$sources %>% 
+  select(contains("cluster"))
+
 ```
 
 
