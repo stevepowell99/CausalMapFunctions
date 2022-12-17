@@ -203,24 +203,48 @@ get_whole_table <- function(tab,connection=conn){
 #' @export
 #'
 #' @examples
-make_map_from_links <- function (links, switch = F)
-{
-  if (nrow(links) == 0)
-    return()
-  links <- links %>% filter(from != "" & to != "") %>% filter(!is.na(from) &
-                                                                !is.na(to)) %>% select(from, to, everything(), -project) %>%
-    suppressMessages %>% filter(!is.na(from) & !is.na(to))
-  factors = tibble(label = c(links$from, links$to) %>% unique)
-  links$from <- recode(links$from, !!!(row_index(factors) %>%
-                                         set_names(factors$label)))
-  links$to <- recode(links$to, !!!(row_index(factors) %>%
-                                     set_names(factors$label)))
-  if (switch) {
-    links <- links %>% rename(from = to, to = from)
+make_map_from_links <- function(links,switch=F){
+  # browser()
+  if(nrow(links)==0) return()
+  links <-
+    links %>%
+    filter(from!="" & to!="") %>%
+    filter(!is.na(from) & !is.na(to)) %>%
+    select(from,to,everything(),-project) %>%
+    suppressMessages %>%
+    filter(!is.na(from) & !is.na(to))
+  factors=tibble(label=c(links$from,links$to) %>% unique)
+
+  links$from <-
+    recode(links$from,!!!(row_index(factors) %>% set_names(factors$label)))
+  links$to <-
+    recode(links$to,!!!(row_index(factors) %>% set_names(factors$label)))
+
+  ## note these are switched around at present
+  if(switch){
+    links <- links %>%
+      rename(from=to,to=from)
   }
-  factors$id <- row_index(factors)
-  return(list(factors = factors, links = links, statements = NULL,
-              sources = NULL, questions = NULL, settings = NULL))
+
+  factors$factor_id <- row_index(factors)
+  links$link_id <- row_index(links)
+  links$quote <- ""
+  links$source_id <- 1
+  links$question_id <- 1
+  links$statement_id <- 1
+  # links <- links %>% add_simple_bundle_to_links()
+
+  return(
+    list(
+      factors = factors, #%>% factors_table,
+      links = links, #%>% links_table,
+      statements = NULL,               ########## STILL NEED TO GET SOURCES ETC
+      sources = NULL,#tibble(source_id=links$source_id %>% unique),
+      questions = NULL,
+      settings = NULL
+    ) %>%
+      pipe_recalculate_all()
+  )
 }
 
 get_map_tables_from_sql <- function(path,connection){
