@@ -10,8 +10,7 @@ pipe_zoom_factors(
   separator = ";",
   preserve_frequency = +Inf,
   frequency_field = "frequency",
-  frequency_other = "(other)",
-  hide = T
+  frequency_other = "(other)"
 )
 }
 \arguments{

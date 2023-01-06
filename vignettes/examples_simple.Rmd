@@ -1271,6 +1271,27 @@ oi %>%
 
 
 ```{r}
+
+example_file %>% 
+  pipe_combine_opposites() %>% 
+  pipe_zoom_factors() %>% 
+  pipe_select_factors() %>% 
+  make_print_map()
+
+example_file %>% 
+  pipe_combine_opposites() %>% 
+  pipe_zoom_factors() %>% 
+  pipe_select_factors() %>% 
+  pipe_color_borders(fixed="white") %>% 
+  make_print_map()
+
+example_file %>% 
+  pipe_combine_opposites() %>% 
+  pipe_zoom_factors() %>% 
+  pipe_select_factors() %>% 
+  pipe_color_borders(field = "frequency") %>% 
+  make_print_map()
+
 hh %>% 
   make_print_map()
 hh %>% 

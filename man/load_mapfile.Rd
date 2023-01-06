@@ -4,11 +4,21 @@
 \alias{load_mapfile}
 \title{Load mapfile}
 \usage{
-load_mapfile(path = NULL, connection = conn)
+load_mapfile(path = NULL, type = NULL, s3bucket = "cm2data")
 }
 \arguments{
-\item{connection}{}
+\item{type}{see above. Currently only used to specify a local RDS file by setting type to 'local'.}
+
+\item{s3bucket}{see path. When type is not local, path is the name of an s3 file and s3bucket is the name of the bucket.}
+
+\item{path.}{If path is NULL, an empty map is returned. If path ends with xlsx, this is the path to an xlsx file. If type is `local`, path must be a valid path to an RDS file. Otherwise, path must be the name of an s3 file in the specified s3 bucket.}
+}
+\value{
+A valid causal map.
 }
 \description{
-Load mapfile
+Loads a mapfile in different ways.
+}
+\examples{
+load_mapfile() # returns an empty map.
 }

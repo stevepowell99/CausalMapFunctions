@@ -77,7 +77,6 @@ standard_table <- function(tab){
 }
 
 
-# Utility functions -------------------------------------------------------
 
 
 
@@ -86,13 +85,33 @@ standard_table <- function(tab){
 # colnames.cm <- function (graf){graf %>% map(colnames)}
 #
 
+
+# lcollapse <- function(x)map(x,~paste0(.,collapse=":"))%>% unlist(recursive=F)
+
+#'
+#' #' Add class
+#' #'
+#' #' @param x Object to add a class to
+#' #' @param cls Class to be added
+#' #'
+#' #' @export
+#' #' @return `x` with class `cls` added
+#' #' @examples
+#' add_class <- function(x,cls="mapfile"){
+#'   class(x) <- c(cls,class(x)) %>% unique
+#'   x
+#' }
+
+
+# internal general utilities-----------------------------------------------------------------------------
+
 #' Add attribute
 #'
-#' @param graf A mapfile
+#' @param graf A causal map
 #' @param value A value to add as attribute
 #' @param attr The attribute to add to
 #'
-#' @return The mapfile `graf` but with an additional attribute `attr` with value `value`
+#' @return The causal map `graf` but with an additional attribute `attr` with value `value`
 #' @export
 #'
 #' @examples
@@ -109,27 +128,100 @@ finalise <- function(graf,value){
 }
 
 
-# lcollapse <- function(x)map(x,~paste0(.,collapse=":"))%>% unlist(recursive=F)
+message <- message # alias
+# return_notify <- function(tex){
+#   message(tex,3)
+#   return()
+# }
 
 
-#' Add class
+
+bind_rows_safe <- function(x,y,...){
+  if(is.null(x) & is.null(y))return(NULL)
+  if(is.null(x))return(y)
+  if(is.null(y))return(x)
+
+
+  x <- x %>% select(where(~!is_list(.))) # drop any list columns
+  y <- y %>% select(where(~!is_list(.)))
+
+  by=intersect(colnames(x),colnames(y))
+  if(is.null(by))return()
+  for(i in seq_along(by)){
+    # message(by[i])
+    # if(by[i]=="before_id") browser()
+    y[,by[i]] <- coerceValue(unlist(y[,by[i]]),unlist(x[,by[i]]))
+  }
+  bind_rows(x,y,...)
+
+}
+
+
+#' Left join safe
+#' @description
+#' @param x A dataframe
+#' @param y A dataframe
+#' @param by
+#' @param winner
+#' @param ... Other arguments to left_join
 #'
-#' @param x Object to add a class to
-#' @param cls Class to be added
-#'
+#' @return
 #' @export
-#' @return `x` with class `cls` added
+#'
 #' @examples
-add_class <- function(x,cls="mapfile"){
-  class(x) <- c(cls,class(x)) %>% unique
-  x
+left_join_safe <- function(x,y,by=NULL,winner="y",...){
+  # browser()h
+  if(is.null(by))by=intersect(colnames(x),colnames(y))
+  if(winner=="y")x=x %>% select(-intersect(colnames(x),colnames(y)),by) else  # so the second table takes precedence
+    y=y %>% select(-intersect(colnames(x),colnames(y)),by)  # so the second table takes precedence
+  for(i in seq_along(by)){
+    y[,by[i]] <- coerceValue(unlist(y[,by[i]]),unlist(x[,by[i]]))
+  }
+  left_join(x,y,by,...)
 }
 
 
 
+replace_null <- function(x,replacement=0){
+  if(is.null(x)) replacement else x
+}
+replace_Inf <- function(x,replacement=0){
+  # browser()
+  ifelse(is.infinite(x),replacement , x)
+}
+replace_inf <- replace_Inf #alias
+replace_zero <- function(x,replacement=0){
+  if(length(x)==0) replacement else x
+}
+replace_zero_rows <- function(x,replacement=NULL){
+  if(nrow(x)==0) replacement else x
+}
 
+# left_join_safe_safe <- function(x,y,by,...){
+#   browser()
+#
+#   left_join_safe(x,y %>% select(colnames(.) %>% setdiff(colnames(x)) %>% c(by)),...)
+# }
 
-# Loading maps --------------------------------------------------------------
+xc <- function(x, sep = " ") {
+  str_split(x, sep)[[1]]
+}
+
+`%notin%` <- Negate(`%in%`)
+
+#' Escape Regex
+#' @description Lifted from Hmisc
+#' @param string
+#'
+#' @return the string with regex symbols escaped
+#' @export
+#'
+#' @examples
+escapeRegex <- function(string){ #from hmisc
+  gsub("([.|()\\^{}+$*?]|\\[|\\])", "\\\\\\1",
+       string)
+}
+
 
 s3file_exists <- function(object,buck){
   !is.null(safely(~s3$head_object(Key=object,Bucket=buck))()$result)
@@ -142,11 +234,15 @@ s3readRDS <- function(object,bucket,version=NULL,s3confun=s3){
     (function(con) {on.exit(close(con)); readRDS(con)})
 }
 
-#' Title
+
+# Loading maps --------------------------------------------------------------
+
+
+#' Get causal map candidate from Excel
 #'
 #' @param path The path of an .xslx file to load. The .xlsx file can have worksheets called `statements`, `links`, `factors`, `sources` and `questions`.
 #'
-#' @return
+#' @return A list whose members are the contents of each worksheet, named by the names of each worksheet. Not necessarily a valid causal map.
 #' @export
 #'
 #' @examples
@@ -155,9 +251,17 @@ get_mapfile_from_excel <- function(path){
   readxl::excel_sheets(path %>% str_replace_all("\\\\","/")) %>%
     keep(. %in% table_list) %>%
     set_names %>%
-    map(~readxl::read_excel(path,sheet = .)) %>%
-    add_class
+    map(~readxl::read_excel(path,sheet = .))
+  # %>%
+  #   add_class
 }
+#' Get causal map candidate from s3
+#'
+#' @param path A path to an s3 file.
+#'
+#' @return The s3 file. Not necessarily a valid causal map.
+#'
+#' @examples
 get_mapfile_from_s3 <- function(path){
   message("Trying cm2 file")
   if(!s3file_exists(object=basename(path),buck=dirname(path))) return()
@@ -165,41 +269,44 @@ get_mapfile_from_s3 <- function(path){
   s3readRDS(object=basename(path),bucket=dirname(path))
 }
 
-#' Title
+#' #' Title
+#' #'
+#' #' @param tab
+#' #' @param proj
+#' #' @param connection
+#' #'
+#' #' @return
+#' #' @export
+#' #'
+#' #' @examples
+#' get_project_table <- function(tab="data",proj=sess$project,connection=conn){
+#'   tbl(connection,local(tab)) %>%
+#'     filter(project==local(proj)) %>%
+#'     collect %>%
+#'     mutate_all(to_logical)
 #'
-#' @param tab
-#' @param proj
-#' @param connection
 #'
-#' @return
-#' @export
-#'
-#' @examples
-get_project_table <- function(tab="data",proj=sess$project,connection=conn){
-  tbl(connection,local(tab)) %>%
-    filter(project==local(proj)) %>%
-    collect %>%
-    mutate_all(to_logical)
-}
-#' Title
-#'
-#' @param tab
-#' @param connection
-#'
-#' @return
-#' @export
-#'
-#' @examples
-get_whole_table <- function(tab,connection=conn){
-  tbl(connection,local(tab)) %>% collect %>% mutate_all(to_logical)
-}
+#' }
+#' #' Title
+#' #'
+#' #' @param tab
+#' #' @param connection
+#' #'
+#' #' @return
+#' #' @export
+#' #'
+#' #' @examples
+#' get_whole_table <- function(tab,connection=conn){
+#'   tbl(connection,local(tab)) %>% collect %>% mutate_all(to_logical)
+#' }
+
 
 #' Make map from links
+#' @description Make a causal map candidate from a dataframe of links.
+#' @param links A dataframe with two columns from and to, and possibly other columns.
+#' @param switch Whether to swap the interpretation of the from and to columns containing strings which are the names of the implied factors.
 #'
-#' @param links
-#' @param switch
-#'
-#' @return
+#' @return A
 #' @export
 #'
 #' @examples
@@ -385,101 +492,6 @@ join_statements_to_meta <- function(statements,meta){
 
 
 
-# internal general utilities-----------------------------------------------------------------------------
-
-message <- message # alias
-# return_notify <- function(tex){
-#   message(tex,3)
-#   return()
-# }
-
-
-
-bind_rows_safe <- function(x,y,...){
-  if(is.null(x) & is.null(y))return(NULL)
-  if(is.null(x))return(y)
-  if(is.null(y))return(x)
-
-
-  x <- x %>% select(where(~!is_list(.))) # drop any list columns
-  y <- y %>% select(where(~!is_list(.)))
-
-  by=intersect(colnames(x),colnames(y))
-  if(is.null(by))return()
-  for(i in seq_along(by)){
-    # message(by[i])
-    # if(by[i]=="before_id") browser()
-    y[,by[i]] <- coerceValue(unlist(y[,by[i]]),unlist(x[,by[i]]))
-  }
-  bind_rows(x,y,...)
-
-}
-
-
-#' Left join safe
-#'
-#' @param x
-#' @param y
-#' @param by
-#' @param ...
-#'
-#' @return
-#' @export
-#'
-#' @examples
-left_join_safe <- function(x,y,by=NULL,winner="y",...){
-  # browser()h
-  if(is.null(by))by=intersect(colnames(x),colnames(y))
-  if(winner=="y")x=x %>% select(-intersect(colnames(x),colnames(y)),by) else  # so the second table takes precedence
-    y=y %>% select(-intersect(colnames(x),colnames(y)),by)  # so the second table takes precedence
-  for(i in seq_along(by)){
-    y[,by[i]] <- coerceValue(unlist(y[,by[i]]),unlist(x[,by[i]]))
-  }
-  left_join(x,y,by,...)
-}
-
-
-
-replace_null <- function(x,replacement=0){
-  if(is.null(x)) replacement else x
-}
-replace_Inf <- function(x,replacement=0){
-  # browser()
-  ifelse(is.infinite(x),replacement , x)
-}
-replace_inf <- replace_Inf #alias
-replace_zero <- function(x,replacement=0){
-  if(length(x)==0) replacement else x
-}
-replace_zero_rows <- function(x,replacement=NULL){
-  if(nrow(x)==0) replacement else x
-}
-
-# left_join_safe_safe <- function(x,y,by,...){
-#   browser()
-#
-#   left_join_safe(x,y %>% select(colnames(.) %>% setdiff(colnames(x)) %>% c(by)),...)
-# }
-
-xc <- function(x, sep = " ") {
-  str_split(x, sep)[[1]]
-}
-
-`%notin%` <- Negate(`%in%`)
-
-#' Escape Regex
-#'
-#' @param string
-#'
-#' @return
-#' @export
-#'
-#' @examples
-escapeRegex <- function(string){ #from hmisc
-  gsub("([.|()\\^{}+$*?]|\\[|\\])", "\\\\\\1",
-       string)
-}
-
 
 
 # major functions and pipes but not for use with parser -------------------------------------------------------------
@@ -490,14 +502,16 @@ escapeRegex <- function(string){ #from hmisc
 
 #' Load mapfile
 #'
-#' @param path
-#' @param connection
+#' @description Loads a mapfile in different ways.
+#' @param path. If path is NULL, an empty map is returned. If path ends with xlsx, this is the path to an xlsx file. If type is `local`, path must be a valid path to an RDS file. Otherwise, path must be the name of an s3 file in the specified s3 bucket.
+#' @param type see above. Currently only used to specify a local RDS file by setting type to 'local'.
+#' @param s3bucket see path. When type is not local, path is the name of an s3 file and s3bucket is the name of the bucket.
 #'
-#' @return
+#' @return A valid causal map.
 #' @export
 #'
-#' @examples
-load_mapfile <- function(path=NULL,connection=conn){
+#' @examples load_mapfile() # returns an empty map.
+load_mapfile <- function(path=NULL,type=NULL,s3bucket="cm2data"){
   graf <- NULL
   factors <- NULL
   links <- NULL
@@ -507,53 +521,60 @@ load_mapfile <- function(path=NULL,connection=conn){
   settings <- NULL
   newtables <- NULL
   # browser()
-  if(!is.null(path)){
+  if(is.null(path)){
+    graf <- NULL;type="empty"
+  } else {
     if(str_detect(path,"xlsx$")){
       type <- "excel"
 
-    } else
-    if(!(str_detect(path,"/"))){
-      type <- "unknown"
-
     } else {
-      type <- path %>% str_match("^.*?/") %>% str_remove("/")
-      path <- path %>% str_remove("^.*?/")
-    }#
-  } else type <- "individual"
+      if(type!="local") type <- "s3"
+    }
+  }
 
-  if(type=="file") graf <- readRDS(path) else
-    if(type=="standard"){
-      tmp <- safely(get)(path)
-      if(tmp$result %>% is.null) return(NULL) else graf <- tmp$result
-      message("Loaded standard file")
+  if(type=="local") {
+    graf <- readRDS(path)
 
     } else if(type=="excel"){
       graf <- get_mapfile_from_excel(path = path)
       if(is.null(graf)) return(NULL)
       message("Loaded excel file")
-    } else if(type=="sql"){
-      graf <- make_map_from_links(get_project_table("ss2answers",path,connection))
-      # graf <- get_map_tables_from_sql(path,connection=connection)
-      if(is.null(graf)) return(NULL)
-      message("Loaded sql file")
-    } else  if(type=="cm2"){
-      graf <- get_mapfile_from_s3(path %>% paste0("cm2data/",.)) %>% as.list  #as list because of tidygraph format
-      if(is.null(graf)) return(NULL)
-      if(is.null(graf$factors) & !is.null(graf$nodes)) graf$factors <- graf$nodes
-      if(is.null(graf$links) & !is.null(graf$edges)) graf$links <- graf$edges
-    } else if(type=="cm1"){
-      graf <- get_map_tables_from_s3_pieces(path %>% paste0("causalmap/app-sync/",.))
-      if(is.null(graf))return(NULL)
-    } else if(type=="unknown"){
+    } else if(type=="s3"){
       message("Trying to load file, guessing origin")
 
-      graf <- get_mapfile_from_s3(path %>% paste0("cm2data/",.))
-      if(is.null(graf)) {
-        graf <- get_map_tables_from_s3_pieces(path %>% paste0("causalmap/app-sync/",.))
-
-      }
-
+      graf <- get_mapfile_from_s3(path %>% paste0(s3bucket,"/",.))
     }
+  #   if(!(str_detect(path,"/"))){
+  #     type <- "s3"
+  #
+  #   } else {
+  #     type <- path %>% str_match("^.*?/") %>% str_remove("/")
+  #     path <- path %>% str_remove("^.*?/")
+  #   }#
+  # # } else type <- "individual"
+    # if(type=="standard"){
+    #   tmp <- safely(get)(path)
+    #   if(tmp$result %>% is.null) return(NULL) else graf <- tmp$result
+    #   message("Loaded standard file")
+
+      # if(is.null(graf)) {
+      #   graf <- get_map_tables_from_s3_pieces(path %>% paste0("causalmap/app-sync/",.))
+      #
+      # }
+
+    # } else if(type=="sql"){
+    #   graf <- make_map_from_links(get_project_table("ss2answers",path,connection))
+    #   # graf <- get_map_tables_from_sql(path,connection=connection)
+    #   if(is.null(graf)) return(NULL)
+    #   message("Loaded sql file")
+    # } else  if(type=="cm2"){
+    #   graf <- get_mapfile_from_s3(path %>% paste0("cm2data/",.)) %>% as.list  #as list because of tidygraph format
+    #   if(is.null(graf)) return(NULL)
+    #   if(is.null(graf$factors) & !is.null(graf$nodes)) graf$factors <- graf$nodes
+    #   if(is.null(graf$links) & !is.null(graf$edges)) graf$links <- graf$edges
+    # } else if(type=="cm1"){
+    #   graf <- get_map_tables_from_s3_pieces(path %>% paste0("causalmap/app-sync/",.))
+    #   if(is.null(graf))return(NULL)
 
   # browser()
   if(is.null(graf))graf <- pipe_update_mapfile()
@@ -3210,7 +3231,7 @@ pipe_calculate_robustness <- function(graf){
 #'
 #' @param graf
 #' @param flipchar
-#' @param add_colors
+#' @param add_colors Applies only to links
 #'
 #' @return
 #' @export
@@ -3221,16 +3242,16 @@ pipe_combine_opposites <- function(graf,flipchar="~",add_colors=T){
   if(add_colors)message("Also adding colours; you can turn this off with 'combine opposites add_colors=FALSE'")
   # browser()
   # old version - bathday
-  if(F){factors <-
-    graf$factors %>%
-    mutate(
-      try_flipped=str_detect(label,paste0("^ *",flipchar)),
-      try_label=if_else(try_flipped,flip_vector(label,flipchar = flipchar) %>% replace_null(""),label),
-      is_top=(!str_detect(label,";")), # becky wanted it flipped anyway if top level
-      is_flipped=(is_top | (try_label %in% graf$factors$label)) & try_flipped,
-      label=if_else(is_flipped | is_top,flip_fix_vector(try_label) %>% replace_null(""),label)# only flip if to do so would result in a label which already exists
-    )
-  }
+  # if(F){factors <-
+  #   graf$factors %>%
+  #   mutate(
+  #     try_flipped=str_detect(label,paste0("^ *",flipchar)),
+  #     try_label=if_else(try_flipped,flip_vector(label,flipchar = flipchar) %>% replace_null(""),label),
+  #     is_top=(!str_detect(label,";")), # becky wanted it flipped anyway if top level
+  #     is_flipped=(is_top | (try_label %in% graf$factors$label)) & try_flipped,
+  #     label=if_else(is_flipped | is_top,flip_fix_vector(try_label) %>% replace_null(""),label)# only flip if to do so would result in a label which already exists
+  #   )
+  # }
   factors <-
     graf$factors %>%
     mutate(
@@ -3524,11 +3545,11 @@ remove_empty_string <- function(vec){
 #' @export
 #'
 #' @examples
-pipe_merge_mapfile <- function(graf,path){
+pipe_merge_mapfile <- function(graf,path,connection){
   # browser()
 
 
-  map2 <- load_mapfile(path=path)
+  map2 <- load_mapfile(path=path,connection=connection)
   graf <- graf
   merge_mapfile(graf,map2)%>%
     pipe_recalculate_all()
@@ -4448,6 +4469,43 @@ prepare_visual_bundles <- function(graf,
 
 }
 
+prepare_final <- function(graf){
+
+  if(nrow(graf$factors)>replace_null(safe_limit,200)){
+    message("Map larger than 'safe limit'; showing only most frequent factors",3)
+    graf <- graf %>%
+      pipe_select_factors(200)
+
+  }
+
+
+  if(!is_grouped_df(graf$links) & nrow(links_table(graf))>replace_null(safe_limit,200)){
+    message("Map larger than 'safe limit'; bundling and labelling links",3)
+    graf <- graf %>%
+      pipe_bundle_links() %>%
+      pipe_label_links(field = "link_id",fun="count") %>%
+      pipe_scale_links(field = "link_id",fun="count")
+
+  }
+  if("is_flipped" %in% colnames(graf$factors)){
+  # browser()
+    if(
+      any(as.numeric(graf$factors$is_flipped)>0,na.rm=T) %>% replace_na(F)
+       &
+      "color.border" %notin% colnames(graf$factors)
+       ){
+    graf$factors$`color.border`= div_gradient_pal(ordinary_color,"white",contrary_color)(graf$factors$is_flipped)
+    }
+
+  }
+
+
+
+  graf
+
+
+}
+
 ## visNetwork --------------------------------------------------------------
 
 #' Make a visNetwork
@@ -4778,35 +4836,6 @@ average_color <- function(colvec,combine_doubles=F){
 
 }
 
-prepare_final <- function(graf){
-
-  if(nrow(graf$factors)>replace_null(safe_limit,200)){
-    message("Map larger than 'safe limit'; showing only most frequent factors",3)
-    graf <- graf %>%
-      pipe_select_factors(200)
-
-  }
-
-
-  if(!is_grouped_df(graf$links) & nrow(links_table(graf))>replace_null(safe_limit,200)){
-    message("Map larger than 'safe limit'; bundling and labelling links",3)
-    graf <- graf %>%
-      pipe_bundle_links() %>%
-      pipe_label_links(field = "link_id",fun="count") %>%
-      pipe_scale_links(field = "link_id",fun="count")
-
-  }
-  if("is_flipped" %in% colnames(graf$factors)){
-  if(any(as.numeric(graf$factors$is_flipped)>0,na.rm=T) %>% replace_na(F))graf$factors$`color.border`= div_gradient_pal(ordinary_color,"white",contrary_color)(graf$factors$is_flipped)
-
-  }
-
-
-
-  graf
-
-
-}
 
 #' Make a Graphviz map
 #' @description Make a Graphviz map: https://graphviz.org/documentation/

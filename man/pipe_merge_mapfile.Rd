@@ -4,7 +4,7 @@
 \alias{pipe_merge_mapfile}
 \title{Pipe merge map}
 \usage{
-pipe_merge_mapfile(graf, path)
+pipe_merge_mapfile(graf, path, connection)
 }
 \arguments{
 \item{graf}{A mapfile representing a causal map.
