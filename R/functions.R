@@ -269,36 +269,7 @@ get_mapfile_from_s3 <- function(path){
   s3readRDS(object=basename(path),bucket=dirname(path))
 }
 
-#' #' Title
-#' #'
-#' #' @param tab
-#' #' @param proj
-#' #' @param connection
-#' #'
-#' #' @return
-#' #' @export
-#' #'
-#' #' @examples
-#' get_project_table <- function(tab="data",proj=sess$project,connection=conn){
-#'   tbl(connection,local(tab)) %>%
-#'     filter(project==local(proj)) %>%
-#'     collect %>%
-#'     mutate_all(to_logical)
-#'
-#'
-#' }
-#' #' Title
-#' #'
-#' #' @param tab
-#' #' @param connection
-#' #'
-#' #' @return
-#' #' @export
-#' #'
-#' #' @examples
-#' get_whole_table <- function(tab,connection=conn){
-#'   tbl(connection,local(tab)) %>% collect %>% mutate_all(to_logical)
-#' }
+
 
 
 #' Make map from links

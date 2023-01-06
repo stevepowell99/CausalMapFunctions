@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{make_map_from_links}
 \alias{make_map_from_links}
-\title{}
+\title{Make map from links}
 \usage{
 make_map_from_links(links, switch = F)
 }
@@ -16,7 +16,4 @@ A
 }
 \description{
 Make a causal map candidate from a dataframe of links.
-}
-\details{
-
 }
