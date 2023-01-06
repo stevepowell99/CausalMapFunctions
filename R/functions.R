@@ -497,9 +497,11 @@ load_mapfile <- function(path=NULL,type=NULL,s3bucket="cm2data"){
   } else {
     if(str_detect(path,"xlsx$")){
       type <- "excel"
-
-    } else {
-      if(type!="local") type <- "s3"
+    } else if(is.null(type))
+      {
+      type <- "s3"
+    } else if(type!="local") {
+      type <- "s3"
     }
   }
 
