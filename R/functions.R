@@ -3545,11 +3545,11 @@ remove_empty_string <- function(vec){
 #' @export
 #'
 #' @examples
-pipe_merge_mapfile <- function(graf,path,connection){
+pipe_merge_mapfile <- function(graf,path){
   # browser()
 
 
-  map2 <- load_mapfile(path=path,connection=connection)
+  map2 <- load_mapfile(path=path)
   graf <- graf
   merge_mapfile(graf,map2)%>%
     pipe_recalculate_all()
