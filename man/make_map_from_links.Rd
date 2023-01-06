@@ -2,13 +2,21 @@
 % Please edit documentation in R/functions.R
 \name{make_map_from_links}
 \alias{make_map_from_links}
-\title{Make map from links}
+\title{}
 \usage{
 make_map_from_links(links, switch = F)
 }
 \arguments{
-\item{switch}{}
+\item{links}{A dataframe with two columns from and to, and possibly other columns.}
+
+\item{switch}{Whether to swap the interpretation of the from and to columns containing strings which are the names of the implied factors.}
+}
+\value{
+A
 }
 \description{
-Make map from links
+Make a causal map candidate from a dataframe of links.
+}
+\details{
+
 }

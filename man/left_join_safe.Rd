@@ -7,7 +7,11 @@
 left_join_safe(x, y, by = NULL, winner = "y", ...)
 }
 \arguments{
-\item{...}{}
+\item{x}{A dataframe}
+
+\item{y}{A dataframe}
+
+\item{...}{Other arguments to left_join}
 }
 \description{
 Left join safe

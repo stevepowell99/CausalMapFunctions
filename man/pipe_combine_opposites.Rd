@@ -7,7 +7,7 @@
 pipe_combine_opposites(graf, flipchar = "~", add_colors = T)
 }
 \arguments{
-\item{add_colors}{}
+\item{add_colors}{Applies only to links}
 }
 \description{
 pipe_combine_opposites

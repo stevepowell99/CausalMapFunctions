@@ -2,13 +2,16 @@
 % Please edit documentation in R/functions.R
 \name{get_mapfile_from_excel}
 \alias{get_mapfile_from_excel}
-\title{Title}
+\title{Get causal map candidate from Excel}
 \usage{
 get_mapfile_from_excel(path)
 }
 \arguments{
 \item{path}{The path of an .xslx file to load. The .xlsx file can have worksheets called `statements`, `links`, `factors`, `sources` and `questions`.}
 }
+\value{
+A list whose members are the contents of each worksheet, named by the names of each worksheet. Not necessarily a valid causal map.
+}
 \description{
-Title
+Get causal map candidate from Excel
 }

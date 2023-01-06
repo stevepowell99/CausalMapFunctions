@@ -9,6 +9,9 @@ escapeRegex(string)
 \arguments{
 \item{string}{}
 }
+\value{
+the string with regex symbols escaped
+}
 \description{
-Escape Regex
+Lifted from Hmisc
 }
