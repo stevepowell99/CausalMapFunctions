@@ -2517,6 +2517,10 @@ parse_commands <- function(graf=NULL,tex){
 pipe_find_factors <- function(graf,field="label",value,operator="contains",up=1,down=1,remove_isolated=F,highlight_only=F){
 
     message("find factors")
+  if(operator=="notcontains" | operator=="notequals"){
+    up <- 0
+    down <- 0
+  }
 
     df <- graf$factors %>% find_fun(field,value,operator)
 
@@ -2529,7 +2533,9 @@ pipe_find_factors <- function(graf,field="label",value,operator="contains",up=1,
 
 
   if(operator=="notcontains" | operator=="notequals"){
-    graf <- pipe_update_mapfile(graf,factors=df %>% filter(found))
+    graf <- pipe_update_mapfile(graf,factors=df %>% filter(found)) %>%
+      pipe_remove_orphaned_links() %>%
+      pipe_remove_isolated()
     return(graf )
 
   }

@@ -120,6 +120,26 @@ clean_send <- function(vec){
 
 
 ```{r }
+
+sh <- load_mapfile("cropnuts-sha-22")
+sh %>% 
+  pipe_find_links(field = "source_frequency",value = 7,operator="greater") %>% 
+  pipe_find_factors(field = "label",value = "no change",operator="notcontains") %>% 
+  pipe_bundle_links() %>% 
+  make_interactive_map()
+
+sh %>% 
+  pipe_find_links(field = "source_frequency",value = 7,operator="greater") %>% 
+  pipe_find_factors(field = "label",value = "no change",operator="notcontains") %>% 
+  pipe_bundle_links() %>% 
+  make_print_map()
+
+
+
+
+
+
+
 message(1)
 pipe_update_mapfile()  # creates an empty map
 pipe_update_mapfile() %>% 
