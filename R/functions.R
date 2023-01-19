@@ -626,7 +626,6 @@ pipe_coerce_mapfile <- function(tables){
 
   message("Coercing")
   # say()
-# browser()
 
   # enable creating map from edgelist
   if(is.null(tables$factors) &
@@ -634,9 +633,10 @@ pipe_coerce_mapfile <- function(tables){
     if("from_label" %in% colnames(tables$links) &
        "to_label" %in% colnames(tables$links)){
       tables <- factors_links_from_named_edgelist(tables$links)
-    }
+    } else message("You need to have columns from_label and to_label in your links table")
   }
 
+# browser()
   dismantle_mapfile(tables)
 
   # factors <- tables$factors %>% replace_null(standard_factors()) %>% replace_zero_rows(standard_factors())
@@ -1231,13 +1231,14 @@ pipe_add_factor_source_counts <- function(mapfile){
 }
 
 factors_links_from_named_edgelist <- function(links){
+  # browser()
   tmp <- c(links$from_label,links$to_label) %>% unique
 
   factors <- tibble(label=tmp,factor_id=seq_along(tmp))
   links$from <- recode(links$from_label,!!!(factors$factor_id %>% set_names(factors$label)))
   links$to <- recode(links$to_label,!!!(factors$factor_id %>% set_names(factors$label)))
 
-  return(list(factors=factors,links=links))
+  return(list(factors=factors,links=links,statements=NULL,sources=NULL,questions=NULL,settings=NULL))
 }
 
 # just for the cases when calculating robustness where map2 only has factors and links
