@@ -3814,7 +3814,10 @@ pipe_label_links <- function(graf,field="link_id",fun="count",value=NULL,add_fie
   links <- graf$links
 
   coln <- colnames(links)
-  field <- coln[str_detect(coln,paste0(field))][1]
+
+  # a legacy thing. not pretty.
+  if(!any(field %in% coln)) field <- coln[str_detect(coln,paste0(field))][1]
+
 
 
   if(is.na(field)){warning("No such column");return(graf)}
