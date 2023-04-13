@@ -121,6 +121,14 @@ clean_send <- function(vec){
 
 ```{r }
 
+recodes <- tibble(old="Damage to Property",new="changed")
+recodes <- tibble(old="Damage to Property",new="Damage to Businesses")
+pipe_recode_factors(example2,recodes=recodes) %>% make_interactive_map()
+example2$settings <- list(recodes=recodes)
+pipe_recode_factors(example2) %>% make_interactive_map()
+
+
+
 sh <- load_mapfile("cropnuts-sha-22")
 oi <- load_mapfile("C:/Users/steve/Downloads/2oirefugeetestimonies-2023-01-16.xlsx")
 

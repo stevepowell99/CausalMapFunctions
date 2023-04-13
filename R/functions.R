@@ -70,7 +70,7 @@ standard_links <- function(){tibble(
 standard_statements <- function()tibble(statement_id=1,text="example statement",statement_memo="",source_id="1",question_id="1",statement_map_id=1)
 standard_sources <- function()tibble(source_id="1",source_memo="example source",source_map_id=1)
 standard_questions <- function()tibble(question_id="1",question_text="example question",question_memo="",question_map_id=1)
-standard_settings <- function()tibble(setting_id="background_colour",value="",map_id=1)
+standard_settings <- function()list(defaults=list(setting_id="background_colour",value="",map_id=1))
 
 standard_table <- function(tab){
   do.call(paste0("standard_",tab),list())
@@ -605,7 +605,7 @@ pipe_update_mapfile <- function(
 
 
 dismantle_mapfile <- function(graf){
-  walk(names(graf),function(x)assign(x
+  walk(names(graf) %>% keep(~.!="settings"),function(x)assign(x
                            ,
                            # graf[[x]] %>% replace_null(standard_table(x))
                            graf[[x]] %>% replace_null(standard_table(x)) %>% replace_zero_rows(standard_table(x))
@@ -638,21 +638,6 @@ pipe_coerce_mapfile <- function(tables){
 
 # browser()
   dismantle_mapfile(tables)
-
-  # factors <- tables$factors %>% replace_null(standard_factors()) %>% replace_zero_rows(standard_factors())
-  # links <- tables$links %>% replace_null(standard_links()) %>% replace_zero_rows(standard_links())
-  # statements <- tables$statements %>% replace_null(standard_statements()) %>% replace_zero_rows(standard_statements())
-  # sources <- tables$sources %>% replace_null(standard_sources()) %>% replace_zero_rows(standard_sources())
-  # questions <- tables$questions %>% replace_null(standard_questions()) %>% replace_zero_rows(standard_questions())
-  # settings <- tables$settings %>% replace_null(standard_settings()) %>% replace_zero_rows(standard_settings())
-  # tmp <- pipe_remove_orphaned_links(list(factors=factors,links=links))
-  # factors <- tmp$factors
-  # links <- tmp$links
-
-
-
-
-
 
 
 
@@ -771,8 +756,8 @@ pipe_coerce_mapfile <- function(tables){
 
 
   ################### needs completing as above
-  settings <- settings %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_settings()) %>% select(any_of(colnames(standard_settings())))
-  settings <- settings %>% mutate_all(as.character)
+  # settings <- settings %>% replace_null(empty_tibble) %>% add_column(.name_repair="minimal",!!!standard_settings()) %>% select(any_of(colnames(standard_settings())))
+  # settings <- settings %>% mutate_all(as.character)
 
 
 
@@ -815,7 +800,7 @@ pipe_coerce_mapfile <- function(tables){
 
 
   factors <- factors[,colnames(factors)!=""]
-  graf <- pipe_update_mapfile(factors=factors,links=links,statements=statements,sources=sources,questions=questions,settings=settings) %>%
+  graf <- pipe_update_mapfile(factors=factors,links=links,statements=statements,sources=sources,questions=questions,settings=settings %>% replace_null(standard_settings())) %>%
     pipe_remove_orphaned_links()
 
   graf %>% pipe_recalculate_all()
@@ -1055,74 +1040,6 @@ pipe_recalculate_links <- function(graf){
 # }
 
 
-#' Update map
-#' @inheritParams parse_commands
-#' @param factors
-#' @param links
-#' @param statements
-#' @param sources
-#' @param questions
-#' @param settings
-#' @param clean
-#'
-#' @return A tidy map. If both factors and links are NULL, and empty map is returned.
-#' @export
-#'
-#' @examples
-# update_map <- function(map,
-#                        factors=NULL,
-#                        links=NULL,
-#                        statements=NULL,
-#                        sources=NULL,
-#                        questions=NULL,
-#                        settings=NULL,
-#                        tables=list(
-#                          factors=NULL,
-#                          links=NULL,
-#                          statements=NULL,
-#                          sources=NULL,
-#                          questions=NULL,
-#                          settings=NULL
-#                        ),
-#                        clean=T,
-#                        all=T){
-#   # browser()
-#   if(!is.null(tables)){
-#     if(is.null(factors))       factors <- tables$factors
-#     if(is.null(links))       links <- tables$links
-#     if(is.null(statements))  statements <- tables$statements
-#     if(is.null(sources))     sources <- tables$sources
-#     if(is.null(questions))   questions <- tables$questions
-#     if(is.null(settings))    settings <- tables$settings
-#   }
-#   if(is.null(factors) & !is.null(map))factors <- factors_table(map)
-#   if(!all) {
-#     if(".rn" %notin% colnames(factors)) return(map)
-#
-#     # factors <-
-#     #   factors_table(map) %>%
-#     #   update_join(factors)
-#   }
-#   if(is.null(factors))     factors <- map$factors
-#   if(is.null(links))       links <- map$links
-#   if(is.null(statements))  statements <- map$statements
-#   if(is.null(sources))     sources <- map$sources
-#   if(is.null(questions))   questions <- map$questions
-#   if(is.null(settings))    settings <- map$settings
-#
-#   # browser()
-#   assemble_mapfile(
-#     factors=factors,
-#     links=links,
-#     # links=links %>%  filter(from %in% (factors %>% row_index)) %>% filter(to %in% (factors %>% row_index)),
-#     statements=statements,
-#     sources=sources,
-#     questions=questions,
-#     settings=settings
-#
-#   )
-#
-# }
 
 is_in_hierarchy <- function(labels){
   tops <-
@@ -1324,8 +1241,7 @@ merge_mapfile <- function(map1,map2){
       bind_rows_safe(map2$questions %>%
                        mutate(map_id=maxmapid+1)
       ),
-    settings=map1$settings %>%
-      bind_rows_safe(map2$settings)
+    settings=map1$settings# %>%bind_rows_safe(map2$settings)
   ) %>% pipe_compact_mapfile()
 
 
@@ -1522,6 +1438,25 @@ compact_factors_links <- function(factors,links){
   }
   return(list(factors=factors,links=links))
 }
+
+#' Pipe remove statementless links
+#'
+#' @param graf
+#'
+#' @return
+#' @export
+#'
+#' @examples
+pipe_remove_statementless_links <- function(graf){
+
+  graf <-
+    graf %>% pipe_update_mapfile(
+      factors=graf$factors,
+      links=graf$links %>% filter(as.numeric(statement_id) %in% as.numeric(graf$statements$statement_id))
+    )
+
+}
+
 #using compact map instead
 # pipe_compact_factors_links <- function(mapfile){
 #   tmp <-
@@ -2485,8 +2420,32 @@ parse_commands <- function(graf=NULL,tex){
 }
 
 
+# NLP ----------------------------------------------------
+
+
+
+
 # main pipe functions ----------------------------------------------------
 
+#' Pipe recode factors
+#'
+#' @param graf
+#' @param recodes
+#'
+#' @return
+#' @export
+#'
+#' @examples
+pipe_recode_factors <- function(graf,recodes=graf$settings$recodes){
+  if(is.null(recodes)){warning("You did not provide recodes");return(graf)}
+  # browser()
+  labels <- graf$factors$label
+  new_labels <- recode(labels,!!!(recodes$new %>% set_names(recodes$old)))
+  graf$factors$label <- new_labels
+  pipe_update_mapfile(graf,graf$factors,graf$links) %>%
+    pipe_compact_mapfile()
+
+}
 
 
 #' Find factors
