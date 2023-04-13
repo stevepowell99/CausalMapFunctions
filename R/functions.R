@@ -605,12 +605,16 @@ pipe_update_mapfile <- function(
 
 
 dismantle_mapfile <- function(graf){
+  # browser()
   walk(names(graf) %>% keep(~.!="settings"),function(x)assign(x
                            ,
                            # graf[[x]] %>% replace_null(standard_table(x))
                            graf[[x]] %>% replace_null(standard_table(x)) %>% replace_zero_rows(standard_table(x))
                            ,
                            envir = .GlobalEnv))
+  x="settings"
+  assign(x,graf[[x]] %>% replace_null(standard_table(x)) ,envir = .GlobalEnv)
+
 }
 
 
@@ -800,7 +804,10 @@ pipe_coerce_mapfile <- function(tables){
 
 
   factors <- factors[,colnames(factors)!=""]
-  graf <- pipe_update_mapfile(factors=factors,links=links,statements=statements,sources=sources,questions=questions,settings=settings %>% replace_null(standard_settings())) %>%
+
+  # if(is.null(graf))
+
+  graf <- pipe_update_mapfile(factors=factors,links=links,statements=statements,sources=sources,questions=questions,settings=settings) %>%
     pipe_remove_orphaned_links()
 
   graf %>% pipe_recalculate_all()
