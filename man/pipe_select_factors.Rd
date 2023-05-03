@@ -9,7 +9,9 @@ pipe_select_factors(
   top = 10,
   bottom = NULL,
   all = F,
-  field = "frequency"
+  field = "frequency",
+  recalculate_factors = T,
+  recalculate_links = T
 )
 }
 \arguments{

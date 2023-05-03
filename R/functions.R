@@ -640,14 +640,13 @@ pipe_coerce_mapfile <- function(tables){
     } else message("You need to have columns from_label and to_label in your links table")
   }
 
-# browser()
   dismantle_mapfile(tables)
 
 
 
-  message("Coercing 2")
 
 
+# browser()
 
 
   flow <- attr(links,"flow")
@@ -684,6 +683,7 @@ pipe_coerce_mapfile <- function(tables){
         mutate(factor_id=row_number())
 
 
+  message("Coercing 3")
 
 
     factors <-  factors %>%
@@ -1153,6 +1153,31 @@ pipe_add_factor_source_counts <- function(mapfile){
     pipe_update_mapfile(mapfile,factors=.) %>% finalise(info)
   # browser()
 }
+
+#' Pipe reconstruct factors from links
+#'
+#' @param graf
+#'
+#' @return
+#' @export
+#'
+#' @examples
+pipe_reconstruct_factors_from_links <- function (graf)
+{
+  # browser()
+  links <- graf$links %>% filter(from_label!="" & to_label!="")
+  tmp <- c(links$from_label, links$to_label) %>% unique
+  factors <- tibble(label = tmp, factor_id = seq_along(tmp))
+  links$from <- recode(links$from_label, !!!(factors$factor_id %>% set_names(factors$label)))
+  links$to <- recode(links$to_label, !!!(factors$factor_id %>%
+                                           set_names(factors$label)))
+
+  pipe_update_mapfile(graf,factors = factors, links = links) %>%
+    CausalMapFunctions:::pipe_compact_mapfile()
+
+
+}
+
 
 factors_links_from_named_edgelist <- function(links){
   # browser()
@@ -1756,6 +1781,10 @@ color_combined_links <- function(links){
 }
 
 ## Others ------------------------------------------------------------------
+
+
+keep_top_level <- function(vec) vec %>% str_remove_all(";.*")
+drop_top_level <- function(vec) vec %>% map(~str_match(.,";.*") %>% replace_na(";") %>% str_remove("^;")) %>% unlist
 
 
 has_statements <- function(graf){
@@ -2432,8 +2461,6 @@ parse_commands <- function(graf=NULL,tex){
 
 
 
-# main pipe functions ----------------------------------------------------
-
 #' Pipe recode factors
 #'
 #' @param graf
@@ -2443,17 +2470,25 @@ parse_commands <- function(graf=NULL,tex){
 #' @export
 #'
 #' @examples
-pipe_recode_factors <- function(graf,recodes=graf$settings$recodes){
+pipe_recode_factors <- function(graf,recodes=graf$settings$recodes,top_level_only=T,retain_unmatched=T){
   if(is.null(recodes)){warning("You did not provide recodes");return(graf)}
-  # browser()
+#  browser()
   labels <- graf$factors$label
-  new_labels <- recode(labels,!!!(recodes$new %>% set_names(recodes$old)))
-  graf$factors$label <- new_labels
+  if(top_level_only)labels <- labels %>% keep_top_level()
+
+  new_labels <- recode(labels,!!!(recodes$new %>% set_names(recodes$old)),missing=ifelse(retain_unmatched,recodes$old,NULL))
+
+  if(top_level_only) {
+    graf$factors$label <- paste0(new_labels,";",graf$factors$label %>% drop_top_level()) %>% str_remove_all(";$")
+
+  } else graf$factors$label <- new_labels
+
   pipe_update_mapfile(graf,graf$factors,graf$links) %>%
     pipe_compact_mapfile()
 
 }
 
+# main pipe functions ----------------------------------------------------
 
 #' Find factors
 #'
@@ -2600,7 +2635,7 @@ pipe_find_statements <- function(graf,field,value,operator="=",remove_isolated=T
 #' Now, it keeps the individual links (so a map with select links top =3 might still have 3000 actual links if there were 1000 from A to B
 #' and 1000 from B to C and 1000 from C to D. By default, the Interactive and
 #' Print maps would indeed combine these into three thick pipes for performance sake, but there would still be 3000 links there somewhere.
-pipe_select_links <- function(graf,top=NULL,bottom=NULL){
+pipe_select_links <- function(graf,top=NULL,bottom=NULL,recalculate_factors=T,recalculate_links=T){
 
 
   links <- graf$links %>%
@@ -2622,10 +2657,10 @@ pipe_select_links <- function(graf,top=NULL,bottom=NULL){
   #     select(from,to,frequency,everything())
 
   graf <- pipe_update_mapfile(graf,links=links) %>%
-    pipe_remove_isolated
-
-  pipe_recalculate_all(graf)
-
+    pipe_remove_isolated %>%
+    {if(recalculate_factors) pipe_recalculate_factors(.) else .} %>%
+    {if(recalculate_links) pipe_recalculate_links(.) else .}
+  graf
 }
 
 
@@ -2647,24 +2682,39 @@ nrow_links_table <- function(graf)
 #' @export
 #'
 #' @examples
-pipe_select_factors <- function(graf,top=10,bottom=NULL,all=F,field="frequency"){
-
-
-  graf$factors <-
-    factors_table(graf) %>%
-    arrange(desc(UQ(sym(field)))) %>%
-    {if(!is.null(top))slice(.,1:top) else slice(.,(nrow_factors_table(graf)+1-bottom):nrow_factors_table(graf))} %>%
-    arrange(factor_id)
-
+pipe_select_factors <- function (graf, top = 10, bottom = NULL, all = F, field = "frequency",recalculate_factors=T,recalculate_links=T) {
   # browser()
-
-  graf <- graf %>% pipe_remove_isolated_links() %>% pipe_remove_orphaned_links()
-  pipe_recalculate_all(graf)
-
-
-
-
+  graf$factors <- factors_table(graf) %>% arrange(desc(UQ(sym(field)))) %>%
+    {
+      if (!is.null(top))
+        slice(., 1:top)
+      else slice(., (nrow_factors_table(graf) + 1 - bottom):nrow_factors_table(graf))
+    } %>% arrange(factor_id)
+  graf <- graf %>% CausalMapFunctions:::pipe_remove_isolated_links() %>%
+    CausalMapFunctions:::pipe_remove_orphaned_links() %>%
+    {if(recalculate_factors) pipe_recalculate_factors(.) else .} %>%
+    {if(recalculate_links) pipe_recalculate_links(.) else .}
+  ##################pipe_recalculate_all(graf)
+  graf
 }
+# pipe_select_factors <- function(graf,top=10,bottom=NULL,all=F,field="frequency"){
+#
+#
+#   graf$factors <-
+#     factors_table(graf) %>%
+#     arrange(desc(UQ(sym(field)))) %>%
+#     {if(!is.null(top))slice(.,1:top) else slice(.,(nrow_factors_table(graf)+1-bottom):nrow_factors_table(graf))} %>%
+#     arrange(factor_id)
+#
+#   # browser()
+#
+#   graf <- graf %>% pipe_remove_isolated_links() %>% pipe_remove_orphaned_links()
+#   pipe_recalculate_all(graf)
+#
+#
+#
+#
+# }
 
 #' Remove isolated factors
 #'

@@ -4,7 +4,12 @@
 \alias{pipe_recode_factors}
 \title{Pipe recode factors}
 \usage{
-pipe_recode_factors(graf, recodes = graf$settings$recodes)
+pipe_recode_factors(
+  graf,
+  recodes = graf$settings$recodes,
+  top_level_only = T,
+  retain_unmatched = T
+)
 }
 \arguments{
 \item{recodes}{}

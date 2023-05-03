@@ -4,7 +4,13 @@
 \alias{pipe_select_links}
 \title{Select links}
 \usage{
-pipe_select_links(graf, top = NULL, bottom = NULL)
+pipe_select_links(
+  graf,
+  top = NULL,
+  bottom = NULL,
+  recalculate_factors = T,
+  recalculate_links = T
+)
 }
 \arguments{
 \item{graf}{A mapfile representing a causal map.
