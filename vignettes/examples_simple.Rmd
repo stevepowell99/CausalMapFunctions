@@ -30,18 +30,6 @@ library(tictoc)
 knitr::opts_chunk$set(echo = T,warning=F,message=F)
 
 
-source("C:/Users/steve/Dropbox/Projects/CausalMapFunctions/R/functions.R")
-## REMOVE ME
-## REMOVE ME
-## REMOVE ME
-## REMOVE ME
-## REMOVE ME
-## REMOVE ME
-## REMOVE ME
-## REMOVE ME
-## REMOVE ME
-## REMOVE ME
-## REMOVE ME
 
 pp=function(x,N=99){
   print(x,n=N)

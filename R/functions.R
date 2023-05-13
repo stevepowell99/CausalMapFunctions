@@ -80,29 +80,6 @@ standard_table <- function(tab){
 
 
 
-# # these are not generics so must be called directly
-# nrow.cm <- function (graf){graf %>% map(nrow)}
-# colnames.cm <- function (graf){graf %>% map(colnames)}
-#
-
-
-# lcollapse <- function(x)map(x,~paste0(.,collapse=":"))%>% unlist(recursive=F)
-
-#'
-#' #' Add class
-#' #'
-#' #' @param x Object to add a class to
-#' #' @param cls Class to be added
-#' #'
-#' #' @export
-#' #' @return `x` with class `cls` added
-#' #' @examples
-#' add_class <- function(x,cls="mapfile"){
-#'   class(x) <- c(cls,class(x)) %>% unique
-#'   x
-#' }
-
-
 # internal general utilities-----------------------------------------------------------------------------
 
 #' Add attribute
@@ -517,40 +494,8 @@ load_mapfile <- function(path=NULL,type=NULL,s3bucket="cm2data"){
 
       graf <- get_mapfile_from_s3(path %>% paste0(s3bucket,"/",.))
     }
-  #   if(!(str_detect(path,"/"))){
-  #     type <- "s3"
-  #
-  #   } else {
-  #     type <- path %>% str_match("^.*?/") %>% str_remove("/")
-  #     path <- path %>% str_remove("^.*?/")
-  #   }#
-  # # } else type <- "individual"
-    # if(type=="standard"){
-    #   tmp <- safely(get)(path)
-    #   if(tmp$result %>% is.null) return(NULL) else graf <- tmp$result
-    #   message("Loaded standard file")
 
-      # if(is.null(graf)) {
-      #   graf <- get_map_tables_from_s3_pieces(path %>% paste0("causalmap/app-sync/",.))
-      #
-      # }
-
-    # } else if(type=="sql"){
-    #   graf <- make_map_from_links(get_project_table("ss2answers",path,connection))
-    #   # graf <- get_map_tables_from_sql(path,connection=connection)
-    #   if(is.null(graf)) return(NULL)
-    #   message("Loaded sql file")
-    # } else  if(type=="cm2"){
-    #   graf <- get_mapfile_from_s3(path %>% paste0("cm2data/",.)) %>% as.list  #as list because of tidygraph format
-    #   if(is.null(graf)) return(NULL)
-    #   if(is.null(graf$factors) & !is.null(graf$nodes)) graf$factors <- graf$nodes
-    #   if(is.null(graf$links) & !is.null(graf$edges)) graf$links <- graf$edges
-    # } else if(type=="cm1"){
-    #   graf <- get_map_tables_from_s3_pieces(path %>% paste0("causalmap/app-sync/",.))
-    #   if(is.null(graf))return(NULL)
-
-  # browser()
-  if(is.null(graf))graf <- pipe_update_mapfile()
+    if(is.null(graf))graf <- pipe_update_mapfile()
 
   message("Loading map")
   # browser()
@@ -1153,7 +1098,7 @@ pipe_add_factor_source_counts <- function(mapfile){
     pipe_update_mapfile(mapfile,factors=.) %>% finalise(info)
   # browser()
 }
-
+## i think this is better than the current one
 #' Pipe reconstruct factors from links
 #'
 #' @param graf
@@ -1301,6 +1246,8 @@ merge_mapfile <- function(map1,map2){
 make_igraph_from_links <- function(links){
   links %>% select(from,to) %>% as.matrix()%>% graph_from_edgelist()
 }
+
+
 #' Make igraph (from factors and links)
 #'
 #' @param factors
@@ -3034,17 +2981,42 @@ pipe_trace_robustness <- function(graf,from,to,length=4,field=NULL){
 #' Trace paths
 #'
 #' @inheritParams parse_commands
-#' @param from
-#' @param to
-#' @param length
 #' @description This is a powerful command which allows the user to trace paths from one or more upstream factors to one or more downstream factors.
 #' Only links which are part of such paths are displayed.
-
-
-#' @return
+#'
+#' @param graf A causal map.
+#' @param from A character vector of factors to start the trace from.
+#' @param to A character vector of factors to end the trace at.
+#' @param length The maximum length of the paths to trace.
+#' @param remove_links If `TRUE`, links that are not part of the traced paths will be removed from the causal map.
+#' @param threads_direction The direction in which to trace threads. Valid values are `"up"`, `"down"`, and `"none"`.
+#' @param field The field to use to identify threads. Valid values are `"source_id"` and `"target_id"`.
+#' @param calculate_robustness If `TRUE`, the robustness of the traced paths will be calculated.
+#'
+#' @return A causal map with the traced paths.
 #' @export
 #'
 #' @examples
+#' graf <- create_causal_map()
+#'
+#' # Trace paths from "A" to "C".
+#' paths <- pipe_trace_paths(graf, from = "A", to = "C")
+#'
+#' # Trace paths from "A" to "C" with a maximum length of 2.
+#' paths <- pipe_trace_paths(graf, from = "A", to = "C", length = 2)
+#'
+#' # Trace paths from "A" to "C" and remove links that are not part of the traced paths.
+#' paths <- pipe_trace_paths(graf, from = "A", to = "C", remove_links = TRUE)
+#'
+#' # Trace paths from "A" to "C" in the "up" direction.
+#' paths <- pipe_trace_paths(graf, from = "A", to = "C", threads_direction = "up")
+#'
+#' # Trace paths from "A" to "C" using the "source_id" field to identify threads.
+#' paths <- pipe_trace_paths(graf, from = "A", to = "C", field = "source_id")
+#'
+#' # Trace paths from "A" to "C" and calculate the robustness of the traced paths.
+#' paths <- pipe_trace_paths(graf, from = "A", to = "C", calculate_robustness = TRUE)
+
 pipe_trace_paths <- function(graf,from="",to="",length=4,remove_links=F,threads_direction="none",field="source_id",calculate_robustness=F){
   message("Trace paths start")
 
