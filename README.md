@@ -15,6 +15,23 @@ Visualise it:
 ```
 example2 %>% make_interactive_map
 ```
+example_file
+```
+
+Visualise it:
+
+```
+example_file %>% 
+ pipe_zoom_factors %>% 
+ pipe_select_factors %>% 
+ pipe_bundle_links %>% 
+ pipe_scale_links %>% 
+ pipe_label_links %>% 
+ pipe_label_factors(add_field_name=F) %>% 
+ pipe_color_borders %>% 
+ make_print_map
+
+```
 
 These functions are used in the [Causal Map App](https://causalmap.shinyapps.io/CausalMap2/). This app is completely free to use for analysis; to create and code larger mapfiles you will need a subscription. Or you can use these functions to work completely independently from the Causal Map app.
 

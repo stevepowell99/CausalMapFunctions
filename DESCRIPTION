@@ -17,6 +17,7 @@ URL: https://stevepowell99.github.io/CausalMapFunctions,
 Depends:
     tidygraph,
     igraph,
+    scales,
     tidyverse,
     glue,
     visNetwork,

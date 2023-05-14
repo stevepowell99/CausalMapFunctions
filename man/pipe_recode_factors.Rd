@@ -2,18 +2,38 @@
 % Please edit documentation in R/functions.R
 \name{pipe_recode_factors}
 \alias{pipe_recode_factors}
-\title{Pipe recode factors}
+\title{Recode Factors in a Pipe}
 \usage{
 pipe_recode_factors(
   graf,
-  recodes = graf$settings$recodes,
+  recodes = NULL,
   top_level_only = T,
-  retain_unmatched = T
+  retain_unmatched = T,
+  slider_strictness = 50,
+  wordify = F
 )
 }
 \arguments{
-\item{recodes}{}
+\item{graf}{The input graph object.}
+
+\item{recodes}{Optional recodes as a data frame. If not provided, recodes are generated from embeddings.}
+
+\item{top_level_only}{Logical value indicating whether to recode only top-level factor levels. Default is \code{TRUE}.}
+
+\item{retain_unmatched}{Logical value indicating whether to retain unmatched factor levels in the recoding. Default is \code{TRUE}.}
+
+\item{slider_strictness}{The strictness level for generating recodes from embeddings. Default is 50.}
+
+\item{wordify}{Logical value indicating whether to wordify recoded factor levels. Default is \code{FALSE}.}
+}
+\value{
+The graph object with recoded factor levels.
 }
 \description{
-Pipe recode factors
+Recodes factor levels in a graph using specified recodes or generated recodes from embeddings.
+}
+\examples{
+# Example usage
+pipe_recode_factors(example_file, recodes = tibble(old="Farm production",new = "xx"))
+
 }

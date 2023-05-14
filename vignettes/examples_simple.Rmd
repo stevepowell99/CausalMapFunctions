@@ -117,7 +117,6 @@ pipe_recode_factors(example2) %>% make_interactive_map()
 
 
 
-sh <- load_mapfile("cropnuts-sha-22")
 oi <- load_mapfile("C:/Users/steve/Downloads/2oirefugeetestimonies-2023-01-16.xlsx")
 
 sh %>% 

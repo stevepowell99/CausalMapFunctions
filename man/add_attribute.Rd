@@ -2,19 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{add_attribute}
 \alias{add_attribute}
-\title{#' Add class
-#'
-#' @param x Object to add a class to
-#' @param cls Class to be added
-#'
-#' @export
-#' @return `x` with class `cls` added
-#' @examples
-add_class <- function(x,cls="mapfile"){
-  class(x) <- c(cls,class(x)) %>% unique
-  x
-}
-Add attribute}
+\title{Add attribute}
 \usage{
 add_attribute(graf, value, attr)
 }
@@ -29,17 +17,5 @@ add_attribute(graf, value, attr)
 The causal map `graf` but with an additional attribute `attr` with value `value`
 }
 \description{
-#' Add class
-#'
-#' @param x Object to add a class to
-#' @param cls Class to be added
-#'
-#' @export
-#' @return `x` with class `cls` added
-#' @examples
-add_class <- function(x,cls="mapfile"){
-  class(x) <- c(cls,class(x)) %>% unique
-  x
-}
 Add attribute
 }

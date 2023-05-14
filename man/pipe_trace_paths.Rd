@@ -16,12 +16,47 @@ pipe_trace_paths(
 )
 }
 \arguments{
-\item{graf}{A mapfile representing a causal map.
-A mapfile is a tidygraph, which consists of a table of edges linked to a table of nodes,
-with an optional additional table of statements.
-In this package, nodes are called `factors` and edges are called `links.`}
+\item{graf}{A causal map.}
+
+\item{from}{A character vector of factors to start the trace from.}
+
+\item{to}{A character vector of factors to end the trace at.}
+
+\item{length}{The maximum length of the paths to trace.}
+
+\item{remove_links}{If `TRUE`, links that are not part of the traced paths will be removed from the causal map.}
+
+\item{threads_direction}{The direction in which to trace threads. Valid values are `"up"`, `"down"`, and `"none"`.}
+
+\item{field}{The field to use to identify threads. Valid values are `"source_id"` and `"target_id"`.}
+
+\item{calculate_robustness}{If `TRUE`, the robustness of the traced paths will be calculated.}
+}
+\value{
+A causal map with the traced paths.
 }
 \description{
 This is a powerful command which allows the user to trace paths from one or more upstream factors to one or more downstream factors.
 Only links which are part of such paths are displayed.
+}
+\examples{
+graf <- create_causal_map()
+
+# Trace paths from "A" to "C".
+paths <- pipe_trace_paths(graf, from = "A", to = "C")
+
+# Trace paths from "A" to "C" with a maximum length of 2.
+paths <- pipe_trace_paths(graf, from = "A", to = "C", length = 2)
+
+# Trace paths from "A" to "C" and remove links that are not part of the traced paths.
+paths <- pipe_trace_paths(graf, from = "A", to = "C", remove_links = TRUE)
+
+# Trace paths from "A" to "C" in the "up" direction.
+paths <- pipe_trace_paths(graf, from = "A", to = "C", threads_direction = "up")
+
+# Trace paths from "A" to "C" using the "source_id" field to identify threads.
+paths <- pipe_trace_paths(graf, from = "A", to = "C", field = "source_id")
+
+# Trace paths from "A" to "C" and calculate the robustness of the traced paths.
+paths <- pipe_trace_paths(graf, from = "A", to = "C", calculate_robustness = TRUE)
 }
