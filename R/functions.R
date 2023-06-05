@@ -579,9 +579,17 @@ dismantle_mapfile <- function(graf){
 #' @export
 #'
 #' @examples
-pipe_mutate_factors <- function(graf,tx){
-  res <- safely(~  eval(parse(text=paste0("mutate(graf$factors, ",tx,")"))),otherwise=graf)()
-  if(is.null(res$error)) graf$factors <- res$result else {notify("Something went wrong with " %>% paste0(tx),3)}
+pipe_mutate_factors <- function(graf,new,exp){
+  # browser()
+
+  if(new %in% colnames(graf$factors)){
+    res <- list()
+    res$error=T
+  } else {
+
+  res <- safely(~  eval(parse(text=paste0("mutate(graf$factors, ",new," =",exp,")"))),otherwise=graf)()
+  }
+  if(is.null(res$error)) graf$factors <- res$result else {message("error in mutate factors");notify("Something went wrong with " %>% paste0(tx),3)}
   graf
 }
 
@@ -593,11 +601,13 @@ pipe_mutate_factors <- function(graf,tx){
 #' @export
 #'
 #' @examples
-pipe_mutate_links <- function(graf,tx){
-  res <- safely(~  eval(parse(text=paste0("mutate(graf$links, ",tx,")"))),otherwise=graf)()
+pipe_mutate_links <- function(graf,new,exp){
+  # browser()
+  res <- safely(~  eval(parse(text=paste0("mutate(graf$links, ",new," =",exp,")"))),otherwise=graf)()
   if(is.null(res$error)) graf$links <- res$result else {notify("Something went wrong with " %>% paste0(tx),3)}
   graf
 }
+
 
 #' Coerce mapfile
 #'
@@ -1015,7 +1025,40 @@ pipe_recalculate_links <- function(graf){
 }
 
 
+#' Pick factors
+#'
+#' @param graf
+#'
+#' @return
+#' @export
+#'
+#' @examples
+pipe_pick_factors <- function(graf,field){
+  # browser()
+  graf %>%
+    pipe_update_mapfile(
+      factors = graf$factors %>%
+        filter(as.logical(UQ(sym(field))))
 
+    )
+}
+#' Pick factors
+#'
+#' @param graf
+#'
+#' @return
+#' @export
+#'
+#' @examples
+pipe_pick_links <- function(graf,field){
+  # browser()
+  graf %>%
+    pipe_update_mapfile(
+      links = graf$links %>%
+        filter(as.logical(UQ(sym(field))))
+
+    )
+}
 
 
 # update_join <- function(old,new){
@@ -2086,6 +2129,12 @@ get_stdres <- function(actual,nonactual,sig=1){
 
 
 find_fun <- function(df,field=NULL,value,operator=NULL,what){
+  if(field %notin% colnames(df)) {message("No such field");return(df)}
+
+# browser()
+#   if(as.logical(value) & is.null(operator) & is.logical(as.logical(df[[field]]))){
+#     operator="is_true"
+#   } else
   if(is.null(field) & is.null(operator)){
     field="label"
     operator="contains"
@@ -2094,7 +2143,6 @@ find_fun <- function(df,field=NULL,value,operator=NULL,what){
 
   if(is.character(df[[field]])){
     # if(field %in% xc("label text from_label to_label")){
-    # browser()
     df[[field]] <- replace_na(df[[field]],"")
 
     value <- value %>% make_search %>% tolower()
@@ -2104,11 +2152,14 @@ find_fun <- function(df,field=NULL,value,operator=NULL,what){
   } else if(is.numeric(df[[field]])){
 
     value <- value %>% as.numeric
+
+  } else if(is.logical(df[[field]])){
+
+    value <- value %>% as.logical
   }
 
-  if(field %notin% colnames(df)) {message("No such field");return(df)}
 
-
+  # if(operator=="is_true"){df <- df %>%  mutate(found=as.logical(UQ(sym(field))))} else
   if(operator=="contains"){df <- df %>%  mutate(found=str_detect(tolower(unwrap(UQ(sym(field))) %>% replace_na("")),value %>% paste0(collapse="|")))} else
     if(operator=="notcontains"){df <- df %>%  mutate(found=!str_detect(tolower(unwrap(UQ(sym(field))) %>% replace_na("")),value %>% paste0(collapse="|")))} else
       if(operator %in% xc("= equals equal")){df <- df %>%  mutate(found=(make_search(tolower(unwrap(UQ(sym(field))))) %in% value))} else
@@ -2479,7 +2530,7 @@ pipe_find_factors <- function(graf,field="label",value,operator="contains",up=1,
     up <- 0
     down <- 0
   }
-
+# browser()
     df <- graf$factors %>% find_fun(field,value,operator)
 
 

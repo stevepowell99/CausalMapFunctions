@@ -4,7 +4,7 @@
 \alias{pipe_mutate_factors}
 \title{Mutate factors}
 \usage{
-pipe_mutate_factors(graf, tx)
+pipe_mutate_factors(graf, new, exp)
 }
 \value{
 A mapfile with mutated factors

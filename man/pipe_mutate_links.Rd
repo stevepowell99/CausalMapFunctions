@@ -4,7 +4,7 @@
 \alias{pipe_mutate_links}
 \title{Mutate links}
 \usage{
-pipe_mutate_links(graf, tx)
+pipe_mutate_links(graf, new, exp)
 }
 \value{
 A mapfile with mutated links
