@@ -584,6 +584,7 @@ pipe_mutate_factors <- function(graf,tx){
   if(is.null(res$error)) graf$factors <- res$result else {notify("Something went wrong with " %>% paste0(tx),3)}
   graf
 }
+
 #' Mutate links
 #'
 #' @param graf
