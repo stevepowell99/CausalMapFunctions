@@ -18,6 +18,8 @@ Depends:
     tidygraph,
     igraph,
     scales,
+    configr,
+    paws,
     tidyverse,
     glue,
     visNetwork,
