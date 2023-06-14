@@ -1,4 +1,14 @@
 ## remember this is really in the shared functions folder
+
+
+only_first <- function(vec){
+  seq_along(vec) %>% 
+    map(function(x){
+      if(x==1) vec[x] else if(vec[x]==vec[x-1]) "" else vec[x]
+    }) %>% 
+    unlist
+}
+
 nwords <- function(vec){
   map(vec,~length(strsplit(., "\\w+")[[1]])) %>% unlist
 }
@@ -11,8 +21,8 @@ replace_na <- function(vec,rep){
 
 replace_empty <- function(x,replacement=0){
   if(x=="") replacement else x
-}  
-  
+}
+
 replace_null <- function(x,replacement=0){
   if(is.null(x)) replacement else x
 }
@@ -84,7 +94,7 @@ maxclean2 <- function(x){
     str_replace_all(" ", "") %>%
     stri_trans_general("latin-ascii") %>%
     tolower
-  
+
 }
 
 maxclean3 <- function(x){
@@ -201,12 +211,30 @@ clean_send <- function(vec){
 # NLP ---------------------------------------------------------------------
 make_prompt <- function(prompts,presence_penalty=0,frequency_penalty=0,model="4", api_key=api_key){
   # browser()
+        message("Doing second pass of coding with model: " %>% paste0(model))
   row_index(prompts) %>%
     map(function(i){
-      # browser()
+      is_second <- "answer" %in% colnames(prompts)
       is_short <- prompts$text[i] %>% unlist %>% collap %>% nchar %>% `<`(28000*4)
 
-      message(prompts$text[i])
+      #message(prompts$text[i])
+      
+      
+      messages <- list(
+        list(
+          role="user",content=prompts$text[i]  #%>% as.character %>% str_sub(1,3000)
+        ))
+      
+      if(is_second) {
+        message("Doing second pass of coding with model: " %>% paste0(model))
+      # browser()
+        messages[[2]]<- list(role="assistant",content=prompts$answer[i] )
+        # messages[[2]]<- list(role="assistant",content="here they are")
+        messages[[3]]<- list(role="user",content=prompts$second_text[i])
+        # messages[[3]]<- list(role="user",content="thanks, you can stop now")
+      }
+          
+          
       request("https://api.openai.com/v1/chat/completions") %>%
         req_headers(
           Authorization = paste0("Bearer ", api_key=api_key)
@@ -216,9 +244,7 @@ make_prompt <- function(prompts,presence_penalty=0,frequency_penalty=0,model="4"
         ) %>%
         req_body_json(
           list(
-
-            #            messages = list(list(role="user",content="what time is it?")),
-            messages = list(list(role="user",content=prompts$text[i])),
+            messages = messages,
 
             model = ifelse(as.character(model)=="4"
                            ,
@@ -226,13 +252,9 @@ make_prompt <- function(prompts,presence_penalty=0,frequency_penalty=0,model="4"
                            ,
                            "gpt-3.5-turbo"
             )
-            # max_tokens = 2000,
-            # n = 1,
-            # stop = "\n"
             ,
             presence_penalty=presence_penalty,
             frequency_penalty=frequency_penalty,
-            # top_p=0.0000000000000000001,
 
             temperature = 0
           )
@@ -267,8 +289,7 @@ ask_chatgpt <- function(question,api_key,model="gpt-4") {
     content_type_json(),
     encode = "json",
     body = list(
-      model = "gpt-4",
-      # model = "gpt-3.5-turbo",
+      model = model,
       messages = list(list(role="user",content=question)),
       temperature=0,
       presence_penalty=0,frequency_penalty=0
@@ -300,21 +321,25 @@ get_links_from_answers <- function(conn,survey){
   # browser()
   if(nrow(answers)==0)return()
 
-  answers %>%
-    row_index() %>%
-    map(function(i){
-      row <- answers[i,]
-      str_split(row$content,"\n") %>%
-        unlist %>%
-        keep(~str_detect(.,">>")) %>%
-        str_remove("^- *") %>%
-        str_split(">>") %>%
-        map(str_trim) %>%
-        map(tolower) %>%
-        chains_to_links(source=row$source)
-    }) %>%
-    bind_rows %>%
-    select(source_id=statement_id,from_label=from,to_label=to) %>%
-    mutate(quote="")
+  get_links_from_arrows(answers)
+
 }
+  get_links_from_arrows <- function(answers){
+    answers %>%
+      row_index() %>%
+      map(function(i){
+        row <- answers[i,]
+        str_split(row$content,"\n") %>%
+          unlist %>%
+          keep(~str_detect(.,">>")) %>%
+          str_remove("^- *") %>%
+          str_split(">>") %>%
+          map(str_trim) %>%
+          map(tolower) %>%
+          chains_to_links(source=row$source)
+      }) %>%
+      bind_rows %>%
+      select(source_id=statement_id,from_label=from,to_label=to) %>%
+      mutate(quote="")
+  }
 

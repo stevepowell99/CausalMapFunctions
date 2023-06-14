@@ -1596,14 +1596,16 @@ collapse_unique_5 <- function(vec){
   if(length(vec)<6)paste0(unique(vec),collapse="; ") else p("link_quotes","Multiple quotes") %>% as.character # %>% as_numeric_if_all
 }
 
-# fun_map <- function(vec,fun){
-#   map(vec,~exec(fun,.)) %>% unlist
-#
-# }
-first_map <- function(vec,fun){
+
+first_mapOLD <- function(vec,fun){
   # browser()
   res <- map(vec,first) %>% unlist
   if(is.null(res)) return(vec %>% map(~NA)) else return(vec)
+
+}
+first_map <- function(vec,fun){
+  vec %>% map(~head(.,1) %>% replace_null(NA)) %>% unlist %>% replace_null(vec %>% map(~NA)) %>% unlist
+
 
 }
 
@@ -4553,7 +4555,7 @@ prepare_final <- function(graf){
 #'
 #' @examples
 make_interactive_map <- function(graf,scale=1,safe_limit=200,rainbow=F){
-# browser()
+browser()
   if(nrow(graf$factors %>% replace_null(tibble()))==0) return(empty_visnetwork)
 
   message("making interactive map")
