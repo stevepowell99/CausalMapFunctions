@@ -4555,7 +4555,6 @@ prepare_final <- function(graf){
 #'
 #' @examples
 make_interactive_map <- function(graf,scale=1,safe_limit=200,rainbow=F){
-browser()
   if(nrow(graf$factors %>% replace_null(tibble()))==0) return(empty_visnetwork)
 
   message("making interactive map")
