@@ -1706,8 +1706,8 @@ rescale_with_zero <- function(vec){
 }
 div_pal_n <- function(vec,lo,hi,mid,pal=1){
   if(min(vec,na.rm=T)<0){
-    lo="#4B0092"
-    hi="#1AFF1A" # these are colorblind friendly
+    lo="#6F6692"
+    hi="#1AEE1A" # these are colorblind friendly
     mid="#eeeeee"
   } else
   if(pal!=1){
@@ -1735,7 +1735,7 @@ brewer_pal_n <- function(vec,pal){
   scales::brewer_pal("qual",palette = pal)(length(unique(vec)))[vec] %>% alpha(.95)
 }
 create_colors <- function(vec,lo="#FCFDBF",hi="#5F187F",mid="#D3436E",type,field="frequency",fun=NULL,pal=1){
-  # browser()
+#  browser()
   vec <- as_numeric_if_all(vec)
   if((all(vec %in% 0:1))) res <-ifelse(vec,hi,lo)
       else

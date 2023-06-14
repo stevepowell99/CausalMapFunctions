@@ -211,7 +211,7 @@ clean_send <- function(vec){
 # NLP ---------------------------------------------------------------------
 make_prompt <- function(prompts,presence_penalty=0,frequency_penalty=0,model="4", api_key=api_key){
   # browser()
-        message("Doing second pass of coding with model: " %>% paste0(model))
+        message("Doing coding with model: " %>% paste0(model))
   row_index(prompts) %>%
     map(function(i){
       is_second <- "answer" %in% colnames(prompts)
@@ -230,7 +230,7 @@ make_prompt <- function(prompts,presence_penalty=0,frequency_penalty=0,model="4"
       # browser()
         messages[[2]]<- list(role="assistant",content=prompts$answer[i] )
         # messages[[2]]<- list(role="assistant",content="here they are")
-        messages[[3]]<- list(role="user",content=prompts$second_text[i])
+        messages[[3]]<- list(role="user",content=prompts$auto_coding_second[i])
         # messages[[3]]<- list(role="user",content="thanks, you can stop now")
       }
           
