@@ -22,7 +22,7 @@ library(DBI)
 library(shiny)
 
 
-source("R/symlink_global_functions.R")
+# source("R/symlink_global_functions.R")
 # constants ---------------------------------------------------------------
 safe_limit <- 200
 contrary_color <- "#f26d04"
@@ -127,7 +127,7 @@ bind_rows_safe <- function(x,y,...){
   by=intersect(colnames(x),colnames(y))
   if(is.null(by))return()
   for(i in seq_along(by)){
-    # message(by[i])
+    #message(by[i])
     # if(by[i]=="before_id") browser()
     y[,by[i]] <- coerceValue(unlist(y[,by[i]]),unlist(x[,by[i]]))
   }
@@ -5007,7 +5007,7 @@ make_print_map <- function(
   # factors$cluster <- factors$cluster %>% replace_na("")
 
   if("factor_wrap" %in% colnames(factors))factors <- factors %>%
-    mutate(label=str_wrap(label,max(factor_wrap))) else factors <-
+    mutate(label=str_wrap(label,max(factor_wrap %>% as.integer()))) else factors <-
     factors %>%     mutate(label=add_default_wrap(label) )
 
   edges <- graf$links %>% select(-any_of("label")) %>% rename(label=link_label) %>%
